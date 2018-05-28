@@ -284,21 +284,44 @@
 </ul>
 </li>
 </ul>
-<h2 id="认证方式"><a href="#认证方式" class="headerlink" title="认证方式"></a>认证方式</h2><ul>
+<h2 id="认证方式"><a href="#认证方式" class="headerlink" title="认证方式"></a>认证方式</h2><h3 id="基本认证"><a href="#基本认证" class="headerlink" title="基本认证"></a>基本认证</h3><ul>
 <li>HTTP请求报头： Authorization</li>
-<li>HTTP响应报头： WWW-Authenticate</li>
-<li>HTTP认证是基于质询/回应(challenge/response)的认证模式</li>
-<li>基本认证：</li>
-<li>摘要认证：</li>
+<li>HTTP响应报头： 认证失败-》WWW-Authenticate；认证成功返回指定内容</li>
+<li>Oauth认证：增强版，放在Authorization中的token使用了更强的加密算法</li>
 </ul>
-<h2 id="HTTPS-原理"><a href="#HTTPS-原理" class="headerlink" title="HTTPS 原理"></a>HTTPS 原理</h2><h2 id="参考地址"><a href="#参考地址" class="headerlink" title="参考地址"></a>参考地址</h2><ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> 请求服务器使用基本认证保护资源</span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span> 应答</span><br><span class="line">HTTP/1.0 401 Authorization Required</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:18:15 GMT</span><br><span class="line">WWW-Authenticate: Basic realm="Secure Area"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span> 客户端加上用户名密码后重新请求，浏览器使用BASE64Encode(UserName:PassWork)生成token</span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</span><br><span class="line"><span class="meta">#</span> 服务器认证通过，返回请求内容</span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:19:07 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 10476</span><br></pre></td></tr></table></figure>
+<h3 id="摘要认证"><a href="#摘要认证" class="headerlink" title="摘要认证"></a>摘要认证</h3><ul>
+<li>Http1.1开始提供</li>
+<li>引入安全增强选项:qop</li>
+<li>HA1 = MD5(A1) = MD5(username:realm:password)</li>
+<li><code>qop = auth or undefined</code>: HA2 = MD5(A2) = MD5(method:digestURI)</li>
+<li><code>qop = auth-int</code> : HA2 = MD5(A2) = MD5(method:digetURI:MD5(entityBody))</li>
+<li><code>qop = auth or auth-int</code>: response = MD5(HA1:nonce:nonceCount:clientNone:qop:HA2)</li>
+<li><code>qop = undefined</code>: reponse = MD5(HA1:nonce:HA2)</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>客户端请求 (无认证)：</span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span>服务端返回401</span><br><span class="line">HTTP/1.0 401 Unauthorized</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:26:47 GMT</span><br><span class="line">WWW-Authenticate: Digest realm="testrealm@host.com",//认证域</span><br><span class="line">                        qop="auth,auth-int",   //保护质量</span><br><span class="line">                        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",  //服务器密码随机数</span><br><span class="line">                        opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span>客户端重新发出请求 (用户名 "Mufasa", 密码 "Circle Of Life")：</span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Digest username="Mufasa",</span><br><span class="line">                     realm="testrealm@host.com",</span><br><span class="line">                     nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",</span><br><span class="line">                     uri="/dir/index.html",</span><br><span class="line">                     qop=auth,</span><br><span class="line">                     nc=00000001,    //请求计数</span><br><span class="line">                     cnonce="0a4f113b",   //客户端密码随机数</span><br><span class="line">                     response="6629fae49393a05397450978507c4ef1",</span><br><span class="line">                     opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line"><span class="meta">#</span>服务器响应：</span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:27:03 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 7984</span><br></pre></td></tr></table></figure>
+<h2 id="HTTPS-原理"><a href="#HTTPS-原理" class="headerlink" title="HTTPS 原理"></a>HTTPS 原理</h2><ul>
+<li>Hypertext Transfer Protocol over Secure Socket Layer: HTTPS的基础上SSL</li>
+<li>两种基本加密类型：<ul>
+<li>对称加密：使用一个密钥，加解密速度快，例子：DES、AES</li>
+<li>非对称加密：密钥和公钥成对出现=》密钥加密，公钥解密；公钥加密，密钥解密</li>
+</ul>
+</li>
+</ul>
+<h3 id="Https过程如下"><a href="#Https过程如下" class="headerlink" title="Https过程如下:"></a><a href="https://www.jianshu.com/p/1c2b4bbb4e50" target="_blank" rel="noopener">Https过程如下</a>:</h3><p>①客户端发起SSL通信，报文中包含客户端支持的SSL的指定版本，加密组件列表(加密算法及密码长度)</p>
+<p>②服务端通过SSL通信，将SSL版本及加密算法版本中的一组发送至客户端.</p>
+<p>③服务端发送客户端Certificate报文，报文中包含公开密钥证书.</p>
+<p>④客户端验证证书的合法性(<code>颁发证书的机构是否合法，证书中包含的网站地址是否与正在访问的地址一致等</code>),如果证书受信任，则浏览器栏里面会显示一个小锁头，否则会给出证书不受信的提示;<br>如果证书受信任，或者用户接受了不受信的证书，客户端会生成一个Pre-master secret的随机密码串，并且通过接受到公钥加密.</p>
+<p>⑤服务端会通过私钥解密出Pre-master sercret随机密码串，通过Pre-master sercret解密密发来的握手信息，并验证Hash是否与浏览器发来的一致.之后通过密码加密一段握手信息，发给客户端.</p>
+<p>⑥客户端解密并计算握手信息的Hash,如果与Server发来的Hash一致，此时握手过程结束，<code>利用对称加密算法进行加密</code>.</p>
+<h2 id="参考地址"><a href="#参考地址" class="headerlink" title="参考地址"></a>参考地址</h2><ul>
 <li><a href="https://www.cnblogs.com/EricaMIN1987_IT/p/3837436.html" target="_blank" rel="noopener">博客 HTTP 详解 https://www.cnblogs.com/EricaMIN1987_IT/p/3837436.html</a></li>
 </ul>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/17/http/" data-id="cjho1ri4n0003017ab5ghmqsw" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/17/http/" data-id="cjhq6t6ch00011q7a721ac3cd" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
@@ -390,7 +413,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/t-io-start/" data-id="cjho1ri4p0004017avuycv444" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/13/t-io-start/" data-id="cjhq6t6ck00031q7aqcbsoo3k" class="article-share-link">Share</a>
       
       
     </footer>
@@ -436,7 +459,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/hello-world/" data-id="cjho1ri4i0001017agze10njj" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/13/hello-world/" data-id="cjhq6t6cm00041q7a0ua2f11v" class="article-share-link">Share</a>
       
       
     </footer>
@@ -557,7 +580,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="cjho1ri4f0000017agpx7xah4" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="cjhq6t6cd00001q7a2v7k3tsm" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
