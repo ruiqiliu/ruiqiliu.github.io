@@ -15,7 +15,7 @@
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
 <meta property="og:description" content="Java 8、9、10的新特性Java 10JDK 10 发布于 2018年3月20日。主要更新是局部变量推断和垃圾回收及编译算法提高。 JDK 10是个短期的版本，将要于今天九月份发布的JDK 11是个LTS版本。 主要特点：  Local variable type inference： 使用初始化语句推段变量类型 G1 支持并行化： 提高 worst-case 延迟 优化 class-dat">
 <meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-05-15T00:18:39.769Z">
+<meta property="og:updated_time" content="2018-05-28T16:38:54.095Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Java 简史">
 <meta name="twitter:description" content="Java 8、9、10的新特性Java 10JDK 10 发布于 2018年3月20日。主要更新是局部变量推断和垃圾回收及编译算法提高。 JDK 10是个短期的版本，将要于今天九月份发布的JDK 11是个LTS版本。 主要特点：  Local variable type inference： 使用初始化语句推段变量类型 G1 支持并行化： 提高 worst-case 延迟 优化 class-dat">
@@ -117,13 +117,60 @@
 <li>Project Panama： native code和JVM的交互增强</li>
 <li>Valhalla： valued types and generic specialization</li>
 <li>Project Loom： 目的是减少编写并发程序的难度</li>
-<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html" target="_blank" rel="noopener">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a><h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3></li>
+<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html" target="_blank" rel="noopener">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a></li>
 </ul>
-<p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入</p>
+<h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3><p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入<br><a href="https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-9/index.html" target="_blank" rel="noopener">IBM Blog</a></p>
+<h4 id="Java平台模块系统"><a href="#Java平台模块系统" class="headerlink" title="Java平台模块系统"></a>Java平台模块系统</h4><ul>
+<li>Project Jigsaw把模块化开发实践引入到了Java平台</li>
+<li>通过jlink工具，创建出只包含所依赖的JDK模块的自定义运行时镜像</li>
+<li>模块的重要特征是其工件（artifact）的根目录中包含了一个描述模块的module-info.class 文件（由module-info.java编译），模块的内容包括：<ul>
+<li>模块导出的包</li>
+<li>模块的依赖关系 <code>requires</code> or <code>requires transitive</code></li>
+<li>服务的提供和使用 <code>ServiceLocator</code> or <code>uses</code> or <code>provides with</code></li>
+<li><code>getModule()</code></li>
+</ul>
+</li>
+<li>工件的格式是JAR文件或者JMOD文件</li>
+<li>JVM提供了相应的API和模块系统进行交互</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">module</span> com.mycompany.sample &#123; <span class="comment">//模块声明定义</span></span><br><span class="line">    <span class="keyword">exports</span> com.mycompany.sample; </span><br><span class="line">    <span class="keyword">requires</span> com.mycompany.common; </span><br><span class="line">    provides com.mycompany.common.DemoService with</span><br><span class="line">        com.mycompany.sample.DemoServiceImpl; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="Jshell"><a href="#Jshell" class="headerlink" title="Jshell"></a>Jshell</h4><p>Jshell提供的功能类似于NodeJS和Python中的Read-Evaluation-PrintLoop 功能。</p>
 <ul>
-<li><h3 id="Java-8"><a href="#Java-8" class="headerlink" title="Java 8"></a>Java 8</h3></li>
+<li>基本的表达式计算</li>
+<li>创建Java 类和方法</li>
+<li>执行代码片段</li>
+<li>详细介绍请执行 <code>jshell</code> =&gt; <code>/help /list</code></li>
 </ul>
-<p>Java 8 发布于2014年3月18日。</p>
+<h4 id="集合、Stream、Optional、进程"><a href="#集合、Stream、Optional、进程" class="headerlink" title="集合、Stream、Optional、进程"></a>集合、Stream、Optional、进程</h4><ul>
+<li>List.of()\Set.of()\Map.of()\Map.ofEntries()等工厂方法返回不可变集合</li>
+<li>Stream新增API：filtering、flatMapping <a href="StreamAPI.md">todo</a></li>
+<li>Optional 类新增API： ifPresentOrElse、or、stream</li>
+<li>进程API：接口ProcessHandle可以对原生进程进行管理</li>
+<li><p>平台日志API：System.LoggerFinder 来管理日志记录器实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123; </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> System.Logger LOGGER = System.getLogger(<span class="string">"Main"</span>); </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> </span>&#123; </span><br><span class="line">        LOGGER.log(Level.INFO, <span class="string">"Run!"</span>);</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Reactive Streams: <code>java.util.concurrent.Flow</code>, 核心接口：</p>
+<ul>
+<li>Flow.Publisher</li>
+<li>Flow.Subscriber</li>
+<li>Flow.Subscription</li>
+<li>Flow.Processor</li>
+</ul>
+</li>
+<li>变量句柄： VariableHandler <code>java.lang.invoke.VarHandle</code></li>
+<li>改进方法句柄： <code>java.lang.MethodHandles</code></li>
+<li>CompletableFuture <code>orTimeout</code></li>
+<li>Java8引入的JS引擎Nashorn增强：实现了ES6的新特性</li>
+<li>IO： <code>readAllBytes</code>,<code>readNBytes</code>,<code>transferTo</code></li>
+<li>新增SHA-3 哈希算法，java.security.SecureRandom生成使用DRBG算法的强随机数</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.codec.binary.Hex; </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SHA3</span> </span>&#123; </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> <span class="keyword">throws</span> NoSuchAlgorithmException </span>&#123; </span><br><span class="line">        <span class="keyword">final</span> MessageDigest instance = MessageDigest.getInstance(<span class="string">"SHA3-224"</span>); </span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">byte</span>[] digest = instance.digest(<span class="string">""</span>.getBytes()); </span><br><span class="line">        System.out.println(Hex.encodeHexString(digest)); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>统一JVM日志： <code>-Xlog</code>控制JVM日志输出的标签、级别、修饰符、输出目标</li>
+<li>新增jcmd调用的诊断命令</li>
+<li>接口支持私有方法</li>
+</ul>
+<h3 id="Java-8"><a href="#Java-8" class="headerlink" title="Java 8"></a>Java 8</h3><p>Java 8 发布于2014年3月18日。</p>
 <ul>
 <li>函数式接口： @FunctionalInterface</li>
 <li>Lambda表达式</li>
@@ -180,7 +227,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="cjhq6t6cd00001q7a2v7k3tsm" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="cji3sa1lh0003or7a0v7oojwf" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
@@ -217,7 +264,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java-DB/">Java,DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li></ul>
     </div>
   </div>
 
@@ -227,7 +274,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Java/" style="font-size: 10px;">Java</a> <a href="/tags/Web/" style="font-size: 10px;">Web</a>
+      <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/Java/" style="font-size: 10px;">Java</a> <a href="/tags/Java-DB/" style="font-size: 10px;">Java,DB</a> <a href="/tags/Web/" style="font-size: 10px;">Web</a>
     </div>
   </div>
 
@@ -236,7 +283,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/06/">June 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
     </div>
   </div>
 
@@ -249,6 +296,14 @@
       <ul>
         
           <li>
+            <a href="/2018/06/06/MyBatis/">MyBatis 初探</a>
+          </li>
+        
+          <li>
+            <a href="/2018/05/29/golang/">golang</a>
+          </li>
+        
+          <li>
             <a href="/2018/05/17/http/">HTTP 学习笔记</a>
           </li>
         
@@ -258,10 +313,6 @@
         
           <li>
             <a href="/2018/05/13/hello-world/">Hexo Tutorial</a>
-          </li>
-        
-          <li>
-            <a href="/2018/05/13/Java-简史/">Java 简史</a>
           </li>
         
       </ul>

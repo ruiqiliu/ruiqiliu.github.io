@@ -66,6 +66,127 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-MyBatis" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/06/06/MyBatis/" class="article-date">
+  <time datetime="2018-06-06T00:06:11.000Z" itemprop="datePublished">2018-06-06</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/06/06/MyBatis/">MyBatis 初探</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>MyBatis 是一个开源持久化框架，用于简化Java开发中的数据库访问。它支持<code>customer SQL</code>, <code>stored procedures</code> 和 <code>different types of mapping relations</code>。</p>
+<h2 id="Maven-依赖"><a href="#Maven-依赖" class="headerlink" title="Maven 依赖"></a>Maven 依赖</h2><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.mybatis<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>mybatis<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.4.4<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h2 id="Java-APIs"><a href="#Java-APIs" class="headerlink" title="Java APIs"></a>Java APIs</h2><h3 id="SQLSessionFactory"><a href="#SQLSessionFactory" class="headerlink" title="SQLSessionFactory"></a>SQLSessionFactory</h3><p>SQLSessionFactory是MyBatis应用的核心，使用对应的Builder和配置文件来实例化。配置文件中包含了如下信息：</p>
+<ul>
+<li>data source definition</li>
+<li>transaction manager details</li>
+<li>mappers of relations between entities</li>
+</ul>
+<h3 id="SQLSession"><a href="#SQLSession" class="headerlink" title="SQLSession"></a>SQLSession</h3><p>SQLSession 使用SQLSessionFactory（非线程安全）来实例化，。包含了如下操作：</p>
+<ul>
+<li>performing database operations</li>
+<li>obtaining mappers</li>
+<li>managing transactions</li>
+</ul>
+<p>SqlSession实现了<code>AutoCloseable</code>interface,可以使用如下形式：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span>(SqlSession session = sqlSessionFactory.openSession()) &#123;</span><br><span class="line">    <span class="comment">// do work</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Mappers"><a href="#Mappers" class="headerlink" title="Mappers"></a>Mappers</h2><ul>
+<li>CRUD注解：调用被注解的方法，执行对应的SQL<ul>
+<li><code>@Insert</code></li>
+<li><code>@Select</code></li>
+<li><code>@Update</code></li>
+<li><code>@Delete</code></li>
+</ul>
+</li>
+<li><code>@Results</code> 设置查询结果与Java类的映射关系<ul>
+<li>@Result</li>
+</ul>
+</li>
+<li><code>@Many</code><ul>
+<li><code>@One</code></li>
+</ul>
+</li>
+<li><code>@MapKey</code></li>
+<li><code>@Options</code> 定义全局的开关和配置</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">PersonMapper</span> </span>&#123;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@Insert</span>(<span class="string">"Insert into person(name) values (#&#123;name&#125;)"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Integer <span class="title">save</span><span class="params">(Person person)</span></span>;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line"> </span><br><span class="line">    <span class="meta">@Select</span>(</span><br><span class="line">      <span class="string">"Select personId, name from Person where personId=#&#123;personId&#125;"</span>)</span><br><span class="line">    <span class="meta">@Results</span>(value = &#123;</span><br><span class="line">      <span class="meta">@Result</span>(property = <span class="string">"personId"</span>, column = <span class="string">"personId"</span>),</span><br><span class="line">      <span class="meta">@Result</span>(property=<span class="string">"name"</span>, column = <span class="string">"name"</span>),</span><br><span class="line">      <span class="meta">@Result</span>(property = <span class="string">"addresses"</span>, javaType = List.class,</span><br><span class="line">        column = <span class="string">"personId"</span>, many=<span class="meta">@Many</span>(select = <span class="string">"getAddresses"</span>))</span><br><span class="line">    &#125;)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Person <span class="title">getPersonById</span><span class="params">(Integer personId)</span></span>;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@Insert</span>(<span class="string">"Insert into address (streetAddress, personId  </span></span><br><span class="line"><span class="string">  values(#&#123;streetAddress&#125;, #&#123;personId&#125;)"</span>)</span><br><span class="line">    <span class="meta">@Options</span>(useGeneratedKeys = <span class="keyword">false</span>, flushCache=<span class="keyword">true</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> Integer <span class="title">saveAddress</span><span class="params">(Address address)</span></span>;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Dynamic-SQL"><a href="#Dynamic-SQL" class="headerlink" title="Dynamic SQL"></a>Dynamic SQL</h2><p>动态生成SQL语句，相对于传统JDBC易于调试，不易出错。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//SQL使用</span></span><br><span class="line"><span class="meta">@SelectProvider</span>(type=MyBatisUtil.class, method=<span class="string">"getPersonByName"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> Person <span class="title">getPersonByName</span><span class="params">(String name)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyBatisUtil</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">// SQL定义</span></span><br><span class="line">  </span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getPersonByName</span><span class="params">(String name)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> SQL() &#123;&#123;</span><br><span class="line">            SELECT(<span class="string">"*"</span>);</span><br><span class="line">            FROM(<span class="string">"person"</span>);</span><br><span class="line">            WHERE(<span class="string">"name like #&#123;name&#125; || '%'"</span>);</span><br><span class="line">        &#125;&#125;.toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="存储过程的调用"><a href="#存储过程的调用" class="headerlink" title="存储过程的调用"></a>存储过程的调用</h3><h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a href="http://www.baeldung.com/mybatis" target="_blank" rel="noopener">http://www.baeldung.com/mybatis</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2018/06/06/MyBatis/" data-id="cji3sa1la0000or7a6y01c3wq" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java-DB/">Java,DB</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-golang" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/05/29/golang/" class="article-date">
+  <time datetime="2018-05-28T17:02:06.000Z" itemprop="datePublished">2018-05-29</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/05/29/golang/">golang</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="Go语言学习笔记"><a href="#Go语言学习笔记" class="headerlink" title="Go语言学习笔记"></a>Go语言学习笔记</h1><h2 id="Start"><a href="#Start" class="headerlink" title="Start"></a>Start</h2><ul>
+<li>go run hello.go</li>
+<li>go build hello.go</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2018/05/29/golang/" data-id="cji3sa1lk0004or7auuqey8y2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/">Go</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-http" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2018/05/17/http/" class="article-date">
@@ -99,7 +220,7 @@
 <h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><ul>
 <li>请求头域与响应头域</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">GET /img/ridox.jpg HTTP/1.1\r\n</span><br><span class="line">HOST: img0.promise.com\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">\r\n</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span> 响应</span><br><span class="line">HTTP/1.1 200 ok\r\n</span><br><span class="line">Server: JSPO2/1.0.27\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Content-Type：image/gif\r\n</span><br><span class="line">Content-Length: 228\r\n</span><br><span class="line">ETag: "1693457"\r\n</span><br><span class="line">Expires: Fri,18 Jul 2014 05:44:45\r\n</span><br><span class="line">Cache-Control: max-age=604800\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">GET /img/ridox.jpg HTTP/1.1\r\n</span><br><span class="line">HOST: img0.promise.com\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">\r\n</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 响应</span></span><br><span class="line">HTTP/1.1 200 ok\r\n</span><br><span class="line">Server: JSPO2/1.0.27\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Content-Type：image/gif\r\n</span><br><span class="line">Content-Length: 228\r\n</span><br><span class="line">ETag: "1693457"\r\n</span><br><span class="line">Expires: Fri,18 Jul 2014 05:44:45\r\n</span><br><span class="line">Cache-Control: max-age=604800\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
 <h2 id="请求动作"><a href="#请求动作" class="headerlink" title="请求动作"></a>请求动作</h2><p>方法区分大小写，Request Line中是全大写</p>
 <ul>
 <li>options：服务器返回针对特定资源支持的方法，测试服务请的功能</li>
@@ -288,8 +409,9 @@
 <li>HTTP请求报头： Authorization</li>
 <li>HTTP响应报头： 认证失败-》WWW-Authenticate；认证成功返回指定内容</li>
 <li>Oauth认证：增强版，放在Authorization中的token使用了更强的加密算法</li>
+<li><a href="http://www.ruanyifeng.com/blog/2014/05/oauth_2_0.html" target="_blank" rel="noopener">阮一峰讲 Oauth</a></li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> 请求服务器使用基本认证保护资源</span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span> 应答</span><br><span class="line">HTTP/1.0 401 Authorization Required</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:18:15 GMT</span><br><span class="line">WWW-Authenticate: Basic realm="Secure Area"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span> 客户端加上用户名密码后重新请求，浏览器使用BASE64Encode(UserName:PassWork)生成token</span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</span><br><span class="line"><span class="meta">#</span> 服务器认证通过，返回请求内容</span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:19:07 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 10476</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 请求服务器使用基本认证保护资源</span></span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span><span class="bash"> 应答</span></span><br><span class="line">HTTP/1.0 401 Authorization Required</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:18:15 GMT</span><br><span class="line">WWW-Authenticate: Basic realm="Secure Area"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span><span class="bash"> 客户端加上用户名密码后重新请求，浏览器使用BASE64Encode(UserName:PassWork)生成token</span></span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</span><br><span class="line"><span class="meta">#</span><span class="bash"> 服务器认证通过，返回请求内容</span></span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:19:07 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 10476</span><br></pre></td></tr></table></figure>
 <h3 id="摘要认证"><a href="#摘要认证" class="headerlink" title="摘要认证"></a>摘要认证</h3><ul>
 <li>Http1.1开始提供</li>
 <li>引入安全增强选项:qop</li>
@@ -299,7 +421,7 @@
 <li><code>qop = auth or auth-int</code>: response = MD5(HA1:nonce:nonceCount:clientNone:qop:HA2)</li>
 <li><code>qop = undefined</code>: reponse = MD5(HA1:nonce:HA2)</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>客户端请求 (无认证)：</span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span>服务端返回401</span><br><span class="line">HTTP/1.0 401 Unauthorized</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:26:47 GMT</span><br><span class="line">WWW-Authenticate: Digest realm="testrealm@host.com",//认证域</span><br><span class="line">                        qop="auth,auth-int",   //保护质量</span><br><span class="line">                        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",  //服务器密码随机数</span><br><span class="line">                        opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span>客户端重新发出请求 (用户名 "Mufasa", 密码 "Circle Of Life")：</span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Digest username="Mufasa",</span><br><span class="line">                     realm="testrealm@host.com",</span><br><span class="line">                     nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",</span><br><span class="line">                     uri="/dir/index.html",</span><br><span class="line">                     qop=auth,</span><br><span class="line">                     nc=00000001,    //请求计数</span><br><span class="line">                     cnonce="0a4f113b",   //客户端密码随机数</span><br><span class="line">                     response="6629fae49393a05397450978507c4ef1",</span><br><span class="line">                     opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line"><span class="meta">#</span>服务器响应：</span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:27:03 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 7984</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">客户端请求 (无认证)：</span></span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span><span class="bash">服务端返回401</span></span><br><span class="line">HTTP/1.0 401 Unauthorized</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:26:47 GMT</span><br><span class="line">WWW-Authenticate: Digest realm="testrealm@host.com",//认证域</span><br><span class="line">                        qop="auth,auth-int",   //保护质量</span><br><span class="line">                        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",  //服务器密码随机数</span><br><span class="line">                        opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span><span class="bash">客户端重新发出请求 (用户名 <span class="string">"Mufasa"</span>, 密码 <span class="string">"Circle Of Life"</span>)：</span></span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Digest username="Mufasa",</span><br><span class="line">                     realm="testrealm@host.com",</span><br><span class="line">                     nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",</span><br><span class="line">                     uri="/dir/index.html",</span><br><span class="line">                     qop=auth,</span><br><span class="line">                     nc=00000001,    //请求计数</span><br><span class="line">                     cnonce="0a4f113b",   //客户端密码随机数</span><br><span class="line">                     response="6629fae49393a05397450978507c4ef1",</span><br><span class="line">                     opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line"><span class="meta">#</span><span class="bash">服务器响应：</span></span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:27:03 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 7984</span><br></pre></td></tr></table></figure>
 <h2 id="HTTPS-原理"><a href="#HTTPS-原理" class="headerlink" title="HTTPS 原理"></a>HTTPS 原理</h2><ul>
 <li>Hypertext Transfer Protocol over Secure Socket Layer: HTTPS的基础上SSL</li>
 <li>两种基本加密类型：<ul>
@@ -321,7 +443,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/17/http/" data-id="cjhq6t6ch00011q7a721ac3cd" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/17/http/" data-id="cji3sa1lo0005or7avrmqwaae" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
@@ -413,7 +535,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/t-io-start/" data-id="cjhq6t6ck00031q7aqcbsoo3k" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/13/t-io-start/" data-id="cji3sa1lt0008or7a6f65j3iv" class="article-share-link">Share</a>
       
       
     </footer>
@@ -459,7 +581,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/hello-world/" data-id="cjhq6t6cm00041q7a0ua2f11v" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/13/hello-world/" data-id="cji3sa1le0001or7ah6h7mrgx" class="article-share-link">Share</a>
       
       
     </footer>
@@ -517,13 +639,60 @@
 <li>Project Panama： native code和JVM的交互增强</li>
 <li>Valhalla： valued types and generic specialization</li>
 <li>Project Loom： 目的是减少编写并发程序的难度</li>
-<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html" target="_blank" rel="noopener">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a><h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3></li>
+<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html" target="_blank" rel="noopener">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a></li>
 </ul>
-<p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入</p>
+<h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3><p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入<br><a href="https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-9/index.html" target="_blank" rel="noopener">IBM Blog</a></p>
+<h4 id="Java平台模块系统"><a href="#Java平台模块系统" class="headerlink" title="Java平台模块系统"></a>Java平台模块系统</h4><ul>
+<li>Project Jigsaw把模块化开发实践引入到了Java平台</li>
+<li>通过jlink工具，创建出只包含所依赖的JDK模块的自定义运行时镜像</li>
+<li>模块的重要特征是其工件（artifact）的根目录中包含了一个描述模块的module-info.class 文件（由module-info.java编译），模块的内容包括：<ul>
+<li>模块导出的包</li>
+<li>模块的依赖关系 <code>requires</code> or <code>requires transitive</code></li>
+<li>服务的提供和使用 <code>ServiceLocator</code> or <code>uses</code> or <code>provides with</code></li>
+<li><code>getModule()</code></li>
+</ul>
+</li>
+<li>工件的格式是JAR文件或者JMOD文件</li>
+<li>JVM提供了相应的API和模块系统进行交互</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">module</span> com.mycompany.sample &#123; <span class="comment">//模块声明定义</span></span><br><span class="line">    <span class="keyword">exports</span> com.mycompany.sample; </span><br><span class="line">    <span class="keyword">requires</span> com.mycompany.common; </span><br><span class="line">    provides com.mycompany.common.DemoService with</span><br><span class="line">        com.mycompany.sample.DemoServiceImpl; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="Jshell"><a href="#Jshell" class="headerlink" title="Jshell"></a>Jshell</h4><p>Jshell提供的功能类似于NodeJS和Python中的Read-Evaluation-PrintLoop 功能。</p>
 <ul>
-<li><h3 id="Java-8"><a href="#Java-8" class="headerlink" title="Java 8"></a>Java 8</h3></li>
+<li>基本的表达式计算</li>
+<li>创建Java 类和方法</li>
+<li>执行代码片段</li>
+<li>详细介绍请执行 <code>jshell</code> =&gt; <code>/help /list</code></li>
 </ul>
-<p>Java 8 发布于2014年3月18日。</p>
+<h4 id="集合、Stream、Optional、进程"><a href="#集合、Stream、Optional、进程" class="headerlink" title="集合、Stream、Optional、进程"></a>集合、Stream、Optional、进程</h4><ul>
+<li>List.of()\Set.of()\Map.of()\Map.ofEntries()等工厂方法返回不可变集合</li>
+<li>Stream新增API：filtering、flatMapping <a href="StreamAPI.md">todo</a></li>
+<li>Optional 类新增API： ifPresentOrElse、or、stream</li>
+<li>进程API：接口ProcessHandle可以对原生进程进行管理</li>
+<li><p>平台日志API：System.LoggerFinder 来管理日志记录器实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123; </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> System.Logger LOGGER = System.getLogger(<span class="string">"Main"</span>); </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> </span>&#123; </span><br><span class="line">        LOGGER.log(Level.INFO, <span class="string">"Run!"</span>);</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Reactive Streams: <code>java.util.concurrent.Flow</code>, 核心接口：</p>
+<ul>
+<li>Flow.Publisher</li>
+<li>Flow.Subscriber</li>
+<li>Flow.Subscription</li>
+<li>Flow.Processor</li>
+</ul>
+</li>
+<li>变量句柄： VariableHandler <code>java.lang.invoke.VarHandle</code></li>
+<li>改进方法句柄： <code>java.lang.MethodHandles</code></li>
+<li>CompletableFuture <code>orTimeout</code></li>
+<li>Java8引入的JS引擎Nashorn增强：实现了ES6的新特性</li>
+<li>IO： <code>readAllBytes</code>,<code>readNBytes</code>,<code>transferTo</code></li>
+<li>新增SHA-3 哈希算法，java.security.SecureRandom生成使用DRBG算法的强随机数</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.codec.binary.Hex; </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SHA3</span> </span>&#123; </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> <span class="keyword">throws</span> NoSuchAlgorithmException </span>&#123; </span><br><span class="line">        <span class="keyword">final</span> MessageDigest instance = MessageDigest.getInstance(<span class="string">"SHA3-224"</span>); </span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">byte</span>[] digest = instance.digest(<span class="string">""</span>.getBytes()); </span><br><span class="line">        System.out.println(Hex.encodeHexString(digest)); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>统一JVM日志： <code>-Xlog</code>控制JVM日志输出的标签、级别、修饰符、输出目标</li>
+<li>新增jcmd调用的诊断命令</li>
+<li>接口支持私有方法</li>
+</ul>
+<h3 id="Java-8"><a href="#Java-8" class="headerlink" title="Java 8"></a>Java 8</h3><p>Java 8 发布于2014年3月18日。</p>
 <ul>
 <li>函数式接口： @FunctionalInterface</li>
 <li>Lambda表达式</li>
@@ -580,7 +749,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="cjhq6t6cd00001q7a2v7k3tsm" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="cji3sa1lh0003or7a0v7oojwf" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
@@ -605,7 +774,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java-DB/">Java,DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li></ul>
     </div>
   </div>
 
@@ -615,7 +784,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Java/" style="font-size: 10px;">Java</a> <a href="/tags/Web/" style="font-size: 10px;">Web</a>
+      <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/Java/" style="font-size: 10px;">Java</a> <a href="/tags/Java-DB/" style="font-size: 10px;">Java,DB</a> <a href="/tags/Web/" style="font-size: 10px;">Web</a>
     </div>
   </div>
 
@@ -624,7 +793,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/06/">June 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
     </div>
   </div>
 
@@ -637,6 +806,14 @@
       <ul>
         
           <li>
+            <a href="/2018/06/06/MyBatis/">MyBatis 初探</a>
+          </li>
+        
+          <li>
+            <a href="/2018/05/29/golang/">golang</a>
+          </li>
+        
+          <li>
             <a href="/2018/05/17/http/">HTTP 学习笔记</a>
           </li>
         
@@ -646,10 +823,6 @@
         
           <li>
             <a href="/2018/05/13/hello-world/">Hexo Tutorial</a>
-          </li>
-        
-          <li>
-            <a href="/2018/05/13/Java-简史/">Java 简史</a>
           </li>
         
       </ul>
