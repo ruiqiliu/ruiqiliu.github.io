@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>spring | Ruiqi Liu&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="Spring框架学习笔记Spring是Java平台上的开源应用框架，起源于Rod Johnson于2002年所著的《Expert One-on-One：J2EE Design and Development》，2003年Rod公开了框架源码，2004年1.0版Spring正式发布。框架优势：  有效组织中间层对象 实现面向接口编程的范式 易于进行单元测试 简化了数据库访问层  依赖注入与控制反转传">
+<meta name="keywords" content="Java,Web,Architecture">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spring">
+<meta property="og:url" content="http://yoursite.com/2018/06/14/spring/index.html">
+<meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
+<meta property="og:description" content="Spring框架学习笔记Spring是Java平台上的开源应用框架，起源于Rod Johnson于2002年所著的《Expert One-on-One：J2EE Design and Development》，2003年Rod公开了框架源码，2004年1.0版Spring正式发布。框架优势：  有效组织中间层对象 实现面向接口编程的范式 易于进行单元测试 简化了数据库访问层  依赖注入与控制反转传">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-07-17T16:19:39.881Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="spring">
+<meta name="twitter:description" content="Spring框架学习笔记Spring是Java平台上的开源应用框架，起源于Rod Johnson于2002年所著的《Expert One-on-One：J2EE Design and Development》，2003年Rod公开了框架源码，2004年1.0版Spring正式发布。框架优势：  有效组织中间层对象 实现面向接口编程的范式 易于进行单元测试 简化了数据库访问层  依赖注入与控制反转传">
+  
+    <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Ruiqi Liu&#39;s Blog</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">记录生活和技术</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-spring" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/06/14/spring/" class="article-date">
+  <time datetime="2018-06-14T04:38:28.000Z" itemprop="datePublished">2018-06-14</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      spring
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="Spring框架学习笔记"><a href="#Spring框架学习笔记" class="headerlink" title="Spring框架学习笔记"></a>Spring框架学习笔记</h2><p>Spring是Java平台上的开源应用框架，起源于Rod Johnson于2002年所著的《Expert One-on-One：J2EE Design and Development》，2003年Rod公开了框架源码，2004年1.0版Spring正式发布。<br>框架优势：</p>
+<ul>
+<li>有效组织中间层对象</li>
+<li>实现面向接口编程的范式</li>
+<li>易于进行单元测试</li>
+<li>简化了数据库访问层</li>
+</ul>
+<h3 id="依赖注入与控制反转"><a href="#依赖注入与控制反转" class="headerlink" title="依赖注入与控制反转"></a>依赖注入与控制反转</h3><p>传统上，被调用者实例由调用者创建，Spring框架通过依赖注入，使调用者无需关心实例的常见，实现了面向接口编程，达到了控制反转的目的。</p>
+<h3 id="面向切面编程"><a href="#面向切面编程" class="headerlink" title="面向切面编程"></a>面向切面编程</h3><p>为分散的对象添加公共的行为，通过AOP，完成公共逻辑的统一管理，减少了系统中的重复代码，降低了模块件间的耦合，提高了系统的可维护性。</p>
+<ul>
+<li>Aspects模块集成了AspectJ</li>
+<li>Instrumentation模块提供了class instrumentation和classloader实现</li>
+</ul>
+<h2 id="主要模块"><a href="#主要模块" class="headerlink" title="主要模块"></a>主要模块</h2><h3 id="核心容器-Core-Contrainer"><a href="#核心容器-Core-Contrainer" class="headerlink" title="核心容器[Core Contrainer]"></a>核心容器[Core Contrainer]</h3><ul>
+<li>Beans、Core<br>提供基本功能：创建、配置和管理Bean</li>
+<li>Context：扩展BeanFactory，提供上下文信息，添加了I18N、资源加载、校验等功能</li>
+<li>Expression Language：用于访问和操纵运行时对象</li>
+</ul>
+<h4 id="AbstractApplicationContext"><a href="#AbstractApplicationContext" class="headerlink" title="AbstractApplicationContext"></a>AbstractApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">refresh</span><span class="params">()</span> <span class="keyword">throws</span> BeansException, IllegalStateException </span>&#123;</span><br><span class="line">    Object var1 = <span class="keyword">this</span>.startupShutdownMonitor;<span class="comment">//同步锁</span></span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="keyword">this</span>.startupShutdownMonitor) &#123;</span><br><span class="line">        <span class="keyword">this</span>.prepareRefresh();<span class="comment">//为刷新准备新的Context</span></span><br><span class="line">        ConfigurableListableBeanFactory beanFactory = <span class="keyword">this</span>.obtainFreshBeanFactory();<span class="comment">//刷新所有BeanFacotry子容器</span></span><br><span class="line">        <span class="keyword">this</span>.prepareBeanFactory(beanFactory);<span class="comment">//创建BeanFactory</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">this</span>.postProcessBeanFactory(beanFactory);</span><br><span class="line">            <span class="keyword">this</span>.invokeBeanFactoryPostProcessors(beanFactory);</span><br><span class="line">            <span class="keyword">this</span>.registerBeanPostProcessors(beanFactory);</span><br><span class="line">            <span class="keyword">this</span>.initMessageSource();</span><br><span class="line">            <span class="keyword">this</span>.initApplicationEventMulticaster();</span><br><span class="line">            <span class="keyword">this</span>.onRefresh();<span class="comment">//刷新由子类实现的方法</span></span><br><span class="line">            <span class="keyword">this</span>.registerListeners();</span><br><span class="line">            <span class="keyword">this</span>.finishBeanFactoryInitialization(beanFactory);</span><br><span class="line">            <span class="keyword">this</span>.finishRefresh();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (BeansException var5) &#123;</span><br><span class="line">            <span class="keyword">this</span>.destroyBeans();</span><br><span class="line">            <span class="keyword">this</span>.cancelRefresh(var5);</span><br><span class="line">            <span class="keyword">throw</span> var5;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="BeanFactory详解"><a href="#BeanFactory详解" class="headerlink" title="BeanFactory详解"></a>BeanFactory详解</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Bean Factory 接口</span></span><br><span class="line"><span class="function">Boolean <span class="title">containsBean</span><span class="params">(String name)</span> <span class="comment">//check Bean existing</span></span></span><br><span class="line"><span class="function">Object <span class="title">getBean</span><span class="params">(String name)</span></span></span><br><span class="line"><span class="function">Class <span class="title">getType</span><span class="params">(String name)</span></span></span><br><span class="line"><span class="function"><span class="comment">//Application 子接口,扩展附加功能</span></span></span><br><span class="line"><span class="function">ClassPathXmlApplicationContext</span></span><br><span class="line"><span class="function">FileSystemXmlApplicationContext</span></span><br><span class="line"><span class="function">XmlWebApplicationContext</span></span><br></pre></td></tr></table></figure>
+<h3 id="数据访问"><a href="#数据访问" class="headerlink" title="数据访问"></a>数据访问</h3><ul>
+<li>ORM模块提供对象关系映射API，集成了JPA、JDO、hibernate、iBatis</li>
+<li>OXM：提供Object/XML映射抽象</li>
+<li>JMS模块包含了发布和订阅特性</li>
+<li>Transaction模块提供了对声明式和编程式事务的支持</li>
+</ul>
+<h3 id="Web模块"><a href="#Web模块" class="headerlink" title="Web模块"></a>Web模块</h3><ul>
+<li>支持Web、Servlet、Struts、Portlet</li>
+</ul>
+<h3 id="Test模块"><a href="#Test模块" class="headerlink" title="Test模块"></a>Test模块</h3><ul>
+<li>支持JUnit</li>
+<li>支持TestNG</li>
+</ul>
+<h2 id="Spring-Boot"><a href="#Spring-Boot" class="headerlink" title="Spring Boot"></a>Spring Boot</h2><h3 id="注解"><a href="#注解" class="headerlink" title="注解"></a>注解</h3><ul>
+<li>Profile<ul>
+<li>使用环境中的ActiveProfiles来标明context，从而设置不同的参数</li>
+<li><code>@Profile(&quot;dev&quot;) or @Profile(&quot;prod&quot;)</code></li>
+<li>context.getEnvitonment().setActiveProfiles(“prod”)</li>
+</ul>
+</li>
+<li>Application Event<ul>
+<li>自定义ApplicationEvent</li>
+<li>自定义ApplicationListener</li>
+<li>使用容器发布事件</li>
+</ul>
+</li>
+<li>SpringAware<ul>
+<li>通过对应的Aware接口，使Bean获取对应的信息</li>
+<li>BeanNameAware</li>
+<li>BeanFactoryAware</li>
+</ul>
+</li>
+<li>Concurrent<ul>
+<li>ThreadPoolTaskExecutor:实现了一个基于线程池的TaskExecutor</li>
+</ul>
+</li>
+<li>Scheduled<ul>
+<li>定时任务</li>
+</ul>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2018/06/14/spring/" data-id="cjk13aj5p0007fc7a7kt3litq" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2018/06/14/servlet/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Java Web
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2018/06/06/MyBatis/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">MyBatis 初探</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Architecture/" style="font-size: 10px;">Architecture</a> <a href="/tags/Build/" style="font-size: 10px;">Build</a> <a href="/tags/DB/" style="font-size: 10px;">DB</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/tags/Java/" style="font-size: 20px;">Java</a> <a href="/tags/NIO/" style="font-size: 10px;">NIO</a> <a href="/tags/Tools/" style="font-size: 10px;">Tools</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">July 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/06/">June 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2018/07/19/jvm/">jvm</a>
+          </li>
+        
+          <li>
+            <a href="/2018/06/19/maven/">maven</a>
+          </li>
+        
+          <li>
+            <a href="/2018/06/14/servlet/">Java Web</a>
+          </li>
+        
+          <li>
+            <a href="/2018/06/14/spring/">spring</a>
+          </li>
+        
+          <li>
+            <a href="/2018/06/06/MyBatis/">MyBatis 初探</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2018 Ritchie<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>

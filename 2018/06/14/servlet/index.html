@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Java Web | Ruiqi Liu&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="Servlet简介Servlet是由Web服务器加载，独立于平台和协议的Java应用程序。JSP改变了Servlet提供HTTP服务时的编程方式。 Servlet的生命周期 加载和实例化 Servlet容器加载类 通过反射机制创建实例   初始化 调用Servlet的init方法 每个Servlet实例，只会调用一次init 参数为ServletConfig实例   执行 请求到来，容器针对该请求">
+<meta name="keywords" content="Java,Web">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java Web">
+<meta property="og:url" content="http://yoursite.com/2018/06/14/servlet/index.html">
+<meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
+<meta property="og:description" content="Servlet简介Servlet是由Web服务器加载，独立于平台和协议的Java应用程序。JSP改变了Servlet提供HTTP服务时的编程方式。 Servlet的生命周期 加载和实例化 Servlet容器加载类 通过反射机制创建实例   初始化 调用Servlet的init方法 每个Servlet实例，只会调用一次init 参数为ServletConfig实例   执行 请求到来，容器针对该请求">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-06-14T04:44:30.524Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java Web">
+<meta name="twitter:description" content="Servlet简介Servlet是由Web服务器加载，独立于平台和协议的Java应用程序。JSP改变了Servlet提供HTTP服务时的编程方式。 Servlet的生命周期 加载和实例化 Servlet容器加载类 通过反射机制创建实例   初始化 调用Servlet的init方法 每个Servlet实例，只会调用一次init 参数为ServletConfig实例   执行 请求到来，容器针对该请求">
+  
+    <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Ruiqi Liu&#39;s Blog</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">记录生活和技术</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-servlet" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/06/14/servlet/" class="article-date">
+  <time datetime="2018-06-14T04:38:28.000Z" itemprop="datePublished">2018-06-14</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Java Web
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="Servlet简介"><a href="#Servlet简介" class="headerlink" title="Servlet简介"></a>Servlet简介</h2><p>Servlet是由Web服务器加载，独立于平台和协议的Java应用程序。JSP改变了Servlet提供HTTP服务时的编程方式。</p>
+<h3 id="Servlet的生命周期"><a href="#Servlet的生命周期" class="headerlink" title="Servlet的生命周期"></a>Servlet的生命周期</h3><ul>
+<li>加载和实例化<ul>
+<li>Servlet容器加载类</li>
+<li>通过反射机制创建实例</li>
+</ul>
+</li>
+<li>初始化<ul>
+<li>调用Servlet的init方法</li>
+<li>每个Servlet实例，只会调用一次init</li>
+<li>参数为ServletConfig实例</li>
+</ul>
+</li>
+<li>执行<ul>
+<li>请求到来，容器针对该请求创建ServletRequest和ServletResponse</li>
+<li>调用service()方法</li>
+<li>从ServletRequest获取请求信息，处理请求，把处理结果放入到ServletResponse</li>
+<li>销毁ServletRequest和ServletResponse</li>
+<li>service()会检查请求的类型，相应的调用doGet、doPost方法</li>
+</ul>
+</li>
+<li>清理<ul>
+<li>Servlet实例需要从服务中移除时，容器调用destroy方法</li>
+<li>Servlet的整个生命周期，init和destroy只会调用一次，service()</li>
+</ul>
+</li>
+</ul>
+<h3 id="Servlet相关类和接口"><a href="#Servlet相关类和接口" class="headerlink" title="Servlet相关类和接口"></a>Servlet相关类和接口</h3><ol>
+<li>Servlet接口： init、service、destroy、getServletConfig</li>
+<li>GenericServlet抽象类 和 HttpServlet抽象类</li>
+<li>ServletRequest：getAttribte、getContentLength、getInputStream、getParameter</li>
+<li>ServletResponse： getOutputStream、getWriter、setBufferSize、setContentLength</li>
+<li>HttpServletRequest：getCookies、getSession</li>
+<li>HttpServletResponse： addCookie、setStatus</li>
+<li>HttpSession： getId、invalidate（使当前会话失效）、setAttributes、getAttributeNames</li>
+</ol>
+<h3 id="web-xml配置"><a href="#web-xml配置" class="headerlink" title="web.xml配置"></a>web.xml配置</h3><ul>
+<li>webApp自定义web.xml路径：WEB-INF/web.xml</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">servlet</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-class</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">servlet-mapping</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">url-pattern</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h4 id="web-xml关键元素说明"><a href="#web-xml关键元素说明" class="headerlink" title="web.xml关键元素说明"></a>web.xml关键元素说明</h4><ul>
+<li>welcome-file-list：tomcat按顺序查找欢迎页</li>
+<li>listener: 注册监听器，用于初始化Spring框架</li>
+<li>error-page:根据error-code或者exception-type指定location</li>
+</ul>
+<h4 id="struts-properties"><a href="#struts-properties" class="headerlink" title="struts.properties"></a>struts.properties</h4><ul>
+<li>放置在src路径下；编译部署后，位于WEB-INF/classes 路径下</li>
+<li>设置国际化编码、devMode、locale、theme等</li>
+</ul>
+<h4 id="struts-xml"><a href="#struts-xml" class="headerlink" title="struts.xml"></a>struts.xml</h4><ul>
+<li>位置同struts.properties</li>
+<li>主要用于配置Action和Http请求的关系</li>
+<li>package：命名空间定义</li>
+<li>action</li>
+</ul>
+<h4 id="AJAX"><a href="#AJAX" class="headerlink" title="AJAX"></a>AJAX</h4><h2 id="Struts简介"><a href="#Struts简介" class="headerlink" title="Struts简介"></a>Struts简介</h2><p>Struts框架主要有两个版本： 1.x和2.x，都遵循MVC思想。1.x版本性能高效、低松耦合、低侵入，但存在如下缺点：</p>
+<ul>
+<li>耦合</li>
+<li>麻烦</li>
+</ul>
+<p>2.x版本是一个全新的框架，将Struts技术与WebWork技术结合，功能更加灵活。</p>
+<h3 id="Struts-2-工作原理"><a href="#Struts-2-工作原理" class="headerlink" title="Struts 2 工作原理"></a>Struts 2 工作原理</h3><ol>
+<li>用户发出HttpServletRequest</li>
+<li>请求经过一些了的Filter过滤器<ul>
+<li>集成了SiteMesh插件之后，会先经过ActionContextCleanUp过滤器</li>
+</ul>
+</li>
+<li>调用FilterDispatcher<ul>
+<li>控制器的核心</li>
+<li>询问ActionMapper是否需要调用Action</li>
+<li>如果需要，转发给ActionProxy</li>
+</ul>
+</li>
+<li>ActionProxy通过ConfigurationManager，从struts.xml中获取需要调用的Action类</li>
+<li>ActionProxy创建ActionInvocation实例，该实例使用命名模式来调用。 该实例根据配置文件，添加相关的拦截器Interceptor</li>
+<li>Action执行完成后，ActionInvocation实例根据strtus.xml中的配置，找到相对应的返回结果<ul>
+<li>返回结果为JSP或者FreeMaker模版</li>
+</ul>
+</li>
+<li>最后，HttpServletResponse通过web.xml 文件中配置的过滤器返回</li>
+</ol>
+<h4 id="Tips"><a href="#Tips" class="headerlink" title="Tips"></a>Tips</h4><ul>
+<li>FilterDispatcher对应控制层<ul>
+<li>web.xml 中启用过滤器fd</li>
+<li>fd根据URL和struts.xml中的配置调用对应的action</li>
+</ul>
+</li>
+<li>Action对应模型层<ul>
+<li>模型层处理请求参数，调用效应的业务逻辑，产生视图所需要的数据</li>
+</ul>
+</li>
+<li>Result对应视图层</li>
+<li>2.x优点：<ol>
+<li>集中配置来调度动作类</li>
+<li>提供简单统一的表达式语言来访问内存数据</li>
+<li>提供标准的验证框架、国际化框架</li>
+<li>强大的标签</li>
+<li>良好的Ajax</li>
+<li>明确的错误报告，异常简单明了</li>
+</ol>
+</li>
+</ul>
+<h2 id="持久化"><a href="#持久化" class="headerlink" title="持久化"></a>持久化</h2><p>Java中对象持久化的方式有：</p>
+<ol>
+<li>序列化对象，将对象存放到格式化的文件中</li>
+<li>将对象持久化到xml文件中</li>
+<li>持久化到数据库中，一般为关系型数据库</li>
+</ol>
+<h3 id="持久化层框架Hibernate"><a href="#持久化层框架Hibernate" class="headerlink" title="持久化层框架Hibernate"></a>持久化层框架Hibernate</h3><p>核心接口：Configuration、SessionFactory、Session、Transaction、Query</p>
+<ol>
+<li>初始化创建Configuration对象<ul>
+<li>读取Hibernate.cfg.xml存放到Configuration</li>
+<li>读取mapping元素到Configuration</li>
+</ul>
+</li>
+<li>创建SessionFactory（SF）<ul>
+<li>Configuration对象创建SF，把配置信息注入SF</li>
+<li>SF负责创建Session</li>
+<li>Configuration使命结束</li>
+<li>SF是全局唯一的，线程安全的</li>
+</ul>
+</li>
+<li>创建Session，建立数据库连接<ul>
+<li>Session对象操作实体对象</li>
+<li>操作转换为DB中的CRUD</li>
+<li>session实例不是线程安全的，通过ThreadLocal来保证</li>
+</ul>
+</li>
+<li>创建Transaction，开始一个事务<ul>
+<li>CDU操作必须包含在事务中</li>
+</ul>
+</li>
+<li>利用Session的持久化方法将实体对象持久化到DB<ul>
+<li>设计：DAO接口、DAO实现类、DAO工厂类</li>
+<li>接口：save、findById、delete、update</li>
+<li>实现：session、transaction</li>
+<li>工厂：通过接口使用实现类，解耦使用与实现<ul>
+<li><code>public static UserDAOInterface getUserDAOInstance(){ return new UserDAOImpl();}</code></li>
+</ul>
+</li>
+<li>SQL语句是在运行时由Hibernate自动生成的</li>
+</ul>
+</li>
+<li>提交结果并结束事务</li>
+<li>关闭Session，与DB断开连接</li>
+</ol>
+<h4 id="hibernate-cfg-xml详解"><a href="#hibernate-cfg-xml详解" class="headerlink" title="hibernate.cfg.xml详解"></a>hibernate.cfg.xml详解</h4><ul>
+<li>JDBC配置</li>
+<li>C3P0连接池：<ul>
+<li>Hibernate实现类一个插件结构，可以继承第三方连接池</li>
+<li>Hibernate提供类对C3P0的内嵌支持</li>
+<li>可以配置：最大/小连接数、超时时长、缓存statement数量</li>
+</ul>
+</li>
+<li>JNDI数据源</li>
+<li>二级缓存属性：<ul>
+<li>一级缓存是Session级，事务范围级的，由Hibernate自动控制</li>
+<li>二级缓存是由SessionFactory管理的进程级缓存，可动态加载和卸载</li>
+<li>二级缓存属性：<code>hibernate.cache.provider_class,hibernate.cache.use_query_cache,hibernate.cache.query_cache_factory</code> 等</li>
+</ul>
+</li>
+<li>事务属性：<ul>
+<li>Hibernate只实现了对JDBC的轻量级封装，本身未提供事务管理</li>
+<li>依赖于JDBC或者JTA事务管理功能</li>
+<li><code>hibernate.transaction.factory_class</code>指定工厂类</li>
+</ul>
+</li>
+</ul>
+<h4 id="hbm-xml详解"><a href="#hbm-xml详解" class="headerlink" title="*.hbm.xml详解"></a>*.hbm.xml详解</h4><ul>
+<li>映射文件结构<ul>
+<li><code>hibernate-mapping</code>是根元素，设置子元素类的共有属性</li>
+<li><code>class</code>声明一个持久化类</li>
+<li><code>id</code>映射标识属性<ul>
+<li>经验表明自然主键很容易出现问题，一般使用代理主键</li>
+<li>uuid：长度32位的16进制字符串，由IP、JVM启动时间（精确到1/4秒）、系统时间、JVM中的唯一计数器值生成</li>
+</ul>
+</li>
+<li><code>property</code>元素映射普通属性</li>
+<li>映射集合元素</li>
+</ul>
+</li>
+<li>关联关系映射<ul>
+<li>todo</li>
+</ul>
+</li>
+<li>Tips：MiddleGen插件可以自动生成类和mapping文件</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2018/06/14/servlet/" data-id="cjk13aj5m0005fc7aweaeqxr2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2018/06/19/maven/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          maven
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2018/06/14/spring/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">spring</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Architecture/" style="font-size: 10px;">Architecture</a> <a href="/tags/Build/" style="font-size: 10px;">Build</a> <a href="/tags/DB/" style="font-size: 10px;">DB</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/tags/Java/" style="font-size: 20px;">Java</a> <a href="/tags/NIO/" style="font-size: 10px;">NIO</a> <a href="/tags/Tools/" style="font-size: 10px;">Tools</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">July 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/06/">June 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2018/07/19/jvm/">jvm</a>
+          </li>
+        
+          <li>
+            <a href="/2018/06/19/maven/">maven</a>
+          </li>
+        
+          <li>
+            <a href="/2018/06/14/servlet/">Java Web</a>
+          </li>
+        
+          <li>
+            <a href="/2018/06/14/spring/">spring</a>
+          </li>
+        
+          <li>
+            <a href="/2018/06/06/MyBatis/">MyBatis 初探</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2018 Ritchie<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>

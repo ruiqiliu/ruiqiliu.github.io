@@ -5,15 +5,20 @@
   
 
   
-  <title>Archives: 2018/6 | Ruiqi Liu&#39;s Blog</title>
+  <title>jvm | Ruiqi Liu&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Ruiqi Liu&#39;s Blog">
-<meta property="og:url" content="http://yoursite.com/archives/2018/06/index.html">
+  <meta name="description" content="Memory NIO Direct Memory native Memory Java 堆  使用Perftools来分析JVM的native Memory分配情况，查看分配结果,cat pf2.txt | sort -n -r -k4 | more显示每个函数分配的内存 Tools to analysisjmap创建堆转储文件，可通过MAT工具分析 jstat">
+<meta name="keywords" content="Java,JVM,Tools">
+<meta property="og:type" content="article">
+<meta property="og:title" content="jvm">
+<meta property="og:url" content="http://yoursite.com/2018/07/19/jvm/index.html">
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
+<meta property="og:description" content="Memory NIO Direct Memory native Memory Java 堆  使用Perftools来分析JVM的native Memory分配情况，查看分配结果,cat pf2.txt | sort -n -r -k4 | more显示每个函数分配的内存 Tools to analysisjmap创建堆转储文件，可通过MAT工具分析 jstat">
 <meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-07-19T16:02:10.645Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Ruiqi Liu&#39;s Blog">
+<meta name="twitter:title" content="jvm">
+<meta name="twitter:description" content="Memory NIO Direct Memory native Memory Java 堆  使用Perftools来分析JVM的native Memory分配情况，查看分配结果,cat pf2.txt | sort -n -r -k4 | more显示每个函数分配的内存 Tools to analysisjmap创建堆转储文件，可通过MAT工具分析 jstat">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -64,97 +69,60 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main">
-  
-  
-    
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2018" class="archive-year">2018</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2018/06/19/maven/" class="archive-article-date">
-  <time datetime="2018-06-19T10:59:00.000Z" itemprop="datePublished">Jun 19</time>
+        <section id="main"><article id="post-jvm" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/07/19/jvm/" class="article-date">
+  <time datetime="2018-07-19T15:55:07.000Z" itemprop="datePublished">2018-07-19</time>
 </a>
-      
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/06/19/maven/">maven</a>
+    <h1 class="article-title" itemprop="name">
+      jvm
     </h1>
   
 
-    </header>
-  </div>
-</article>
-  
+      </header>
     
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2018/06/14/servlet/" class="archive-article-date">
-  <time datetime="2018-06-14T04:38:28.000Z" itemprop="datePublished">Jun 14</time>
-</a>
+    <div class="article-entry" itemprop="articleBody">
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/06/14/servlet/">Java Web</a>
-    </h1>
-  
-
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2018/06/14/spring/" class="archive-article-date">
-  <time datetime="2018-06-14T04:38:28.000Z" itemprop="datePublished">Jun 14</time>
-</a>
+        <h2 id="Memory"><a href="#Memory" class="headerlink" title="Memory"></a>Memory</h2><ul>
+<li>NIO Direct Memory</li>
+<li>native Memory</li>
+<li>Java 堆</li>
+</ul>
+<p>使用Perftools来分析JVM的native Memory分配情况，查看分配结果,<br><code>cat pf2.txt | sort -n -r -k4 | more</code>显示每个函数分配的内存</p>
+<h2 id="Tools-to-analysis"><a href="#Tools-to-analysis" class="headerlink" title="Tools to analysis"></a>Tools to analysis</h2><h3 id="jmap"><a href="#jmap" class="headerlink" title="jmap"></a>jmap</h3><p>创建堆转储文件，可通过MAT工具分析</p>
+<h3 id="jstat"><a href="#jstat" class="headerlink" title="jstat"></a>jstat</h3>
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/06/14/spring/">spring</a>
-    </h1>
-  
-
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2018/06/06/MyBatis/" class="archive-article-date">
-  <time datetime="2018-06-06T00:06:11.000Z" itemprop="datePublished">Jun 6</time>
-</a>
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2018/07/19/jvm/" data-id="cjk13aj5b0001fc7ag9f1x6kv" class="article-share-link">Share</a>
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/06/06/MyBatis/">MyBatis 初探</a>
-    </h1>
-  
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JVM/">JVM</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Tools/">Tools</a></li></ul>
 
-    </header>
+    </footer>
   </div>
-</article>
+  
+    
+<nav id="article-nav">
   
   
-    </div></section>
+    <a href="/2018/06/19/maven/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">maven</div>
+    </a>
   
+</nav>
 
+  
+</article>
 
 </section>
         
