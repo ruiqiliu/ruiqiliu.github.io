@@ -5,20 +5,15 @@
   
 
   
-  <title>即时通讯框架T-IO学习 | Ruiqi Liu&#39;s Blog</title>
+  <title>Ruiqi Liu&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="t-io学习笔记常见应用场景 IM（官方提供了im例子，含web端） 实时监控 推送服务（已内置API） RPC 游戏 物联网（已有很多案例） 其它实时通讯类型的场景，不一一列举  用t-io做的web immaven坐标12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;org.t-io&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;">
-<meta name="keywords" content="Java,NIO">
-<meta property="og:type" content="article">
-<meta property="og:title" content="即时通讯框架T-IO学习">
-<meta property="og:url" content="http://yoursite.com/2018/05/06/t-io-start/index.html">
+  <meta property="og:type" content="website">
+<meta property="og:title" content="Ruiqi Liu&#39;s Blog">
+<meta property="og:url" content="http://yoursite.com/page/2/index.html">
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
-<meta property="og:description" content="t-io学习笔记常见应用场景 IM（官方提供了im例子，含web端） 实时监控 推送服务（已内置API） RPC 游戏 物联网（已有很多案例） 其它实时通讯类型的场景，不一一列举  用t-io做的web immaven坐标12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;org.t-io&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;">
 <meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-09-29T14:48:36.148Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="即时通讯框架T-IO学习">
-<meta name="twitter:description" content="t-io学习笔记常见应用场景 IM（官方提供了im例子，含web端） 实时监控 推送服务（已内置API） RPC 游戏 物联网（已有很多案例） 其它实时通讯类型的场景，不一一列举  用t-io做的web immaven坐标12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;org.t-io&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;">
+<meta name="twitter:title" content="Ruiqi Liu&#39;s Blog">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -69,7 +64,179 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-t-io-start" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main">
+  
+    <article id="post-Java-简史" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/05/13/Java-简史/" class="article-date">
+  <time datetime="2018-05-13T00:14:13.000Z" itemprop="datePublished">2018-05-13</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/05/13/Java-简史/">Java 简史</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="Java-8、9、10的新特性"><a href="#Java-8、9、10的新特性" class="headerlink" title="Java 8、9、10的新特性"></a>Java 8、9、10的新特性</h2><h3 id="Java-10"><a href="#Java-10" class="headerlink" title="Java 10"></a>Java 10</h3><p>JDK 10 发布于 2018年3月20日。主要更新是局部变量推断和垃圾回收及编译算法提高。 JDK 10是个短期的版本，将要于今天九月份发布的JDK 11是个LTS版本。</p>
+<p>主要特点：</p>
+<ul>
+<li>Local variable type inference： 使用初始化语句推段变量类型</li>
+<li>G1 支持并行化： 提高 worst-case 延迟</li>
+<li>优化 class-data sharing</li>
+<li>试验版just-in-time compier：Graal</li>
+<li>Docker awareness：在linux 平台，JVM可以知道 Container-specifi-information</li>
+<li>三个新的JVM参数，用户Docker可以控制系统内存</li>
+<li><code>jShell REPL tool</code> 启动优化</li>
+<li>不可变集合实例化：Set.copyof，Map.copyOf，Collectors类的新方法：toUnmodifiableList/toUnmodifiableSet/toUnmodifableMap</li>
+<li>GC 接口更新，用于更方便地增加新的collector</li>
+<li>G1并行化</li>
+<li>HotSpot支持把对象堆分配到指定的内存设备上</li>
+<li>Grall</li>
+<li>JDK 代码库整理</li>
+<li>application class-data sharing</li>
+<li>thread-local handshakes？</li>
+<li>默认官方根证书</li>
+</ul>
+<p>Oracle在下个版本中声明的特性：</p>
+<ul>
+<li>Amber Project： productivity-oriented language，enhaced enums，lambda leftovers</li>
+<li>Project Panama： native code和JVM的交互增强</li>
+<li>Valhalla： valued types and generic specialization</li>
+<li>Project Loom： 目的是减少编写并发程序的难度</li>
+<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html" target="_blank" rel="noopener">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a></li>
+</ul>
+<h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3><p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入<br><a href="https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-9/index.html" target="_blank" rel="noopener">IBM Blog</a></p>
+<h4 id="Java平台模块系统"><a href="#Java平台模块系统" class="headerlink" title="Java平台模块系统"></a>Java平台模块系统</h4><ul>
+<li>Project Jigsaw把模块化开发实践引入到了Java平台</li>
+<li>通过jlink工具，创建出只包含所依赖的JDK模块的自定义运行时镜像</li>
+<li>模块的重要特征是其工件（artifact）的根目录中包含了一个描述模块的module-info.class 文件（由module-info.java编译），模块的内容包括：<ul>
+<li>模块导出的包</li>
+<li>模块的依赖关系 <code>requires</code> or <code>requires transitive</code></li>
+<li>服务的提供和使用 <code>ServiceLocator</code> or <code>uses</code> or <code>provides with</code></li>
+<li><code>getModule()</code></li>
+</ul>
+</li>
+<li>工件的格式是JAR文件或者JMOD文件</li>
+<li>JVM提供了相应的API和模块系统进行交互</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">module</span> com.mycompany.sample &#123; <span class="comment">//模块声明定义</span></span><br><span class="line">    <span class="keyword">exports</span> com.mycompany.sample; </span><br><span class="line">    <span class="keyword">requires</span> com.mycompany.common; </span><br><span class="line">    provides com.mycompany.common.DemoService with</span><br><span class="line">        com.mycompany.sample.DemoServiceImpl; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="Jshell"><a href="#Jshell" class="headerlink" title="Jshell"></a>Jshell</h4><p>Jshell提供的功能类似于NodeJS和Python中的Read-Evaluation-PrintLoop 功能。</p>
+<ul>
+<li>基本的表达式计算</li>
+<li>创建Java 类和方法</li>
+<li>执行代码片段</li>
+<li>详细介绍请执行 <code>jshell</code> =&gt; <code>/help /list</code></li>
+</ul>
+<h4 id="集合、Stream、Optional、进程"><a href="#集合、Stream、Optional、进程" class="headerlink" title="集合、Stream、Optional、进程"></a>集合、Stream、Optional、进程</h4><ul>
+<li>List.of()\Set.of()\Map.of()\Map.ofEntries()等工厂方法返回不可变集合</li>
+<li>Stream新增API：filtering、flatMapping <a href="StreamAPI.md">todo</a></li>
+<li>Optional 类新增API： ifPresentOrElse、or、stream</li>
+<li>进程API：接口ProcessHandle可以对原生进程进行管理</li>
+<li><p>平台日志API：System.LoggerFinder 来管理日志记录器实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123; </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> System.Logger LOGGER = System.getLogger(<span class="string">"Main"</span>); </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> </span>&#123; </span><br><span class="line">        LOGGER.log(Level.INFO, <span class="string">"Run!"</span>);</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Reactive Streams: <code>java.util.concurrent.Flow</code>, 核心接口：</p>
+<ul>
+<li>Flow.Publisher</li>
+<li>Flow.Subscriber</li>
+<li>Flow.Subscription</li>
+<li>Flow.Processor</li>
+</ul>
+</li>
+<li>变量句柄： VariableHandler <code>java.lang.invoke.VarHandle</code></li>
+<li>改进方法句柄： <code>java.lang.MethodHandles</code></li>
+<li>CompletableFuture <code>orTimeout</code></li>
+<li>Java8引入的JS引擎Nashorn增强：实现了ES6的新特性</li>
+<li>IO： <code>readAllBytes</code>,<code>readNBytes</code>,<code>transferTo</code></li>
+<li>新增SHA-3 哈希算法，java.security.SecureRandom生成使用DRBG算法的强随机数</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.codec.binary.Hex; </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SHA3</span> </span>&#123; </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> <span class="keyword">throws</span> NoSuchAlgorithmException </span>&#123; </span><br><span class="line">        <span class="keyword">final</span> MessageDigest instance = MessageDigest.getInstance(<span class="string">"SHA3-224"</span>); </span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">byte</span>[] digest = instance.digest(<span class="string">""</span>.getBytes()); </span><br><span class="line">        System.out.println(Hex.encodeHexString(digest)); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>统一JVM日志： <code>-Xlog</code>控制JVM日志输出的标签、级别、修饰符、输出目标</li>
+<li>新增jcmd调用的诊断命令</li>
+<li>接口支持私有方法</li>
+</ul>
+<h3 id="Java-8"><a href="#Java-8" class="headerlink" title="Java 8"></a>Java 8</h3><p>Java 8 发布于2014年3月18日。</p>
+<ul>
+<li>函数式接口： @FunctionalInterface</li>
+<li>Lambda表达式</li>
+<li>接口增强：<ul>
+<li>default 修饰的非抽象方法：可以在子类中直接使用</li>
+<li>增加静态方法，可以直接通过接口调用</li>
+</ul>
+</li>
+<li><p>Streaming API：实现集合的并行处理和函数式操作，根据操作返回结果的不同，流式操作分为中间操作和最终操作，前者返回流本身，后者返回一特定类型的结果，实现了集合的过滤、排序、映射等</p>
+<ul>
+<li>stream.sequential() 返回串行流 </li>
+<li><p><code>int count= (int) ((Stream) list.stream().sequential()).sorted().count();</code></p>
+</li>
+<li><p>stream.parallel() 返回并行流 </p>
+</li>
+<li><code>int count = (int)((Stream) list.stream().parallel()).sorted().count();</code></li>
+<li>中间操作：<code>filter/sorted/map/distinct/subStream list.stream() .filter((s) -&gt; s.startsWith(&quot;s&quot;)) .forEach(System.out::println);</code></li>
+<li>终止操作：forEach/toArray/findFirst/anyMatch</li>
+</ul>
+</li>
+<li>注解的更新：<ul>
+<li>增加了类型注解：ElementType.TYPE_USE/ElementType.TPYE_PARAMETER</li>
+<li>使用Checker Framework等第三方工具在编译期检查出运行时错误</li>
+<li>支持重复注解：@Repeatable（XX.class）</li>
+</ul>
+</li>
+<li>安全增强：<ul>
+<li>基于AES的加密算法：<code>PEBWithSHA256AndAES_128</code></li>
+<li>客户端默认启动TLS1.2和TLS1.1、系统属性jdk.tls.client.protocols</li>
+<li>Keystore增强</li>
+<li>支持安全的随机数生成器：SecureRandom.getInstanceStrong</li>
+<li>JSSE服务端支持SNI</li>
+<li>默认禁用安全性差的加密算法：例如DES相关的Kerberos5</li>
+</ul>
+</li>
+<li>NIO改进：<ul>
+<li>改进了java.nio.charset.Charset实现</li>
+<li>优化了String.getBytes性能</li>
+<li>新增API：BufferedReader.line()/File.lines(Path,Charset)/File.list(Path)/File.walk(Path,int,FileVisitOption)/Find.find(…)</li>
+</ul>
+</li>
+<li>全球化功能：<ul>
+<li>支持新的Unicode 6.2.0标准</li>
+<li>新增日历和本地化API</li>
+<li>改进了日期时间的管理</li>
+</ul>
+</li>
+<li>IDE：<ul>
+<li>Eclipse Kepler 4.3.2 默认支持Java8</li>
+</ul>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="ckdbfi16c0000pc7avmdx5xv4" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-t-io-start" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2018/05/06/t-io-start/" class="article-date">
   <time datetime="2018-05-06T00:06:11.000Z" itemprop="datePublished">2018-05-06</time>
@@ -82,8 +249,8 @@
       <header class="article-header">
         
   
-    <h1 class="article-title" itemprop="name">
-      即时通讯框架T-IO学习
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/05/06/t-io-start/">即时通讯框架T-IO学习</a>
     </h1>
   
 
@@ -181,23 +348,16 @@
     </footer>
   </div>
   
-    
-<nav id="article-nav">
-  
-    <a href="/2018/05/13/Java-简史/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          Java 简史
-        
-      </div>
-    </a>
-  
-  
-</nav>
+</article>
+
 
   
-</article>
+
+
+  <nav id="page-nav">
+    
+    <a class="extend prev" rel="prev" href="/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
+  </nav>
 
 </section>
         

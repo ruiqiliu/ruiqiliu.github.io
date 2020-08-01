@@ -66,6 +66,81 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-postgre" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/08/01/postgre/" class="article-date">
+  <time datetime="2020-08-01T08:57:34.000Z" itemprop="datePublished">2020-08-01</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/08/01/postgre/">postgre</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/08/01/postgre/" data-id="ckdbfi16r000cpc7au1exdbee" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-spring-event" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/08/01/spring-event/" class="article-date">
+  <time datetime="2020-08-01T08:54:09.000Z" itemprop="datePublished">2020-08-01</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/08/01/spring-event/">spring-event</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="SpringApplicatonEvent-启动过程中的事件处理"><a href="#SpringApplicatonEvent-启动过程中的事件处理" class="headerlink" title="SpringApplicatonEvent 启动过程中的事件处理"></a>SpringApplicatonEvent 启动过程中的事件处理</h2><p>Todo…</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/08/01/spring-event/" data-id="ckdbfi16s000epc7armtavfnz" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/spring/">spring</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-jvm" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2018/07/19/jvm/" class="article-date">
@@ -94,12 +169,18 @@
 <li>Java 堆</li>
 </ul>
 <p>使用Perftools来分析JVM的native Memory分配情况，查看分配结果,<br><code>cat pf2.txt | sort -n -r -k4 | more</code>显示每个函数分配的内存</p>
+<h2 id="动态代理"><a href="#动态代理" class="headerlink" title="动态代理"></a>动态代理</h2><ul>
+<li>字节码创建方式：JDK动态代理通过JVM实现代理类字节码的创建，cglib通过ASM创建字节码</li>
+<li>对被代理对象的要求：JDK动态代理要求被代理对象实现接口，cglib要求被代理对象未被final修饰</li>
+<li>代理对象创建速度：JDK动态代理创建代理对象速度比cglib快</li>
+<li>代理对象执行速度：JDK动态代理代理对象执行速度比cglib快</li>
+</ul>
 <h2 id="Tools-to-analysis"><a href="#Tools-to-analysis" class="headerlink" title="Tools to analysis"></a>Tools to analysis</h2><h3 id="jmap"><a href="#jmap" class="headerlink" title="jmap"></a>jmap</h3><p>创建堆转储文件，可通过MAT工具分析</p>
 <h3 id="jstat"><a href="#jstat" class="headerlink" title="jstat"></a>jstat</h3>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/07/19/jvm/" data-id="cjk13aj5b0001fc7ag9f1x6kv" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/07/19/jvm/" data-id="ckdbfi16o0008pc7ai21f2qf1" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JVM/">JVM</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Tools/">Tools</a></li></ul>
@@ -154,6 +235,13 @@
 <li><code>-DskipTests</code>，不执行测试用例，但编译测试用例类生成相应的class文件至target/test-classes下。</li>
 <li><code>-Dmaven.test.skip=true</code>，不执行测试用例，也不编译测试用例类</li>
 </ul>
+<h3 id="Scope"><a href="#Scope" class="headerlink" title="Scope"></a>Scope</h3><ul>
+<li>compile 最强依赖，传递</li>
+<li>provided 参与编译，依赖不传递，不打进包里，由运行时系统提供</li>
+<li>runtime  运行时，如：JDBC</li>
+<li>test 编译运行测试代码，不会发布</li>
+<li>system 类似于provided，但是不会再repo里查找，需要引用外部jar</li>
+</ul>
 <h3 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h3><ul>
 <li>mvn compile</li>
 <li>mvn test-compile 编译测试代码</li>
@@ -173,7 +261,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/06/19/maven/" data-id="cjk13aj5k0004fc7a7p5yoshz" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/06/19/maven/" data-id="ckdbfi16p0009pc7aqwx78jlz" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Build/">Build</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
@@ -398,7 +486,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/06/14/servlet/" data-id="cjk13aj5m0005fc7aweaeqxr2" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/06/14/servlet/" data-id="ckdbfi16q000bpc7ayyt9b4qd" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
@@ -497,7 +585,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/06/14/spring/" data-id="cjk13aj5p0007fc7a7kt3litq" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/06/14/spring/" data-id="ckdbfi16u000gpc7aqgjk7r5g" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
@@ -630,7 +718,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/06/06/MyBatis/" data-id="cjk13aj4z0000fc7afal9wmw8" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/06/06/MyBatis/" data-id="ckdbfi16f0001pc7atuk8u5q5" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DB/">DB</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
@@ -672,7 +760,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/29/golang/" data-id="cjk13aj5x000afc7a3hxqjsig" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/29/golang/" data-id="ckdbfi16j0003pc7akcxo0oj0" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/">Go</a></li></ul>
@@ -717,7 +805,7 @@
 <h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><ul>
 <li>请求头域与响应头域</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">GET /img/ridox.jpg HTTP/1.1\r\n</span><br><span class="line">HOST: img0.promise.com\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">\r\n</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span> 响应</span><br><span class="line">HTTP/1.1 200 ok\r\n</span><br><span class="line">Server: JSPO2/1.0.27\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Content-Type：image/gif\r\n</span><br><span class="line">Content-Length: 228\r\n</span><br><span class="line">ETag: "1693457"\r\n</span><br><span class="line">Expires: Fri,18 Jul 2014 05:44:45\r\n</span><br><span class="line">Cache-Control: max-age=604800\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">GET /img/ridox.jpg HTTP/1.1\r\n</span><br><span class="line">HOST: img0.promise.com\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">\r\n</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 响应</span></span><br><span class="line">HTTP/1.1 200 ok\r\n</span><br><span class="line">Server: JSPO2/1.0.27\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Content-Type：image/gif\r\n</span><br><span class="line">Content-Length: 228\r\n</span><br><span class="line">ETag: "1693457"\r\n</span><br><span class="line">Expires: Fri,18 Jul 2014 05:44:45\r\n</span><br><span class="line">Cache-Control: max-age=604800\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
 <h2 id="请求动作"><a href="#请求动作" class="headerlink" title="请求动作"></a>请求动作</h2><p>方法区分大小写，Request Line中是全大写</p>
 <ul>
 <li>options：服务器返回针对特定资源支持的方法，测试服务请的功能</li>
@@ -910,7 +998,7 @@
 <li>Oauth认证：增强版，放在Authorization中的token使用了更强的加密算法</li>
 <li><a href="http://www.ruanyifeng.com/blog/2014/05/oauth_2_0.html" target="_blank" rel="noopener">阮一峰讲 Oauth</a></li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> 请求服务器使用基本认证保护资源</span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span> 应答</span><br><span class="line">HTTP/1.0 401 Authorization Required</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:18:15 GMT</span><br><span class="line">WWW-Authenticate: Basic realm="Secure Area"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span> 客户端加上用户名密码后重新请求，浏览器使用BASE64Encode(UserName:PassWork)生成token</span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</span><br><span class="line"><span class="meta">#</span> 服务器认证通过，返回请求内容</span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:19:07 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 10476</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 请求服务器使用基本认证保护资源</span></span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span><span class="bash"> 应答</span></span><br><span class="line">HTTP/1.0 401 Authorization Required</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:18:15 GMT</span><br><span class="line">WWW-Authenticate: Basic realm="Secure Area"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span><span class="bash"> 客户端加上用户名密码后重新请求，浏览器使用BASE64Encode(UserName:PassWork)生成token</span></span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</span><br><span class="line"><span class="meta">#</span><span class="bash"> 服务器认证通过，返回请求内容</span></span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:19:07 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 10476</span><br></pre></td></tr></table></figure>
 <h3 id="摘要认证"><a href="#摘要认证" class="headerlink" title="摘要认证"></a>摘要认证</h3><ul>
 <li>Http1.1开始提供</li>
 <li>引入安全增强选项:qop</li>
@@ -920,7 +1008,7 @@
 <li><code>qop = auth or auth-int</code>: response = MD5(HA1:nonce:nonceCount:clientNone:qop:HA2)</li>
 <li><code>qop = undefined</code>: reponse = MD5(HA1:nonce:HA2)</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>客户端请求 (无认证)：</span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span>服务端返回401</span><br><span class="line">HTTP/1.0 401 Unauthorized</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:26:47 GMT</span><br><span class="line">WWW-Authenticate: Digest realm="testrealm@host.com",//认证域</span><br><span class="line">                        qop="auth,auth-int",   //保护质量</span><br><span class="line">                        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",  //服务器密码随机数</span><br><span class="line">                        opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span>客户端重新发出请求 (用户名 "Mufasa", 密码 "Circle Of Life")：</span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Digest username="Mufasa",</span><br><span class="line">                     realm="testrealm@host.com",</span><br><span class="line">                     nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",</span><br><span class="line">                     uri="/dir/index.html",</span><br><span class="line">                     qop=auth,</span><br><span class="line">                     nc=00000001,    //请求计数</span><br><span class="line">                     cnonce="0a4f113b",   //客户端密码随机数</span><br><span class="line">                     response="6629fae49393a05397450978507c4ef1",</span><br><span class="line">                     opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line"><span class="meta">#</span>服务器响应：</span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:27:03 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 7984</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">客户端请求 (无认证)：</span></span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span><span class="bash">服务端返回401</span></span><br><span class="line">HTTP/1.0 401 Unauthorized</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:26:47 GMT</span><br><span class="line">WWW-Authenticate: Digest realm="testrealm@host.com",//认证域</span><br><span class="line">                        qop="auth,auth-int",   //保护质量</span><br><span class="line">                        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",  //服务器密码随机数</span><br><span class="line">                        opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span><span class="bash">客户端重新发出请求 (用户名 <span class="string">"Mufasa"</span>, 密码 <span class="string">"Circle Of Life"</span>)：</span></span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Digest username="Mufasa",</span><br><span class="line">                     realm="testrealm@host.com",</span><br><span class="line">                     nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",</span><br><span class="line">                     uri="/dir/index.html",</span><br><span class="line">                     qop=auth,</span><br><span class="line">                     nc=00000001,    //请求计数</span><br><span class="line">                     cnonce="0a4f113b",   //客户端密码随机数</span><br><span class="line">                     response="6629fae49393a05397450978507c4ef1",</span><br><span class="line">                     opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line"><span class="meta">#</span><span class="bash">服务器响应：</span></span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:27:03 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 7984</span><br></pre></td></tr></table></figure>
 <h2 id="HTTPS-原理"><a href="#HTTPS-原理" class="headerlink" title="HTTPS 原理"></a>HTTPS 原理</h2><ul>
 <li>Hypertext Transfer Protocol over Secure Socket Layer: HTTPS的基础上SSL</li>
 <li>两种基本加密类型：<ul>
@@ -942,7 +1030,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/17/http/" data-id="cjk13aj5h0003fc7agv4xjhmi" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/17/http/" data-id="ckdbfi16l0005pc7ak8kjtcoi" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
@@ -990,7 +1078,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/hello-world/" data-id="cjk13aj5z000cfc7ag89da9gq" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/05/13/hello-world/" data-id="ckdbfi16k0004pc7abfzithp4" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1000,279 +1088,12 @@
 
 
   
-    <article id="post-Java-简史" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2018/05/13/Java-简史/" class="article-date">
-  <time datetime="2018-05-13T00:14:13.000Z" itemprop="datePublished">2018-05-13</time>
-</a>
+
+
+  <nav id="page-nav">
     
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/05/13/Java-简史/">Java 简史</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="Java-8、9、10的新特性"><a href="#Java-8、9、10的新特性" class="headerlink" title="Java 8、9、10的新特性"></a>Java 8、9、10的新特性</h2><h3 id="Java-10"><a href="#Java-10" class="headerlink" title="Java 10"></a>Java 10</h3><p>JDK 10 发布于 2018年3月20日。主要更新是局部变量推断和垃圾回收及编译算法提高。 JDK 10是个短期的版本，将要于今天九月份发布的JDK 11是个LTS版本。</p>
-<p>主要特点：</p>
-<ul>
-<li>Local variable type inference： 使用初始化语句推段变量类型</li>
-<li>G1 支持并行化： 提高 worst-case 延迟</li>
-<li>优化 class-data sharing</li>
-<li>试验版just-in-time compier：Graal</li>
-<li>Docker awareness：在linux 平台，JVM可以知道 Container-specifi-information</li>
-<li>三个新的JVM参数，用户Docker可以控制系统内存</li>
-<li><code>jShell REPL tool</code> 启动优化</li>
-<li>不可变集合实例化：Set.copyof，Map.copyOf，Collectors类的新方法：toUnmodifiableList/toUnmodifiableSet/toUnmodifableMap</li>
-<li>GC 接口更新，用于更方便地增加新的collector</li>
-<li>G1并行化</li>
-<li>HotSpot支持把对象堆分配到指定的内存设备上</li>
-<li>Grall</li>
-<li>JDK 代码库整理</li>
-<li>application class-data sharing</li>
-<li>thread-local handshakes？</li>
-<li>默认官方根证书</li>
-</ul>
-<p>Oracle在下个版本中声明的特性：</p>
-<ul>
-<li>Amber Project： productivity-oriented language，enhaced enums，lambda leftovers</li>
-<li>Project Panama： native code和JVM的交互增强</li>
-<li>Valhalla： valued types and generic specialization</li>
-<li>Project Loom： 目的是减少编写并发程序的难度</li>
-<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html" target="_blank" rel="noopener">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a></li>
-</ul>
-<h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3><p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入<br><a href="https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-9/index.html" target="_blank" rel="noopener">IBM Blog</a></p>
-<h4 id="Java平台模块系统"><a href="#Java平台模块系统" class="headerlink" title="Java平台模块系统"></a>Java平台模块系统</h4><ul>
-<li>Project Jigsaw把模块化开发实践引入到了Java平台</li>
-<li>通过jlink工具，创建出只包含所依赖的JDK模块的自定义运行时镜像</li>
-<li>模块的重要特征是其工件（artifact）的根目录中包含了一个描述模块的module-info.class 文件（由module-info.java编译），模块的内容包括：<ul>
-<li>模块导出的包</li>
-<li>模块的依赖关系 <code>requires</code> or <code>requires transitive</code></li>
-<li>服务的提供和使用 <code>ServiceLocator</code> or <code>uses</code> or <code>provides with</code></li>
-<li><code>getModule()</code></li>
-</ul>
-</li>
-<li>工件的格式是JAR文件或者JMOD文件</li>
-<li>JVM提供了相应的API和模块系统进行交互</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">module</span> com.mycompany.sample &#123; <span class="comment">//模块声明定义</span></span><br><span class="line">    <span class="keyword">exports</span> com.mycompany.sample; </span><br><span class="line">    <span class="keyword">requires</span> com.mycompany.common; </span><br><span class="line">    provides com.mycompany.common.DemoService with</span><br><span class="line">        com.mycompany.sample.DemoServiceImpl; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="Jshell"><a href="#Jshell" class="headerlink" title="Jshell"></a>Jshell</h4><p>Jshell提供的功能类似于NodeJS和Python中的Read-Evaluation-PrintLoop 功能。</p>
-<ul>
-<li>基本的表达式计算</li>
-<li>创建Java 类和方法</li>
-<li>执行代码片段</li>
-<li>详细介绍请执行 <code>jshell</code> =&gt; <code>/help /list</code></li>
-</ul>
-<h4 id="集合、Stream、Optional、进程"><a href="#集合、Stream、Optional、进程" class="headerlink" title="集合、Stream、Optional、进程"></a>集合、Stream、Optional、进程</h4><ul>
-<li>List.of()\Set.of()\Map.of()\Map.ofEntries()等工厂方法返回不可变集合</li>
-<li>Stream新增API：filtering、flatMapping <a href="StreamAPI.md">todo</a></li>
-<li>Optional 类新增API： ifPresentOrElse、or、stream</li>
-<li>进程API：接口ProcessHandle可以对原生进程进行管理</li>
-<li><p>平台日志API：System.LoggerFinder 来管理日志记录器实现</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123; </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> System.Logger LOGGER = System.getLogger(<span class="string">"Main"</span>); </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> </span>&#123; </span><br><span class="line">        LOGGER.log(Level.INFO, <span class="string">"Run!"</span>);</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>Reactive Streams: <code>java.util.concurrent.Flow</code>, 核心接口：</p>
-<ul>
-<li>Flow.Publisher</li>
-<li>Flow.Subscriber</li>
-<li>Flow.Subscription</li>
-<li>Flow.Processor</li>
-</ul>
-</li>
-<li>变量句柄： VariableHandler <code>java.lang.invoke.VarHandle</code></li>
-<li>改进方法句柄： <code>java.lang.MethodHandles</code></li>
-<li>CompletableFuture <code>orTimeout</code></li>
-<li>Java8引入的JS引擎Nashorn增强：实现了ES6的新特性</li>
-<li>IO： <code>readAllBytes</code>,<code>readNBytes</code>,<code>transferTo</code></li>
-<li>新增SHA-3 哈希算法，java.security.SecureRandom生成使用DRBG算法的强随机数</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.codec.binary.Hex; </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SHA3</span> </span>&#123; </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> <span class="keyword">throws</span> NoSuchAlgorithmException </span>&#123; </span><br><span class="line">        <span class="keyword">final</span> MessageDigest instance = MessageDigest.getInstance(<span class="string">"SHA3-224"</span>); </span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">byte</span>[] digest = instance.digest(<span class="string">""</span>.getBytes()); </span><br><span class="line">        System.out.println(Hex.encodeHexString(digest)); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<ul>
-<li>统一JVM日志： <code>-Xlog</code>控制JVM日志输出的标签、级别、修饰符、输出目标</li>
-<li>新增jcmd调用的诊断命令</li>
-<li>接口支持私有方法</li>
-</ul>
-<h3 id="Java-8"><a href="#Java-8" class="headerlink" title="Java 8"></a>Java 8</h3><p>Java 8 发布于2014年3月18日。</p>
-<ul>
-<li>函数式接口： @FunctionalInterface</li>
-<li>Lambda表达式</li>
-<li>接口增强：<ul>
-<li>default 修饰的非抽象方法：可以在子类中直接使用</li>
-<li>增加静态方法，可以直接通过接口调用</li>
-</ul>
-</li>
-<li><p>Streaming API：实现集合的并行处理和函数式操作，根据操作返回结果的不同，流式操作分为中间操作和最终操作，前者返回流本身，后者返回一特定类型的结果，实现了集合的过滤、排序、映射等</p>
-<ul>
-<li>stream.sequential() 返回串行流 </li>
-<li><p><code>int count= (int) ((Stream) list.stream().sequential()).sorted().count();</code></p>
-</li>
-<li><p>stream.parallel() 返回并行流 </p>
-</li>
-<li><code>int count = (int)((Stream) list.stream().parallel()).sorted().count();</code></li>
-<li>中间操作：<code>filter/sorted/map/distinct/subStream list.stream() .filter((s) -&gt; s.startsWith(&quot;s&quot;)) .forEach(System.out::println);</code></li>
-<li>终止操作：forEach/toArray/findFirst/anyMatch</li>
-</ul>
-</li>
-<li>注解的更新：<ul>
-<li>增加了类型注解：ElementType.TYPE_USE/ElementType.TPYE_PARAMETER</li>
-<li>使用Checker Framework等第三方工具在编译期检查出运行时错误</li>
-<li>支持重复注解：@Repeatable（XX.class）</li>
-</ul>
-</li>
-<li>安全增强：<ul>
-<li>基于AES的加密算法：<code>PEBWithSHA256AndAES_128</code></li>
-<li>客户端默认启动TLS1.2和TLS1.1、系统属性jdk.tls.client.protocols</li>
-<li>Keystore增强</li>
-<li>支持安全的随机数生成器：SecureRandom.getInstanceStrong</li>
-<li>JSSE服务端支持SNI</li>
-<li>默认禁用安全性差的加密算法：例如DES相关的Kerberos5</li>
-</ul>
-</li>
-<li>NIO改进：<ul>
-<li>改进了java.nio.charset.Charset实现</li>
-<li>优化了String.getBytes性能</li>
-<li>新增API：BufferedReader.line()/File.lines(Path,Charset)/File.list(Path)/File.walk(Path,int,FileVisitOption)/Find.find(…)</li>
-</ul>
-</li>
-<li>全球化功能：<ul>
-<li>支持新的Unicode 6.2.0标准</li>
-<li>新增日历和本地化API</li>
-<li>改进了日期时间的管理</li>
-</ul>
-</li>
-<li>IDE：<ul>
-<li>Eclipse Kepler 4.3.2 默认支持Java8</li>
-</ul>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="cjk13aj5r0008fc7a261tacj5" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-t-io-start" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2018/05/06/t-io-start/" class="article-date">
-  <time datetime="2018-05-06T00:06:11.000Z" itemprop="datePublished">2018-05-06</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/05/06/t-io-start/">即时通讯框架T-IO学习</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="t-io学习笔记"><a href="#t-io学习笔记" class="headerlink" title="t-io学习笔记"></a>t-io学习笔记</h2><h3 id="常见应用场景"><a href="#常见应用场景" class="headerlink" title="常见应用场景"></a><strong>常见应用场景</strong></h3><ul>
-<li>IM（官方提供了im例子，含web端）</li>
-<li>实时监控</li>
-<li>推送服务（已内置API）</li>
-<li>RPC</li>
-<li>游戏</li>
-<li>物联网（已有很多案例）</li>
-<li>其它实时通讯类型的场景，不一一列举</li>
-</ul>
-<h3 id="用t-io做的web-im"><a href="#用t-io做的web-im" class="headerlink" title="用t-io做的web im"></a>用t-io做的<a href="http://t-io.org/webim/" target="_blank" rel="noopener">web im</a></h3><h3 id="maven坐标"><a href="#maven坐标" class="headerlink" title="maven坐标"></a>maven坐标</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.t-io&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;tio-core&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;1.7.2.v20170705-RELEASE&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
-<h3 id="对开发人员极体贴的内置功能"><a href="#对开发人员极体贴的内置功能" class="headerlink" title="对开发人员极体贴的内置功能"></a>对开发人员极体贴的内置功能</h3><ul>
-<li><strong>内置心跳检测</strong></li>
-<li><strong>内置心跳发送</strong></li>
-<li><strong>各种便捷的绑定API</strong></li>
-<li><strong>各种便捷的发送API</strong></li>
-<li><strong>一行代码拥有自动重连功能</strong></li>
-<li><strong>各项消息统计等功能，全部一键内置搞定，省却各种烦恼</strong></li>
-</ul>
-<h2 id="各种传送门"><a href="#各种传送门" class="headerlink" title="各种传送门"></a><strong>各种传送门</strong></h2><ul>
-<li><a href="http://t-io.org/webim/" target="_blank" rel="noopener">t-io + layim + vue + ivivew + webpack + google-protobuf开发的web im</a></li>
-<li><a href="http://t-io.org?t_io_v=34344545676" target="_blank" rel="noopener">官 网</a></li>
-<li><a href="https://git.oschina.net/tywo45/t-io" target="_blank" rel="noopener">代码托管平台码云</a></li>
-<li><a href="https://www.oschina.net/p/t-io" target="_blank" rel="noopener">开源中国收录t-tio地址</a></li>
-<li><p><a href="https://my.oschina.net/talenttan/blog?catalog=5625247" target="_blank" rel="noopener">talent-tan写的t-io系列文档</a></p>
-<ul>
-<li><a href="https://my.oschina.net/talenttan/blog/884806" target="_blank" rel="noopener">aio系列文档（1）—-t-io的hello world</a></li>
-<li><a href="https://my.oschina.net/talenttan/blog/889887" target="_blank" rel="noopener">aio系列文档（2）—-图解bytebuffer</a></li>
-<li><a href="https://my.oschina.net/talenttan/blog/885477" target="_blank" rel="noopener">aio系列文档（3）—-protobuf入门与使用</a></li>
-<li><a href="https://my.oschina.net/talenttan/blog/884466" target="_blank" rel="noopener">aio系列文档（4）—-t-io源代码阅读小记</a>（具体内容<a href="http://www.jianshu.com/u/be7966e52d09" target="_blank" rel="noopener">millions_chan</a>所写）</li>
-</ul>
-</li>
-<li><p><a href="https://my.oschina.net/u/2461727/blog" target="_blank" rel="noopener">卡尔码农写的t-io系列文档</a></p>
-<ul>
-<li><a href="https://my.oschina.net/u/2461727/blog/897548" target="_blank" rel="noopener">t-io 入门篇（三）即时消息发送demo学习</a></li>
-<li><a href="https://my.oschina.net/u/2461727/blog/894533" target="_blank" rel="noopener">t-io入门篇（二）</a></li>
-<li><a href="https://my.oschina.net/u/2461727/blog/893899" target="_blank" rel="noopener">t-io学习入门篇（一）</a></li>
-</ul>
-</li>
-<li>其它小伙伴写的零碎文章和作品<ul>
-<li><a href="https://my.oschina.net/u/1168934/blog/864239" target="_blank" rel="noopener">给jfinal写的t-io插件</a>—-小徐同学花10分钟完成的作品</li>
-<li><a href="https://my.oschina.net/longtutengfei/blog/892053" target="_blank" rel="noopener">用t-io实现的简单rpc</a>—-仅作思路参考，部分实现待完善</li>
-<li><a href="https://git.oschina.net/kobe577590/im" target="_blank" rel="noopener">jfinal + t-io完成的im项目</a>—-作者天蓬小猪正在完善</li>
-</ul>
-</li>
-<li><a href="http://t-io.org/apidocs/org/tio/core/Aio.html?t_io_v=34344545676" target="_blank" rel="noopener">API</a>(只需要看<a href="http://t-io.org/apidocs/org/tio/core/Aio.html?t_io_v=34344545676" target="_blank" rel="noopener">Aio.java</a>)</li>
-<li><a href="https://my.oschina.net/talenttan/blog/863545" target="_blank" rel="noopener">资料及问题汇总</a></li>
-</ul>
-<h3 id="了解代码目录结构"><a href="#了解代码目录结构" class="headerlink" title="了解代码目录结构"></a>了解代码目录结构</h3><p>所有工程都是maven工程，后续目录有可能稍有变动，不定期更新</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line">├─bin----------------脚本目录（方便快速操作）</span><br><span class="line">│      clean.bat----------------清空所有工程的target目录</span><br><span class="line">│      clean.sh</span><br><span class="line">│      deploy.bat----------------作者用来发布到maven中心仓库的脚本，放出来主要是供大家参考</span><br><span class="line">│      deploy.sh</span><br><span class="line">│      dist-examples.bat----------------把所有的例子打包到dist目录，方便用户直接执行</span><br><span class="line">│      dist-examples.sh</span><br><span class="line">│      install.bat----------------安装工程到本地仓库</span><br><span class="line">│      install.sh</span><br><span class="line">|      start-http-server.bat----------------启动tio-httpserver</span><br><span class="line">│      start-helloworld-client.bat----------------启动helloworld的客户端</span><br><span class="line">│      start-helloworld-client.sh</span><br><span class="line">│      start-helloworld-server.bat----------------启动helloworld的服务端</span><br><span class="line">│      start-helloworld-server.sh</span><br><span class="line">│      start-im-client.bat----------------启动im的客户端</span><br><span class="line">│      start-im-client.sh</span><br><span class="line">│      start-im-server.bat----------------启动im的服务端</span><br><span class="line">│      start-im-server.sh</span><br><span class="line">│      start-showcase-client.bat----------------启动showcase的客户端</span><br><span class="line">│      start-showcase-client.sh</span><br><span class="line">│      start-showcase-server.bat----------------启动showcase的服务端</span><br><span class="line">│      start-showcase-server.sh</span><br><span class="line">├─docs</span><br><span class="line">│  │  </span><br><span class="line">│  ├─blog----------------本人博客草稿（大部分博客是在线编辑，所以此处就没有了）</span><br><span class="line">│  │      </span><br><span class="line">│  ├─performance----------------一些性能测试截图（随着版本的增多，有些截图已经过时，但仍保留）</span><br><span class="line">│  │</span><br><span class="line">│  ├─release----------------新版本发布时的log</span><br><span class="line">│  </span><br><span class="line">├─dist----------------成品</span><br><span class="line">│  └─examples----------------用t-io写的例子成品</span><br><span class="line">│      ├─helloworld</span><br><span class="line">│      │  ├─client----------------helloworld的客户端</span><br><span class="line">│      │  └─server----------------helloworld的服务端</span><br><span class="line">│      ├─im</span><br><span class="line">│      │  ├─client----------------im的客户端</span><br><span class="line">│      │  └─server----------------im的服务端</span><br><span class="line">│      └─showcase</span><br><span class="line">│          ├─client----------------showcase的客户端</span><br><span class="line">│          └─server----------------showcase的服务端</span><br><span class="line">└─src</span><br><span class="line">    ├─core----------------t-io的核心代码</span><br><span class="line">    ├─zoo----------------t-io的生态圈</span><br><span class="line">    │  ├─http----------------用t-io实现的http服务器</span><br><span class="line">    │  ├─websocket----------------用t-io实现的websocket服务器</span><br><span class="line">    ├─example----------------用t-io写的例子的源代码</span><br><span class="line">    │  ├─parent----------------例子的maven parent</span><br><span class="line">    │  ├─helloworld----------------helloworld的源代码</span><br><span class="line">    │  │  ├─client</span><br><span class="line">    │  │  ├─common</span><br><span class="line">    │  │  └─server</span><br><span class="line">    │  ├─im----------------im的源代码</span><br><span class="line">    │  │  ├─client</span><br><span class="line">    │  │  ├─common</span><br><span class="line">    │  │  └─server</span><br><span class="line">    │  └─showcase----------------showcase的源代码，这个例子是为了帮助用户学习t-io专门写的</span><br><span class="line">    │      ├─client</span><br><span class="line">    │      ├─common</span><br><span class="line">    │      └─server</span><br><span class="line">    └─parent----------------maven工程的parent</span><br></pre></td></tr></table></figure>
-<h3 id="学习万能的helloworld例子"><a href="#学习万能的helloworld例子" class="headerlink" title="学习万能的helloworld例子"></a>学习万能的helloworld例子</h3><p>花30分钟看一下t-io官方提供的helloworld，了解一下TCP编程的大概流程，文档传送门: <a href="https://my.oschina.net/talenttan/blog/884806" target="_blank" rel="noopener">t-io的hello world</a></p>
-<h3 id="学习用于进阶的showcase例子"><a href="#学习用于进阶的showcase例子" class="headerlink" title="学习用于进阶的showcase例子"></a>学习用于进阶的showcase例子</h3><p>showcase一词是从springside借来的，放这很应景，<a href="https://git.oschina.net/kobe577590/im" target="_blank" rel="noopener">天蓬元帅</a>就是这样学习的，可以和他交流，他后面会出详细的教程。</p>
-<h2 id="列一下推荐的国产开源软件"><a href="#列一下推荐的国产开源软件" class="headerlink" title="列一下推荐的国产开源软件"></a>列一下推荐的国产开源软件</h2><ol>
-<li><a href="https://www.oschina.net/p/weixin-java-tools-new" target="_blank" rel="noopener">https://www.oschina.net/p/weixin-java-tools-new</a> （使用一年）</li>
-<li><a href="http://layim.layui.com" target="_blank" rel="noopener">http://layim.layui.com</a>（2017年5月11号开始使用）</li>
-<li><a href="https://www.oschina.net/p/ztree" target="_blank" rel="noopener">https://www.oschina.net/p/ztree</a> （使用五年以上吧）</li>
-<li><a href="https://www.oschina.net/p/echarts" target="_blank" rel="noopener">https://www.oschina.net/p/echarts</a> （使用两年以上吧）</li>
-<li><a href="http://git.oschina.net/tywo45/talent-validate" target="_blank" rel="noopener">http://git.oschina.net/tywo45/talent-validate</a> （使用十年了，开源出来有五年以上吧，原来是博客开源，现在移到开源中国了）</li>
-<li><a href="https://www.oschina.net/p/hutool" target="_blank" rel="noopener">https://www.oschina.net/p/hutool</a>（懒 人必备，强烈推荐，使用两个月）</li>
-<li><a href="https://www.oschina.net/p/t-io" target="_blank" rel="noopener">https://www.oschina.net/p/t-io</a>（使用五年了，开源出来半年）</li>
-<li><a href="https://www.oschina.net/p/druid" target="_blank" rel="noopener">https://www.oschina.net/p/druid</a>（使用三年以上吧）</li>
-<li><a href="https://www.oschina.net/p/dubbo" target="_blank" rel="noopener">https://www.oschina.net/p/dubbo</a>（使用两年）</li>
-<li><a href="https://git.oschina.net/jfinal/jfinal-weixin/" target="_blank" rel="noopener">https://git.oschina.net/jfinal/jfinal-weixin</a>（使用一年左右）</li>
-<li><a href="https://www.oschina.net/p/fastjson" target="_blank" rel="noopener">https://www.oschina.net/p/fastjson</a>（使用三年以上）</li>
-</ol>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/06/t-io-start/" data-id="cjk13aj61000ffc7adaalfc4z" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/NIO/">NIO</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/">Next &raquo;</a>
+  </nav>
 
 </section>
         
@@ -1285,7 +1106,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li></ul>
     </div>
   </div>
 
@@ -1295,7 +1116,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 10px;">Architecture</a> <a href="/tags/Build/" style="font-size: 10px;">Build</a> <a href="/tags/DB/" style="font-size: 10px;">DB</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/tags/Java/" style="font-size: 20px;">Java</a> <a href="/tags/NIO/" style="font-size: 10px;">NIO</a> <a href="/tags/Tools/" style="font-size: 10px;">Tools</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a>
+      <a href="/tags/Architecture/" style="font-size: 10px;">Architecture</a> <a href="/tags/Build/" style="font-size: 10px;">Build</a> <a href="/tags/DB/" style="font-size: 10px;">DB</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/tags/Java/" style="font-size: 20px;">Java</a> <a href="/tags/NIO/" style="font-size: 10px;">NIO</a> <a href="/tags/Tools/" style="font-size: 10px;">Tools</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/spring/" style="font-size: 10px;">spring</a>
     </div>
   </div>
 
@@ -1304,7 +1125,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">July 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/06/">June 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">July 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/06/">June 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
     </div>
   </div>
 
@@ -1317,6 +1138,14 @@
       <ul>
         
           <li>
+            <a href="/2020/08/01/postgre/">postgre</a>
+          </li>
+        
+          <li>
+            <a href="/2020/08/01/spring-event/">spring-event</a>
+          </li>
+        
+          <li>
             <a href="/2018/07/19/jvm/">jvm</a>
           </li>
         
@@ -1326,14 +1155,6 @@
         
           <li>
             <a href="/2018/06/14/servlet/">Java Web</a>
-          </li>
-        
-          <li>
-            <a href="/2018/06/14/spring/">spring</a>
-          </li>
-        
-          <li>
-            <a href="/2018/06/06/MyBatis/">MyBatis 初探</a>
           </li>
         
       </ul>
@@ -1348,7 +1169,7 @@
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2018 Ritchie<br>
+      &copy; 2020 Ritchie<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>

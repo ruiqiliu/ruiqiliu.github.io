@@ -8,5 +8,5 @@ hexo new $1
 
 echo "create new post $1.md" 
 
-ln $*.md /Users/liuruiqi/workspace/CommonToolsTotorial/Java
+ln $1.md /Users/liuruiqi/workspace/CommonToolsTotorial/Java
 
