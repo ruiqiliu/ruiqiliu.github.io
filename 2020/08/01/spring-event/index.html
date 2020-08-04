@@ -7,18 +7,20 @@
   
   <title>spring-event | Ruiqi Liu&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="SpringApplicatonEvent 启动过程中的事件处理Todo…">
+  <meta name="description" content="SpringApplicatonEvent 启动过程中的事件处理 ApplicationStartingEvent 应用启动开始时，刚完成SpringApplication的实例化 接着完成如下事： 推断webApplicationType 给字段initilizers赋值：通过SPI方式加载spring.factories中的配置 给字段listeners赋值：通过SPI方式加载监听器   发送">
 <meta name="keywords" content="Java,spring">
 <meta property="og:type" content="article">
 <meta property="og:title" content="spring-event">
 <meta property="og:url" content="http://yoursite.com/2020/08/01/spring-event/index.html">
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
-<meta property="og:description" content="SpringApplicatonEvent 启动过程中的事件处理Todo…">
+<meta property="og:description" content="SpringApplicatonEvent 启动过程中的事件处理 ApplicationStartingEvent 应用启动开始时，刚完成SpringApplication的实例化 接着完成如下事： 推断webApplicationType 给字段initilizers赋值：通过SPI方式加载spring.factories中的配置 给字段listeners赋值：通过SPI方式加载监听器   发送">
 <meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2020-08-01T09:01:46.162Z">
+<meta property="og:image" content="https://mmbiz.qpic.cn/mmbiz_png/TN05MmJLxMqa91ekWjTR81cnTv4NMo5IqwjjFx7N6XBjZYOOCoHWZAaTb3MiaguCdSIkCnfxCrLPPOz4kCkM24g/640?tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:updated_time" content="2020-08-04T15:12:12.005Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="spring-event">
-<meta name="twitter:description" content="SpringApplicatonEvent 启动过程中的事件处理Todo…">
+<meta name="twitter:description" content="SpringApplicatonEvent 启动过程中的事件处理 ApplicationStartingEvent 应用启动开始时，刚完成SpringApplication的实例化 接着完成如下事： 推断webApplicationType 给字段initilizers赋值：通过SPI方式加载spring.factories中的配置 给字段listeners赋值：通过SPI方式加载监听器   发送">
+<meta name="twitter:image" content="https://mmbiz.qpic.cn/mmbiz_png/TN05MmJLxMqa91ekWjTR81cnTv4NMo5IqwjjFx7N6XBjZYOOCoHWZAaTb3MiaguCdSIkCnfxCrLPPOz4kCkM24g/640?tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -91,12 +93,36 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h2 id="SpringApplicatonEvent-启动过程中的事件处理"><a href="#SpringApplicatonEvent-启动过程中的事件处理" class="headerlink" title="SpringApplicatonEvent 启动过程中的事件处理"></a>SpringApplicatonEvent 启动过程中的事件处理</h2><p>Todo…</p>
-
+        <h2 id="SpringApplicatonEvent-启动过程中的事件处理"><a href="#SpringApplicatonEvent-启动过程中的事件处理" class="headerlink" title="SpringApplicatonEvent 启动过程中的事件处理"></a>SpringApplicatonEvent 启动过程中的事件处理</h2><p><img src="https://mmbiz.qpic.cn/mmbiz_png/TN05MmJLxMqa91ekWjTR81cnTv4NMo5IqwjjFx7N6XBjZYOOCoHWZAaTb3MiaguCdSIkCnfxCrLPPOz4kCkM24g/640?tp=webp&amp;wxfrom=5&amp;wx_lazy=1&amp;wx_co=1" alt="Event-Process"></p>
+<h3 id="ApplicationStartingEvent"><a href="#ApplicationStartingEvent" class="headerlink" title="ApplicationStartingEvent"></a>ApplicationStartingEvent</h3><ul>
+<li>应用启动开始时，刚完成SpringApplication的实例化</li>
+<li>接着完成如下事：<ul>
+<li>推断webApplicationType</li>
+<li>给字段initilizers赋值：通过SPI方式加载spring.factories中的配置</li>
+<li>给字段listeners赋值：通过SPI方式加载监听器</li>
+</ul>
+</li>
+<li>发送ApplicationStartingEvent事件，触发对应的监听器的执行<ul>
+<li>默认是同步执行</li>
+<li>默认的监听器是LoggingApplicationListener、BackGroundPreinitializer</li>
+</ul>
+</li>
+</ul>
+<h3 id="ApplicationEnvironmentPreparedEvent"><a href="#ApplicationEnvironmentPreparedEvent" class="headerlink" title="ApplicationEnvironmentPreparedEvent"></a>ApplicationEnvironmentPreparedEvent</h3><p>Environment是Spring的基础元数据。<br>完成大事记：</p>
+<ul>
+<li>封装命令行参数到ApplicationArguments</li>
+<li>创建ConfigConfigurableEnvironment实例</li>
+<li>发送ApplicationEnvironmentPreparedEvent事件，触发对应的监听器的执行</li>
+<li>有九个监听器处理该事件<ul>
+<li>todo</li>
+</ul>
+</li>
+</ul>
+<h3 id="ApplicationContextInitializedEvent"><a href="#ApplicationContextInitializedEvent" class="headerlink" title="ApplicationContextInitializedEvent"></a>ApplicationContextInitializedEvent</h3><h3 id="ApplicationPreparedEvent"><a href="#ApplicationPreparedEvent" class="headerlink" title="ApplicationPreparedEvent"></a>ApplicationPreparedEvent</h3><h3 id="ApplicationStartedEvent"><a href="#ApplicationStartedEvent" class="headerlink" title="ApplicationStartedEvent"></a>ApplicationStartedEvent</h3><h3 id="ApplicationReadyEvent"><a href="#ApplicationReadyEvent" class="headerlink" title="ApplicationReadyEvent"></a>ApplicationReadyEvent</h3>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/08/01/spring-event/" data-id="ckdbfi16s000epc7armtavfnz" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2020/08/01/spring-event/" data-id="ckdg33rvy0004a27ajw945i5t" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/spring/">spring</a></li></ul>
@@ -138,7 +164,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li></ul>
     </div>
   </div>
 
@@ -148,7 +174,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 10px;">Architecture</a> <a href="/tags/Build/" style="font-size: 10px;">Build</a> <a href="/tags/DB/" style="font-size: 10px;">DB</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/tags/Java/" style="font-size: 20px;">Java</a> <a href="/tags/NIO/" style="font-size: 10px;">NIO</a> <a href="/tags/Tools/" style="font-size: 10px;">Tools</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/spring/" style="font-size: 10px;">spring</a>
+      <a href="/tags/Architecture/" style="font-size: 10px;">Architecture</a> <a href="/tags/Build/" style="font-size: 10px;">Build</a> <a href="/tags/DB/" style="font-size: 10px;">DB</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/tags/Java/" style="font-size: 20px;">Java</a> <a href="/tags/NIO/" style="font-size: 10px;">NIO</a> <a href="/tags/Spring/" style="font-size: 10px;">Spring</a> <a href="/tags/Tools/" style="font-size: 10px;">Tools</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/spring/" style="font-size: 10px;">spring</a>
     </div>
   </div>
 
