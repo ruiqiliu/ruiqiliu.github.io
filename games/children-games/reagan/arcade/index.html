@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>快乐小游戏</title>
+
+<link rel="stylesheet" href="css/tokens.css" />
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/home.css" />
+<link rel="stylesheet" href="css/play.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ==================== 首页 ==================== -->
+  <!-- 卡片由 js/ui/home.js 依据 js/games/registry.js 生成 -->
+  <div id="home">
+    <h1>🎈 快乐小游戏</h1>
+    <p class="tip">选一个开始玩吧！</p>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <!-- ==================== 游戏页 ==================== -->
+  <div id="play">
+    <div class="topbar">
+      <button class="icon-btn" id="btnBack">← 返回</button>
+      <div class="title"><span class="ico" id="tIco">🎮</span><span id="tName">游戏</span></div>
+      <button class="icon-btn" id="btnRestart">↻ 重来</button>
+      <button class="icon-btn" id="btnSound">🔊</button>
+    </div>
+
+    <div class="hud" id="hud"></div>
+
+    <div class="stage"><canvas id="cv"></canvas></div>
+
+    <div class="pads" id="pads"></div>
+    <p class="footerhint" id="hint"></p>
+  </div>
+
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

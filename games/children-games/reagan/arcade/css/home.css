@@ -1,0 +1,104 @@
+/* =====================================================================
+   首页：标题 + 游戏卡片
+   卡片的强调色由 JS 写进 style="--accent:…"（见 js/ui/home.js）
+   ===================================================================== */
+#home {
+  text-align: center;
+  padding: 10px 0 0;
+  min-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+#home.off {
+  display: none;
+}
+
+#home h1 {
+  font-size: clamp(28px, 6vw, 44px);
+  margin: 6px 0 4px;
+  letter-spacing: 0.02em;
+  background: linear-gradient(100deg, #5b9dff, #9b7bff 45%, #ff8fb1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+#home p.tip {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 0 0 22px;
+}
+
+.cards {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 720px) {
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .cards {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 22px 12px 18px;
+  border: 2px solid transparent;
+  border-radius: 22px;
+  background: var(--card);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  box-shadow: 0 10px 26px -14px rgba(40, 60, 120, 0.35);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s,
+    border-color 0.18s;
+}
+
+.card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 36px -16px rgba(40, 60, 120, 0.4);
+  border-color: var(--accent, #c6d2ea);
+}
+
+.card:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+.card .emo {
+  font-size: 46px;
+  line-height: 1;
+  filter: drop-shadow(0 6px 10px rgba(60, 80, 140, 0.18));
+}
+
+.card .nm {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.card .ds {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.card .key {
+  margin-top: 7px;
+  font-size: 10.5px;
+  color: #a8b0c6;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 9px;
+}

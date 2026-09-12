@@ -1,0 +1,44 @@
+/* =====================================================================
+   基础样式：重置 + 页面外壳 + 通用小元素
+   ===================================================================== */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 14px 14px 18px;
+  background: linear-gradient(160deg, var(--bg1) 0%, #f2f0ff 45%, var(--bg2) 100%);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+
+  /* align-items 必须是 flex-start：否则高画布会把顶栏顶出屏幕 */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 880px;
+}
+
+kbd {
+  font: inherit;
+  font-size: 11.5px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: #485270;
+}
