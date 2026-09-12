@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托</title>
+<title>快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 粘粘球</title>
 <style>
   :root{
     --bg1:#eaf3ff; --bg2:#fff0f7;
@@ -36,7 +36,7 @@
   }
   #home p.tip{color:var(--muted);font-size:15px;margin:0 0 22px}
   .cards{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
-  @media(min-width:720px){.cards{grid-template-columns:repeat(4,1fr)}}
+  @media(min-width:720px){.cards{grid-template-columns:repeat(5,1fr)}}
   .card{
     display:flex;flex-direction:column;align-items:center;gap:5px;
     padding:22px 12px 18px; border:2px solid transparent; border-radius:22px;
@@ -50,6 +50,7 @@
   .card[data-game="snake"]:hover{border-color:#a9ecc0}
   .card[data-game="tetris"]:hover{border-color:#c3d8ff}
   .card[data-game="moto"]:hover{border-color:#ffd8a8}
+  .card[data-game="goo"]:hover{border-color:#d0bfff}
   .card .emo{font-size:46px;line-height:1;filter:drop-shadow(0 6px 10px rgba(60,80,140,.18))}
   .card .nm{font-size:19px;font-weight:800;letter-spacing:.02em}
   .card .ds{font-size:12px;color:var(--muted);line-height:1.55}
@@ -138,6 +139,12 @@
         <span class="nm">暴力摩托</span>
         <span class="ds">一路超车冲第一<br>按空格出拳把对手别开</span>
         <span class="key">按 4 开始</span>
+      </button>
+      <button class="card" data-game="goo">
+        <span class="emo">🫠</span>
+        <span class="nm">粘粘球</span>
+        <span class="ds">滚来滚去粘星星<br>带粘粘球回粉粉的家</span>
+        <span class="key">按 5 开始</span>
       </button>
     </div>
   </div>
@@ -347,6 +354,7 @@ window.addEventListener('keydown', e => {
     else if(k==='2') open('snake');
     else if(k==='3') open('tetris');
     else if(k==='4') open('moto');
+    else if(k==='5') open('goo');
     return;
   }
   if(k==='escape'){ goHome(); return; }
@@ -1831,6 +1839,335 @@ GAMES.moto = {
 /* ═══════════════════════════════════════════════════════════
    5. 导航
    ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   游戏 5 · 粘粘球（6-8 岁 · 键盘版）
+   —— 滚动小球把星星粘到身上，集齐后回到粉粉的家；没有失败，随便探索
+   ═══════════════════════════════════════════════════════════════════ */
+GAMES.goo = {
+  name:'粘粘球', icon:'🫠',
+  create(){
+    const W=800, H=560, R=26;
+    const GRAV=1500, MOVE=1900, MAXV=330, JUMPV=640, MAXFALL=920;
+    const LEVELS=[
+      { plats:[[0,500,800,60],[140,390,170,26],[430,330,170,26],[640,260,150,26]],
+        stars:[[140,470],[225,360],[515,300],[715,230],[340,470],[600,470]],
+        home:[735,480] },
+      { plats:[[0,500,800,60],[100,400,140,24],[320,340,140,24],[540,280,140,24],[680,180,120,24],[300,200,140,24]],
+        stars:[[60,470],[170,370],[390,310],[610,250],[740,150],[450,170],[250,470]],
+        home:[335,180] },
+      { plats:[[0,500,800,60],[0,420,120,22],[220,360,120,22],[440,300,120,22],[660,240,120,22],[420,160,160,22],[120,180,140,22]],
+        stars:[[60,390],[280,330],[500,270],[720,210],[500,130],[150,470],[380,470],[650,470]],
+        home:[190,160] },
+      { plats:[[0,500,800,60],[80,430,120,22],[260,370,120,22],[440,310,120,22],[620,250,120,22],[430,170,140,22],[180,150,120,22],[600,110,120,22]],
+        stars:[[40,470],[140,400],[320,340],[500,280],[700,220],[500,140],[240,120],[740,470],[380,470]],
+        home:[660,90] }
+    ];
+    const TOPS=['#cabdfa','#ffc9de','#ffe3a3','#a8e6c1'];
+
+    let plats=[], stars=[], home={x:0,y:0};
+    let ball={x:70,y:440,vx:0,vy:0,ang:0};
+    let stuck=[], collected=0, total=0;
+    let level=1, score=0, levelScore=0, best=0;
+    let phase='play', clearT=0, T=0, dustT=0;
+    let coyote=0, jumpBuf=0, squash=0, wasGround=false;
+    let bg=null;
+    const held={left:false,right:false};
+    try{ best=parseInt(localStorage.getItem('hpy-goo-best')||'0',10)||0; }catch(e){}
+    function saveBest(){ try{ localStorage.setItem('hpy-goo-best',String(best)); }catch(e){} }
+
+    function loadLevel(n){
+      const L=LEVELS[(n-1)%LEVELS.length];
+      plats=L.plats.map(p=>({x:p[0],y:p[1],w:p[2],h:p[3]}));
+      stars=L.stars.map((s,i)=>({x:s[0],y:s[1],got:false,i}));
+      home={x:L.home[0],y:L.home[1]};
+      total=stars.length; collected=0; stuck=[];
+      ball={x:70,y:440,vx:0,vy:0,ang:0};
+      levelScore=score; phase='play';
+      coyote=0; jumpBuf=0; squash=0; wasGround=false;
+      bg=null;
+      hud();
+    }
+    function reset(){ score=0; level=1; loadLevel(1); }
+    function restartLevel(){ score=levelScore; loadLevel(level); }
+    function hud(){
+      setHUD([['得分',score],['星星',collected+' / '+total],['关卡',level+' / '+LEVELS.length]]);
+    }
+
+    /* ---- 静态背景 + 平台（离屏画一次）---- */
+    function makeBG(){
+      const c=document.createElement('canvas'), dpr=VIEW.dpr;
+      c.width=Math.round(W*dpr); c.height=Math.round(H*dpr);
+      const g=c.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+      const pairs=[['#f4f1ff','#ffeef5'],['#eef7ff','#f3eeff'],['#fff4ea','#f0fbff'],['#effff4','#fdf0ff']];
+      const pair=pairs[(level-1)%pairs.length];
+      const gr=g.createLinearGradient(0,0,0,H);
+      gr.addColorStop(0,pair[0]); gr.addColorStop(1,pair[1]);
+      g.fillStyle=gr; g.fillRect(0,0,W,H);
+      // 远山
+      g.fillStyle='rgba(155,123,255,.10)';
+      g.beginPath(); g.arc(140,H+140,300,0,TAU); g.fill();
+      g.beginPath(); g.arc(660,H+180,340,0,TAU); g.fill();
+      g.fillStyle='rgba(255,143,177,.10)';
+      g.beginPath(); g.arc(420,H+240,320,0,TAU); g.fill();
+      // 云朵
+      g.fillStyle='rgba(255,255,255,.8)';
+      for(const cl of [[120,90,52],[300,60,38],[560,100,46],[700,60,34]]){
+        rr(g,cl[0]-cl[2],cl[1]-cl[2]*0.55,cl[2]*2,cl[2]*1.1,cl[2]*0.55); g.fill();
+        g.beginPath(); g.arc(cl[0],cl[1]-cl[2]*0.5,cl[2]*0.62,0,TAU); g.fill();
+      }
+      // 平台
+      const top=TOPS[(level-1)%TOPS.length];
+      for(const p of plats){
+        g.save(); g.shadowColor='rgba(90,80,140,.22)'; g.shadowBlur=12; g.shadowOffsetY=5;
+        rr(g,p.x,p.y,p.w,p.h,12); g.fillStyle='#ffffff'; g.fill(); g.restore();
+        g.save(); rr(g,p.x,p.y,p.w,p.h,12); g.clip();
+        g.fillStyle=top; g.fillRect(p.x,p.y,p.w,9);
+        g.fillStyle='rgba(160,150,200,.14)';
+        for(let d=0; d<p.w; d+=26) g.fillRect(p.x+6+d, p.y+p.h-7, 12, 3);
+        g.restore();
+        rr(g,p.x,p.y,p.w,p.h,12); g.strokeStyle='#e6ddff'; g.lineWidth=3; g.stroke();
+      }
+      return c;
+    }
+
+    function drawStarShape(g,x,y,r,rot,fill,line){
+      g.save(); g.translate(x,y); g.rotate(rot);
+      g.beginPath();
+      for(let k=0;k<5;k++){
+        const a1=-Math.PI/2+k*TAU/5, a2=a1+TAU/10;
+        g.lineTo(Math.cos(a1)*r, Math.sin(a1)*r);
+        g.lineTo(Math.cos(a2)*r*0.45, Math.sin(a2)*r*0.45);
+      }
+      g.closePath();
+      g.fillStyle=fill; g.fill();
+      if(line){ g.lineWidth=2.5; g.strokeStyle=line; g.lineJoin='round'; g.stroke(); }
+      g.restore();
+    }
+
+    function drawHome(g){
+      const open = collected>=total;
+      const s = open ? 1+Math.sin(T*6)*0.06 : 1;
+      g.save(); g.translate(home.x,home.y); g.scale(s,s);
+      g.beginPath(); g.ellipse(0,6,42,10,0,0,TAU); g.fillStyle='rgba(120,100,180,.18)'; g.fill();
+      g.beginPath(); g.arc(0,-6,30,Math.PI,0); g.closePath();
+      g.fillStyle = open ? '#ff8fb1' : '#d6dae6';
+      g.fill();
+      g.strokeStyle = open ? '#f06595' : '#b3bacd'; g.lineWidth=3; g.stroke();
+      rr(g,-9,-8,18,14,6);
+      g.fillStyle = open ? '#fff0f6' : '#eef0f5'; g.fill();
+      g.textAlign='center'; g.textBaseline='middle';
+      if(!open){
+        g.font='800 13px '+UI; g.fillStyle='#868da3';
+        g.fillText('还剩 '+(total-collected)+' 颗', 0, -48);
+      }else{
+        g.font='22px '+EMOJI; g.fillText('💗', 0, -46);
+      }
+      g.restore();
+    }
+
+    function drawBall(g){
+      const sx=1+squash*0.9, sy=1-squash;
+      g.save(); g.translate(ball.x,ball.y); g.scale(sx,sy);
+      const grad=g.createRadialGradient(-8,-10,6, 0,0,R+4);
+      grad.addColorStop(0,'#d0bfff'); grad.addColorStop(0.55,'#9b7bff'); grad.addColorStop(1,'#7950f2');
+      g.beginPath(); g.arc(0,0,R,0,TAU); g.fillStyle=grad; g.fill();
+      g.beginPath(); g.ellipse(-9,-11,9,6,-0.6,0,TAU); g.fillStyle='rgba(255,255,255,.55)'; g.fill();
+      const look=clamp(ball.vx/MAXV,-1,1)*5;
+      for(const ex of [-9,9]){
+        g.beginPath(); g.arc(ex+look,-4,6.5,0,TAU); g.fillStyle='#fff'; g.fill();
+        g.beginPath(); g.arc(ex+look*1.4,-4,3,0,TAU); g.fillStyle='#2b2440'; g.fill();
+      }
+      g.beginPath(); g.arc(look*0.6,5,8,0.15*Math.PI,0.85*Math.PI);
+      g.strokeStyle='#4b3591'; g.lineWidth=3; g.lineCap='round'; g.stroke();
+      g.beginPath(); g.arc(-17,3,4.5,0,TAU); g.fillStyle='rgba(255,143,177,.5)'; g.fill();
+      g.beginPath(); g.arc(17,3,4.5,0,TAU); g.fill();
+      g.restore();
+    }
+
+    const api = {
+      start(){
+        showHUD();
+        setupCanvas(W,H);
+        score=0; level=1;
+        loadLevel(1);
+        cv.style.cursor='default';
+        setPads(
+          '<div class="dpad">'+
+            '<span class="sp"></span><button class="pad" data-act="up">⤒</button><span class="sp"></span>'+
+            '<button class="pad" data-act="left">◀</button>'+
+            '<button class="pad" data-act="down">↻</button>'+
+            '<button class="pad" data-act="right">▶</button>'+
+          '</div>');
+        setHint('<kbd>←</kbd><kbd>→</kbd> 或 <kbd>A</kbd><kbd>D</kbd> 滚动 · <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>空格</kbd> 跳 · <kbd>R</kbd> 重玩本关 · 把星星都粘到身上，再回到粉粉的家！');
+      },
+      resize(){ setupCanvas(W,H); bg=null; },
+      restart(){ reset(); },
+      action(a,down){
+        if(a==='left') held.left=down;
+        else if(a==='right') held.right=down;
+        else if(a==='up' && down){ if(phase==='win'){ reset(); return; } jumpBuf=0.14; }
+        else if(a==='down' && down && phase!=='win'){ restartLevel(); }
+      },
+      key(k,down,e){
+        if(k==='arrowleft'||k==='a') held.left=down;
+        if(k==='arrowright'||k==='d') held.right=down;
+        if(down && !e.repeat && (k==='arrowup'||k==='w'||k===' ')){
+          if(phase==='win'){ reset(); return; }
+          jumpBuf=0.14;
+        }
+        if(down && k==='r' && phase!=='win') restartLevel();
+      },
+      pointer(e,type){
+        if(type==='down'){
+          if(phase==='win'){ reset(); return; }
+          const p=toLocal(e);
+          jumpBuf=0.14;
+          if(p.x<VIEW.W*0.35){ held.left=true; held.right=false; }
+          else if(p.x>VIEW.W*0.65){ held.right=true; held.left=false; }
+        }
+        if(type==='up'){ held.left=false; held.right=false; }
+      },
+      update(dt){
+        T+=dt;
+        if(phase==='clear'){
+          clearT-=dt;
+          if(clearT<=0){
+            if(level>=LEVELS.length){
+              phase='win';
+              if(score>best){ best=score; saveBest(); }
+              hud();
+            } else { level++; loadLevel(level); }
+          }
+          return;
+        }
+        if(phase==='win') return;
+
+        const dir=(held.right?1:0)-(held.left?1:0);
+        if(dir!==0){
+          ball.vx=clamp(ball.vx+dir*MOVE*dt, -MAXV, MAXV);
+        }else{
+          ball.vx*=Math.max(0,1-8*dt);
+        }
+        ball.vy=Math.min(ball.vy+GRAV*dt, MAXFALL);
+
+        jumpBuf-=dt; coyote-=dt;
+        if(jumpBuf>0 && coyote>0){
+          ball.vy=-JUMPV; jumpBuf=0; coyote=0; squash=-0.26;
+          Snd.turn();
+          FX.burst(ball.x,ball.y+R-6,['#d0bfff','#e5dbff','#ffffff'],7,0.7);
+        }
+
+        ball.x+=ball.vx*dt;
+        ball.y+=ball.vy*dt;
+        if(ball.x<R){ ball.x=R; ball.vx=Math.max(0,ball.vx); }
+        if(ball.x>W-R){ ball.x=W-R; ball.vx=Math.min(0,ball.vx); }
+
+        let ground=false;
+        for(let pass=0;pass<2;pass++){
+          for(const p of plats){
+            const h=circleRect(ball.x,ball.y,R,p.x,p.y,p.w,p.h);
+            if(!h) continue;
+            ball.x+=h.nx*h.pen; ball.y+=h.ny*h.pen;
+            const vn=ball.vx*h.nx+ball.vy*h.ny;
+            if(vn<0){
+              ball.vx-=vn*h.nx; ball.vy-=vn*h.ny;
+              if(h.ny<-0.5){
+                ground=true;
+                if(!wasGround && vn>260){
+                  squash=Math.min(0.3, vn/2400);
+                  Snd.drop();
+                  FX.burst(ball.x,ball.y+R-4,['#d0bfff','#e5dbff','#ffffff'],8,0.7);
+                }
+              }
+            }
+          }
+        }
+        wasGround=ground;
+        if(ground) coyote=0.12;
+        ball.ang+=(ball.vx/R)*dt*(ground?1:0.55);
+        squash*=Math.max(0,1-9*dt);
+
+        // 跑动小尘土
+        dustT-=dt;
+        if(ground && Math.abs(ball.vx)>190 && dustT<=0){
+          dustT=0.12;
+          FX.burst(ball.x-Math.sign(ball.vx)*R*0.7, ball.y+R-4, ['#ffffff','#e5dbff'], 2, 0.55);
+        }
+
+        // 粘星星
+        for(const s of stars){
+          if(s.got) continue;
+          if(Math.hypot(s.x-ball.x, s.y-ball.y) < R+22){
+            s.got=true; collected++; score+=10;
+            stuck.push({cur:Math.atan2(s.y-ball.y,s.x-ball.x)});
+            FX.burst(s.x,s.y,['#ffd43b','#fff3bf','#ffffff'],12,0.9);
+            FX.text(s.x,s.y-18,'+10','#f59f00',18);
+            Snd.note(collected-1);
+            if(collected>=total){ FX.text(home.x,home.y-70,'回家喽！','#e8590c',24); Snd.star(); }
+            hud();
+          }
+        }
+        // 粘住的星星滑到头顶排排坐
+        for(let i=0;i<stuck.length;i++){
+          const target=-Math.PI/2 + (i-(stuck.length-1)/2)*0.38;
+          stuck[i].cur += (target-stuck[i].cur)*Math.min(1,7*dt);
+        }
+
+        // 回家
+        if(collected>=total && Math.hypot(home.x-ball.x,home.y-ball.y)<R+36){
+          phase='clear'; clearT=1.7; score+=50;
+          FX.text(W/2,H/2-70,'过关啦！ +50','#e8590c',30);
+          FX.burst(home.x,home.y-16,['#ff8fb1','#ffd43b','#b197fc','#ffffff'],30,1.3);
+          for(let i=0;i<stuck.length;i++){
+            FX.burst(ball.x+Math.cos(stuck[i].cur)*(R+10), ball.y+Math.sin(stuck[i].cur)*(R+10),
+                     ['#ffd43b','#ffffff'], 4, 0.7);
+          }
+          stuck=[];
+          Snd.win();
+          hud();
+        }
+      },
+      render(){
+        if(!bg) bg=makeBG();
+        ctx.drawImage(bg,0,0,W,H);
+        drawHome(ctx);
+        // 场景星星
+        for(const s of stars){
+          if(s.got) continue;
+          const bob=Math.sin(T*3+s.i*1.3)*4;
+          ctx.save(); ctx.globalAlpha=0.25;
+          ctx.beginPath(); ctx.arc(s.x,s.y+bob,19,0,TAU); ctx.fillStyle='#ffe98a'; ctx.fill();
+          ctx.restore();
+          drawStarShape(ctx,s.x,s.y+bob,13,T*0.8+s.i,'#ffd43b','#f59f00');
+        }
+        // 身上的星星（小王冠）
+        for(let i=0;i<stuck.length;i++){
+          const a=stuck[i].cur;
+          drawStarShape(ctx, ball.x+Math.cos(a)*(R+10), ball.y+Math.sin(a)*(R+10), 8, T*2+i, '#ffd43b', '#ffffff');
+        }
+        drawBall(ctx);
+        if(phase==='win'){
+          ctx.save();
+          ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fillRect(0,0,W,H);
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.font='800 42px '+UI; ctx.fillStyle='#7950f2';
+          ctx.fillText('粘粘球回家啦！', W/2, H/2-100);
+          ctx.font='64px '+EMOJI; ctx.fillText('🫠', W/2, H/2-26);
+          ctx.font='800 30px '+MONO; ctx.fillStyle='#2b3550';
+          ctx.fillText('得分 '+score, W/2, H/2+50);
+          ctx.font='700 20px '+UI; ctx.fillStyle='#7a849e';
+          ctx.fillText('最好成绩 '+Math.max(best,score), W/2, H/2+90);
+          ctx.font='800 22px '+UI; ctx.fillStyle='#e8590c';
+          ctx.fillText('按 空格 或点击屏幕，再玩一次！', W/2, H/2+144);
+          ctx.restore();
+        }
+      },
+      destroy(){}
+    };
+    return api;
+  }
+};
+
 function open(id){
   if(active && active.destroy) active.destroy();
   FX.clear();
@@ -1850,7 +2187,7 @@ function goHome(){
   setPads('');
   homeEl.classList.remove('off');
   playEl.classList.remove('on');
-  document.title = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托';
+  document.title = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 粘粘球';
 }
 document.querySelectorAll('.card').forEach(b => {
   b.addEventListener('click', () => open(b.dataset.game));
