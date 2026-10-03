@@ -5,6 +5,7 @@
    ===================================================================== */
 import { TAU, rr, lerp, FONT_UI, FONT_EMOJI } from '../../core/util.js';
 import { surface } from '../../core/surface.js';
+import { avatar } from '../../core/avatar.js';
 
 export const PADS =
   '<div class="dpad">' +
@@ -195,12 +196,8 @@ function drawPlayer(ctx, S, maze) {
   ctx.fill();
   ctx.restore();
 
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = Math.round(maze.cell * 0.68) + 'px ' + FONT_EMOJI;
-  ctx.fillText('🐱', x, y + 1);
-  ctx.restore();
+  // 走路的小朋友：真实头像替代 🐱
+  avatar.hero(ctx, x, y, maze.cell * 0.4, { ringW: 3 });
 }
 
 function drawWin(ctx, S, L) {
@@ -214,8 +211,10 @@ function drawWin(ctx, S, L) {
   ctx.fillStyle = '#5b9dff';
   ctx.fillText('走出迷宫啦！', L.W / 2, L.H / 2 - 70);
 
-  ctx.font = '60px ' + FONT_EMOJI;
-  ctx.fillText('🎉 🐱 🏁', L.W / 2, L.H / 2 + 6);
+  avatar.hero(ctx, L.W / 2 - 52, L.H / 2 + 6, 28, { ring: '#ffffff', ringW: 4 });
+  ctx.font = '46px ' + FONT_EMOJI;
+  ctx.fillText('🎉', L.W / 2, L.H / 2);
+  avatar.hero(ctx, L.W / 2 + 52, L.H / 2 + 6, 28, { ring: '#ffffff', ringW: 4 });
 
   ctx.font = '800 26px ' + FONT_UI;
   ctx.fillStyle = '#2b3550';

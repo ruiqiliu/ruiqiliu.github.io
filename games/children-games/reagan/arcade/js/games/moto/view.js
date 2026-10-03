@@ -6,6 +6,7 @@
    ===================================================================== */
 import { TAU, clamp, rand, lerp, rr, FONT_UI, FONT_EMOJI } from '../../core/util.js';
 import { surface } from '../../core/surface.js';
+import { avatar } from '../../core/avatar.js';
 
 export const PADS =
   '<div class="row">' +
@@ -149,8 +150,8 @@ function renderSegment(ctx, seg, L) {
   }
 }
 
-/** 一辆摩托（后方视角）。lean 是倾斜，punch 是出拳，ghost 半透明 */
-export function drawBike(g, cx, by, bw, col, lean, punch, ghost) {
+/** 一辆摩托（后方视角）。lean 是倾斜，punch 是出拳，ghost 半透明，faceKey 是骑手头像 */
+export function drawBike(g, cx, by, bw, col, lean, punch, ghost, faceKey) {
   const h = bw * 1.15;
   g.save();
   g.translate(cx, by);
@@ -202,10 +203,14 @@ export function drawBike(g, cx, by, bw, col, lean, punch, ghost) {
     g.fill();
   }
 
-  // 头盔
-  g.beginPath(); g.arc(0, -h * 1.03, bw * 0.185, 0, TAU); g.fillStyle = '#f1f3f5'; g.fill();
-  g.beginPath(); g.arc(0, -h * 1.03, bw * 0.185, Math.PI * 0.15, Math.PI * 0.85); g.fillStyle = '#343a4d'; g.fill();
-  rr(g, -bw * 0.185, -h * 1.09, bw * 0.37, h * 0.05, bw * 0.025); g.fillStyle = col; g.fill();
+  // 头盔：换成真实头像（原来是一个白色卡通头盔）
+  // 头像本身就是「头盔」，白色描边勾出轮廓；不再叠彩色装饰条 ——
+  // 那条矩形是按圆的半径设计的，叠上去会横穿脸中央。
+  // faceKey 为 null 表示「这是本局主角」，交给 avatar.hero 用主角那张脸。
+  const r = bw * 0.185;
+  const ringW = Math.max(1.5, bw * 0.03);
+  if (faceKey) avatar.draw(g, faceKey, 0, -h * 1.03, r, { ringW });
+  else avatar.hero(g, 0, -h * 1.03, r, { ringW });
 
   g.restore();
 }
@@ -372,7 +377,7 @@ function drawEntities(ctx, S, L, drawn) {
             L.BIKE_W * (L.CAM_DEPTH / L.PLAYER_Z) * (L.W / 2) * 1.05
           );
           const lean = clamp((r.off - (r.prevOff == null ? r.off : r.prevOff)) * 40, -1, 1);
-          drawBike(ctx, p.x, p.y, bw, r.color, r.state === 'wobble' ? Math.sin(S.t * 22) * 0.9 : lean, false, false);
+          drawBike(ctx, p.x, p.y, bw, r.color, r.state === 'wobble' ? Math.sin(S.t * 22) * 0.9 : lean, false, false, 'moto:rival:' + r.color);
 
           // 被别到的对手头顶冒小星星
           if (r.state === 'wobble') {
@@ -404,7 +409,8 @@ function drawPlayer(ctx, S, L) {
     '#f03e3e',
     S.steer + S.wobble * Math.sin(S.t * 30),
     S.atkAnim > 0,
-    false
+    false,
+    null            // 主角：脸由 avatar.hero 决定
   );
 }
 
@@ -468,8 +474,9 @@ function drawFinishOverlay(ctx, S, L) {
     ctx.fillStyle = '#e03131';
     ctx.fillText('摔车啦！', L.W / 2, L.H / 2 - 70);
 
-    ctx.font = '60px ' + FONT_EMOJI;
-    ctx.fillText('🏍️💥', L.W / 2, L.H / 2 + 4);
+    avatar.hero(ctx, L.W / 2 - 44, L.H / 2 + 4, 30, { ring: '#ffffff', ringW: 4 });
+    ctx.font = '54px ' + FONT_EMOJI;
+    ctx.fillText('💥', L.W / 2, L.H / 2 + 2);
 
     ctx.font = '800 26px ' + FONT_UI;
     ctx.fillStyle = '#3b4a63';
@@ -483,8 +490,9 @@ function drawFinishOverlay(ctx, S, L) {
     ctx.fillStyle = '#f06595';
     ctx.fillText(S.finishRank === 1 ? '冠军！🏆' : '第 ' + S.finishRank + ' 名！', L.W / 2, L.H / 2 - 70);
 
-    ctx.font = '60px ' + FONT_EMOJI;
-    ctx.fillText(S.finishRank === 1 ? '🥇 🎉 🥇' : '🎉', L.W / 2, L.H / 2 + 4);
+    avatar.hero(ctx, L.W / 2 - 44, L.H / 2 + 4, 30, { ring: '#ffffff', ringW: 4 });
+    ctx.font = '54px ' + FONT_EMOJI;
+    ctx.fillText(S.finishRank === 1 ? '🥇' : '🎉', L.W / 2, L.H / 2 + 2);
 
     ctx.font = '800 26px ' + FONT_UI;
     ctx.fillStyle = '#3b4a63';

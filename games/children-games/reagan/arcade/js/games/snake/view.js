@@ -3,6 +3,7 @@
    ===================================================================== */
 import { TAU, rr, shade, FONT_UI, FONT_EMOJI, FONT_MONO } from '../../core/util.js';
 import { surface } from '../../core/surface.js';
+import { avatar } from '../../core/avatar.js';
 
 export const PADS =
   '<div class="dpad">' +
@@ -125,35 +126,27 @@ function drawSnake(ctx, S, L) {
   }
 }
 
-/** 蛇头的眼睛和信子，朝向跟随移动方向 */
+/** 蛇头：真实头像 + 朝向移动方向的信子 */
 function drawHeadFace(ctx, L, x, y, dir) {
-  const ex = dir.x;
-  const ey = dir.y;
   const cx = x + L.CELL / 2;
   const cy = y + L.CELL / 2;
 
-  const eyes = [
-    { x: cx + (ey !== 0 ? -8 : ex * 5), y: cy + (ex !== 0 ? -8 : ey * 5) },
-    { x: cx + (ey !== 0 ? 8 : ex * 5), y: cy + (ex !== 0 ? 8 : ey * 5) }
-  ];
-  for (const p of eyes) {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 5, 0, TAU);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(p.x + ex * 1.7, p.y + ey * 1.7, 2.6, 0, TAU);
-    ctx.fillStyle = '#1b2733';
-    ctx.fill();
-  }
-
+  // 信子留在卡通形态：告诉小朋友蛇往哪边走，头转向了但信子方向更好懂
+  const ex = dir.x;
+  const ey = dir.y;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(Math.atan2(ey, ex));
   ctx.beginPath();
-  ctx.moveTo(cx + ex * 12, cy + ey * 12);
-  ctx.lineTo(cx + ex * 20, cy + ey * 20);
+  ctx.moveTo(L.CELL * 0.16, 0);
+  ctx.lineTo(L.CELL * 0.46, 0);
   ctx.strokeStyle = '#ff6b81';
   ctx.lineWidth = 3;
   ctx.lineCap = 'round';
   ctx.stroke();
+  ctx.restore();
+
+  avatar.hero(ctx, cx, cy, L.CELL * 0.47, { ringW: 3 });
 }
 
 function drawGameOver(ctx, S, L) {
@@ -168,8 +161,7 @@ function drawGameOver(ctx, S, L) {
   ctx.fillStyle = '#2f9e44';
   ctx.fillText('玩得真棒！', L.W / 2, L.H / 2 - 100);
 
-  ctx.font = '64px ' + FONT_EMOJI;
-  ctx.fillText('🐍', L.W / 2, L.H / 2 - 24);
+  avatar.hero(ctx, L.W / 2, L.H / 2 - 22, 34, { ring: '#ffffff', ringW: 4 });
 
   ctx.font = '800 30px ' + FONT_MONO;
   ctx.fillStyle = '#2b3550';

@@ -63,6 +63,17 @@
   line-height: 1;
 }
 
+/* 顶栏图标：小朋友的真实头像（圆形），替代原来的 emoji */
+.title .ico .face {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(60, 80, 140, 0.22);
+}
+
 /* ---------- HUD ---------- */
 .hud {
   display: flex;

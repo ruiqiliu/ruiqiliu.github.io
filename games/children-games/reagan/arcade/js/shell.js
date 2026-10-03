@@ -22,7 +22,8 @@
 import { surface } from './core/surface.js';
 import { FX } from './core/fx.js';
 import { Snd } from './core/audio.js';
-import { findById } from './games/registry.js';
+import { avatar } from './core/avatar.js';
+import { findById, games } from './games/registry.js';
 
 export function createShell({ homeView, playView, homeTitle }) {
   let active = null;
@@ -34,6 +35,12 @@ export function createShell({ homeView, playView, homeTitle }) {
     if (active && active.destroy) active.destroy();
     FX.clear();
     Snd.ensure();
+
+    // 按游戏在清单里的序号定下本局主角的脸。
+    // 首页卡片是同一个序号算出来的，所以「卡片上的小朋友」=
+    // 「顶栏的小朋友」=「游戏里的小朋友」，一路都能认出来。
+    const slot = Math.max(0, games.indexOf(mod));
+    avatar.setHero(slot);
 
     active = mod.create({ ctx: surface.ctx, cv: surface.cv, Snd, FX });
 

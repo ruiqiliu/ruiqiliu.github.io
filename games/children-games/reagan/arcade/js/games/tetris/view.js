@@ -2,7 +2,8 @@
    games/tetris/view.js — 俄罗斯方块 · UI 层
    棋盘、落点虚影、右侧「下一个 / 最好成绩」面板、结束遮罩。
    ===================================================================== */
-import { rr, shade, FONT_UI, FONT_EMOJI, FONT_MONO } from '../../core/util.js';
+import { rr, shade, FONT_UI, FONT_MONO } from '../../core/util.js';
+import { avatar } from '../../core/avatar.js';
 
 export const PADS =
   '<div class="row">' +
@@ -211,8 +212,7 @@ function drawGameOver(ctx, S, L) {
   ctx.fillStyle = '#ffd43b';
   ctx.fillText('好厉害！', cx, cy - 96);
 
-  ctx.font = '56px ' + FONT_EMOJI;
-  ctx.fillText('🧩', cx, cy - 30);
+  avatar.hero(ctx, cx, cy - 24, 34, { ring: '#ffffff', ringW: 4 });
 
   ctx.font = '800 26px ' + FONT_MONO;
   ctx.fillStyle = '#ffffff';

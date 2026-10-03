@@ -7,6 +7,7 @@ import { surface } from './core/surface.js';
 import { Snd } from './core/audio.js';
 import { installInput } from './core/input.js';
 import { startLoop } from './core/loop.js';
+import { avatar } from './core/avatar.js';
 import { games } from './games/registry.js';
 import { createHomeView } from './ui/home.js';
 import { createPlayView } from './ui/play.js';
@@ -60,7 +61,12 @@ window.addEventListener('resize', () => {
 
 /* ---------------- 出发 ---------------- */
 document.title = HOME_TITLE;
+
+// 头像先解码完再开跑，免得第一帧画出来是空白色块。
+// 不 await 也行：avatar.draw 在图片没就绪时会画占位色块，不会报错。
+avatar.load();
+
 startLoop((dt) => shell.step(dt));
 
 /* 调试 / 自动化测试用：可以在控制台里 ARCADE.shell.open('maze') 直接进游戏 */
-window.ARCADE = { games, shell, surface, Snd };
+window.ARCADE = { games, shell, surface, Snd, avatar };

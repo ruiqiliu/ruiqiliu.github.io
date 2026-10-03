@@ -241,7 +241,17 @@ const html = fs.readFileSync(DIST, 'utf8');
 const page = path.join(TMP, 'run.html');
 fs.writeFileSync(page, html.replace('</body>', DRIVER + '</body>'));
 
-const BASE = ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--no-first-run', '--no-default-browser-check'];
+// --no-sandbox：无头跑在受限环境（容器 / 沙箱化 shell）里时，
+// Chrome 的 sandbox 会初始化失败并直接 FATAL 退出。加上它不影响测试内容。
+const BASE = [
+  '--headless=new',
+  '--disable-gpu',
+  '--no-sandbox',
+  '--disable-dev-shm-usage',
+  '--hide-scrollbars',
+  '--no-first-run',
+  '--no-default-browser-check'
+];
 
 const started = Date.now();
 const dom = execFileSync(

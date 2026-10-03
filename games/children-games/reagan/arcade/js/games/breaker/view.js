@@ -5,6 +5,8 @@
    ===================================================================== */
 import { TAU, rr, rgba, shade, FONT_UI, FONT_EMOJI } from '../../core/util.js';
 import { surface } from '../../core/surface.js';
+import { avatar } from '../../core/avatar.js';
+
 
 /** 触屏按键（桌面端玩家用键盘，这里给手机留空） */
 export const PADS = '';
@@ -118,10 +120,7 @@ function drawTrail(ctx, S, L) {
   for (let i = 0; i < trail.length; i++) {
     const t = trail[i];
     const a = (i + 1) / trail.length;
-    ctx.beginPath();
-    ctx.arc(t.x, t.y, L.BR * a * 0.9, 0, TAU);
-    ctx.fillStyle = 'rgba(255,214,240,' + (a * 0.5).toFixed(3) + ')';
-    ctx.fill();
+    avatar.hero(ctx, t.x, t.y, L.BR * a * 0.9, { alpha: 0.5, ring: null });
   }
 }
 
@@ -130,15 +129,13 @@ function drawBall(ctx, S, L) {
   ctx.save();
   ctx.shadowColor = 'rgba(255,120,180,.9)';
   ctx.shadowBlur = 22;
-  const g = ctx.createRadialGradient(b.x - 4, b.y - 4, 1, b.x, b.y, L.BR);
-  g.addColorStop(0, '#ffffff');
-  g.addColorStop(0.5, '#ffe1f0');
-  g.addColorStop(1, '#ff9ec7');
   ctx.beginPath();
   ctx.arc(b.x, b.y, L.BR, 0, TAU);
-  ctx.fillStyle = g;
+  ctx.fillStyle = '#ffd9e8';
   ctx.fill();
   ctx.restore();
+
+  avatar.hero(ctx, b.x, b.y, L.BR * 1.25, { ringW: 2.5 });
 }
 
 function drawPaddle(ctx, S, L) {
@@ -161,17 +158,11 @@ function drawPaddle(ctx, S, L) {
   ctx.fillStyle = 'rgba(255,255,255,.65)';
   ctx.fill();
 
-  // 眼睛（可爱一点）
-  for (const ex of [-26, 26]) {
-    ctx.beginPath();
-    ctx.arc(S.paddle.x + ex, L.PADY + 11, 3.6, 0, TAU);
-    ctx.fillStyle = '#20304d';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(S.paddle.x + ex + 1.2, L.PADY + 10, 1.3, 0, TAU);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-  }
+  // 挡板上的脸：真实头像（卡通的一对眼睛已经换掉）
+  avatar.hero(ctx, S.paddle.x, L.PADY + L.PADH / 2, L.PADH * 0.92, {
+    ring: '#ffffff',
+    ringW: 3
+  });
 }
 
 function drawServeHint(ctx, S, L) {

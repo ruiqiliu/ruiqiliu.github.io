@@ -2,6 +2,7 @@
    ui/play.js — 游戏页（顶栏 / HUD / 触屏按键 / 底部提示）
    只负责「把游戏给的数据画到 DOM 上」，不含任何游戏规则。
    ===================================================================== */
+import { avatar } from '../core/avatar.js';
 
 export function createPlayView(root) {
   const tIco = document.getElementById('tIco');
@@ -13,6 +14,8 @@ export function createPlayView(root) {
 
   // HUD 每帧都会重算一次，内容没变就不动 DOM（省掉无谓的重排）
   let lastHUD = '';
+  // 顶栏图标跟着本局主角换：换游戏时才换 DOM
+  let lastIco = -1;
 
   function hudHTML(items) {
     return items
@@ -25,7 +28,13 @@ export function createPlayView(root) {
 
     setTitle(name, icon) {
       tName.textContent = name;
-      tIco.textContent = icon;
+      // 用头像替代 emoji 图标：直接用本局主角那一张，
+      // 和首页卡片、游戏里的角色是同一张脸。
+      const idx = avatar.heroIndex();
+      if (idx !== lastIco) {
+        lastIco = idx;
+        tIco.innerHTML = avatar.imgHTML(idx, name);
+      }
     },
 
     setHUD(items) {

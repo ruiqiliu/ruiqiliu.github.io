@@ -29,7 +29,9 @@ arcade/
 │   │   ├── surface.js      画布：逻辑分辨率 → 物理像素、坐标换算
 │   │   ├── input.js        输入路由：键盘/鼠标/触屏 → 语义动作
 │   │   ├── loop.js         requestAnimationFrame 主循环
-│   │   └── storage.js      最高分持久化
+│   │   ├── storage.js      最高分持久化
+│   │   ├── avatar.js       儿童头像：按用途取脸、圆形裁切绘制
+│   │   └── avatar-data.js  ★ 自动生成：五张头像的 data URL
 │   ├── ui/                 DOM 界面
 │   │   ├── home.js         首页卡片
 │   │   └── play.js         HUD / 触屏按键 / 底部提示
@@ -41,9 +43,12 @@ arcade/
 │       ├── moto/           暴力摩托
 │       ├── flappy/         小鸟飞飞
 │       └── maze/           迷宫探险
+├── assets/avatars/         头像源文件（avatar-1.jpg ~ avatar-5.jpg）
 └── tools/
     ├── build.mjs           打包成单文件 dist/arcade.html
-    └── selftest.mjs        无头 Chrome 快进自检
+    ├── selftest.mjs        无头 Chrome 快进自检
+    ├── face-detect.swift   macOS Vision 人脸框检测
+    └── gen-avatars.py      裁头像 → 重新生成 avatar-data.js
 ```
 
 **注意**：`index.html` 用的是 ES module，直接双击会因为浏览器的 CORS 策略加载不了 JS；
@@ -81,6 +86,41 @@ arcade/
    `game.js` 导出 `meta`（`{id, name, icon, accent, desc}`）和 `create(env)`。
 2. 在 `js/games/registry.js` 的 `games` 数组里加一行。
 3. 首页卡片、数字快捷键会自动更新，不需要改 HTML。
+4. 游戏内的角色用`avatar.hero()`画，就自动拿到这个游戏对应的那张脸。
+
+## 换头像
+
+五个游戏的主角不再用卡通形象，改成五张真实照片头像。规则只有一条：
+
+> **第 i 个游戏用第 `i % 5` 张头像。**
+
+序号取的是游戏在 `js/games/registry.js` 里的位置，所以同一个游戏在
+**首页卡片、顶栏、游戏画面里是同一张脸** —— 小朋友靠脸认人，
+换来换去就不知道自己在玩谁了。相邻卡片不会撞脸（6 个游戏 5 张脸，
+只有第1 和第 6 个会重复，这两个正好隔着屏幕两端）。
+
+主角之外的位置（暴力摩托的对手）走散列分配，并自动避开主角那张脸。
+
+换照片的完整流程：
+
+```bash
+pip install pillow
+
+# 自动检出人脸框 → 裁成 192px 正方形 → 重新生成内联数据模块
+python3 tools/gen-avatars.py 照片1.jpg 照片2.jpg 照片3.jpg 照片4.jpg 照片5.jpg
+
+node tools/build.mjs && node tools/selftest.mjs --shots
+```
+
+两点注意：
+
+1. **裁脸不要手估坐标。** `tools/gen-avatars.py` 会先编译并调用
+   `tools/face-detect.swift`（macOS Vision）检出人脸框，再按框裁。
+   手估的坐标偏一点就裁到下巴或者背景里去了。
+2. **照片顺序就是「游戏→脸」的分配顺序。** 想让某个游戏换成另一张脸，
+   最简单的办法是调整传入脚本的照片顺序，而不是改代码。
+   头顶被帽子压住时，改 `gen-avatars.py` 里的 `SCALE` / `OFFSET`：
+   `SCALE` 是边长 ÷ 人脸宽（调小＝收紧），`OFFSET` 是取景框相对脸心上移的比例。
 
 ## 开发与验证
 
@@ -115,4 +155,6 @@ node tools/selftest.mjs --shots  # 顺便给每个游戏截一张图
 - 中文界面，浅色页面外壳 + 明亮糖果色游戏区。
 - 面向小朋友：没有失败惩罚。打砖块的球不会丢、贪吃蛇撞自己有爱心、
   小鸟撞管子掉一颗心还有两次机会、摩托被撞只是晃悠冒星星。
-- 所有画面都是 Canvas 绘制或 Emoji，没有任何图片 / 音频资源文件。
+- 所有画面都是 Canvas 绘制或 Emoji，唯一例外是五张儿童头像
+  （内联成data URL 塞进 `js/core/avatar-data.js`，见下面「换头像」一节）。
+  没有任何音频资源文件。

@@ -3,6 +3,7 @@
    ===================================================================== */
 import { TAU, clamp, rr, FONT_UI, FONT_EMOJI } from '../../core/util.js';
 import { surface } from '../../core/surface.js';
+import { avatar } from '../../core/avatar.js';
 
 export const PADS =
   '<div class="row">' +
@@ -204,61 +205,31 @@ function drawGround(ctx, S, L) {
 function drawBird(ctx, S, L) {
   const b = S.bird;
 
-  // 无敌时间闪烁（看不见的时候也不完全消失，避免小朋友找不到鸟）
+  // 无敌时间闪烁（看不见的时候也不完全消失，避免小朋友找不到人）
   if (S.invul > 0 && Math.floor(S.invul * 12) % 2 === 0) ctx.globalAlpha = 0.35;
 
   ctx.save();
   ctx.translate(L.BIRD_X, b.y);
   ctx.rotate(clamp(b.vy / 900, -0.55, 1.0));
 
-  // 身体
-  const g = ctx.createRadialGradient(-5, -6, 2, 0, 0, L.BIRD_R * 1.5);
-  g.addColorStop(0, '#fffdf0');
-  g.addColorStop(0.45, '#ffdf4d');
-  g.addColorStop(1, '#f0a022');
-  ctx.beginPath();
-  ctx.ellipse(0, 0, L.BIRD_R * 1.28, L.BIRD_R, 0, 0, TAU);
-  ctx.fillStyle = g;
-  ctx.fill();
+  // 身体：真实头像替代原来的黄色卡通小鸟。
+  // 画得比碰撞半径（BIRD_R=19）略大一点：既让脸看得清，
+  // 又等于「擦边不算撞」，对小朋友更宽容。
+  avatar.hero(ctx, 0, 0, L.BIRD_R * 1.45, { ringW: 3 });
 
-  // 尾巴
-  ctx.beginPath();
-  ctx.moveTo(-L.BIRD_R * 1.1, -2);
-  ctx.lineTo(-L.BIRD_R * 1.9, -10);
-  ctx.lineTo(-L.BIRD_R * 1.85, 6);
-  ctx.closePath();
-  ctx.fillStyle = '#f0a022';
-  ctx.fill();
-
-  // 翅膀：刚拍完时抬得最高
+  // 翅膀：刚拍完时抬得最高（保留卡通翅膀，头像不会动，靠这个表达拍翅）
   const wingT = 1 - clamp(b.wing / 0.25, 0, 1);
   ctx.save();
-  ctx.translate(-3, 3);
+  ctx.translate(-L.BIRD_R * 0.42, L.BIRD_R * 0.5);
   ctx.rotate(-0.9 + wingT * 1.7);
   ctx.beginPath();
-  ctx.ellipse(0, 0, 12, 7, 0, 0, TAU);
+  ctx.ellipse(0, 0, 15, 8, 0, 0, TAU);
   ctx.fillStyle = '#ffb703';
   ctx.fill();
+  ctx.strokeStyle = 'rgba(180,90,0,.35)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
   ctx.restore();
-
-  // 眼睛
-  ctx.beginPath();
-  ctx.arc(8, -6, 5.4, 0, TAU);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(9.6, -6, 2.6, 0, TAU);
-  ctx.fillStyle = '#20304d';
-  ctx.fill();
-
-  // 嘴
-  ctx.beginPath();
-  ctx.moveTo(13, -1);
-  ctx.lineTo(26, 2.5);
-  ctx.lineTo(13, 7);
-  ctx.closePath();
-  ctx.fillStyle = '#ff8c42';
-  ctx.fill();
 
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -292,8 +263,7 @@ function drawOverlay(ctx, S, L) {
     ctx.fillStyle = '#f08c00';
     ctx.fillText('飞得真棒！', L.W / 2, L.H / 2 - 96);
 
-    ctx.font = '64px ' + FONT_EMOJI;
-    ctx.fillText('🐤', L.W / 2, L.H / 2 - 20);
+    avatar.hero(ctx, L.W / 2, L.H / 2 - 18, 34, { ring: '#ffffff', ringW: 4 });
 
     ctx.font = '800 30px ' + FONT_UI;
     ctx.fillStyle = '#2b3550';

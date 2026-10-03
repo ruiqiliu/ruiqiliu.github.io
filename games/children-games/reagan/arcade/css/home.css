@@ -82,6 +82,17 @@
   filter: drop-shadow(0 6px 10px rgba(60, 80, 140, 0.18));
 }
 
+/* 卡片图标：小朋友的真实头像（圆形） */
+.card .emo .face {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 3px solid #fff;
+  box-shadow: 0 6px 12px rgba(60, 80, 140, 0.22);
+}
+
 .card .nm {
   font-size: 19px;
   font-weight: 800;
