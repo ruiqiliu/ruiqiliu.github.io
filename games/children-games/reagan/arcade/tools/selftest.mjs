@@ -171,6 +171,21 @@ const SCRIPTS = {
       if (i === 120000) g.action('d5', true);   // 再换回 5×5
       if (i === 120010) g.action('d5', false);
     }
+  },
+
+  '23': {
+    logic: 200000,   // 纯逻辑快进：随机方向狂滑，覆盖合并 / 救援 / 结束
+    frames: 3000,
+    press: function (i, g) {
+      const dirs = ['up', 'down', 'left', 'right'];
+      const d = dirs[rnd(i) & 3];
+      g.action(d, true);
+      g.action(d, false);
+      if (i === 40000) g.action('m2', true);    // 天窗
+      if (i === 80000) g.action('m3', true);    // 经典 4×4
+      if (i === 120000) g.action('m4', true);   // 十字（9 格，容易踩救援）
+      if (i === 160000) g.action('m5', true);   // 小方阵 3×3
+    }
   }
 };
 
