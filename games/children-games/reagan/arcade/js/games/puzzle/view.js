@@ -1,11 +1,13 @@
 /* =====================================================================
    games/puzzle/view.js — 头像拼图 · UI 层
    拼图块 = 圆角裁切 + 按「家」的位置从原图上取对应那一小块；
-   右侧小面板常驻一张原图参照，按住 👀 还能把原图放大铺满棋盘。
+   右侧小面板常驻一张原图参照，按住 👀 能把原图放大铺满棋盘，
+   点缩略图（或按 H）打开选照片弹层，从全部照片里挑一张来拼。
    ===================================================================== */
 import { TAU, rr, FONT_UI, FONT_EMOJI } from '../../core/util.js';
 import { surface } from '../../core/surface.js';
 import { avatar } from '../../core/avatar.js';
+import { photos, photoAt } from './photos.js';
 
 export const PADS =
   '<div class="row">' +
@@ -13,13 +15,13 @@ export const PADS =
     '<button class="pad" data-act="d4">4×4</button>' +
     '<button class="pad" data-act="d5">5×5</button>' +
     '<button class="pad wide" data-act="peek">👀 看原图</button>' +
-    '<button class="pad wide" data-act="photo">🖼️ 换一张</button>' +
+    '<button class="pad wide" data-act="photo">🖼️ 选照片</button>' +
   '</div>';
 
 export const HINT =
   '点一块，再点另一块，两块就交换（拖着走也行）· ' +
   '<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 换难度 · ' +
-  '按住 <kbd>P</kbd> 看原图 · <kbd>H</kbd> 换一张照片 · 拼完整张照片就赢啦';
+  '按住 <kbd>P</kbd> 看原图 · <kbd>H</kbd> 选照片 · 拼完整张照片就赢啦';
 
 export function hud(S) {
   return [
@@ -31,7 +33,7 @@ export function hud(S) {
 }
 
 /* 右侧小面板（静态底板和每帧绘制共用同一套坐标）。
-   THUMB 同时给 game.js 做点击热区：点缩略图 = 换一张照片 */
+   THUMB 同时给 game.js 做点击热区：点缩略图 = 打开选照片 */
 const PANEL = { x: 546, y: 60, w: 204, h: 440 };
 export const THUMB = { x: PANEL.x + 22, y: 232, w: 160, h: 160 };
 
@@ -45,10 +47,24 @@ function text(g, t, x, y, weight, size, color) {
   g.restore();
 }
 
-/** 当前选中的原图 Image（小朋友可以换）。没解码好时 ok=false，画占位色块 */
+/** 当前选中的原图 Image。没解码好时 ok=false，画占位色块 */
 function sourceImage(S) {
-  const im = avatar.imgAt(S.imgIdx);
+  const im = photoAt(S.imgIdx);
   return { im, ok: !!(im && im.complete && im.naturalWidth > 0) };
+}
+
+/* ================================================================
+   选照片弹层：n 张照片排成 4 列网格，顶部标题带高 top。
+   这份几何同时给 game.js 做点击热区，两边必须同源。
+   ================================================================ */
+export function pickLayout(n, L) {
+  const cell = 112, gap = 13, cols = 4, top = 76;
+  const rows = Math.ceil(n / cols);
+  const w = cols * cell + (cols - 1) * gap;
+  const h = top + rows * cell + (rows - 1) * gap + 26;
+  const x = Math.round((L.W - w) / 2);
+  const y = Math.round((L.H - h) / 2);
+  return { x, y, w, h, cell, gap, cols, top, rows };
 }
 
 /* ================================================================
@@ -90,10 +106,11 @@ export function draw(ctx, S, L) {
   drawTiles(ctx, S, L);
   drawPeek(ctx, S, L);
 
+  if (S.picking) drawPicker(ctx, S, L);
   if (S.phase === 'win') drawWin(ctx, S, L);
 }
 
-/** 右侧小面板：主角头像 + 当前原图参照（点它换一张照片） */
+/** 右侧小面板：主角头像 + 当前原图参照（点它打开选照片） */
 function drawPanel(ctx, S) {
   const cx = PANEL.x + PANEL.w / 2;
   const { im, ok } = sourceImage(S);
@@ -118,7 +135,7 @@ function drawPanel(ctx, S) {
   }
   ctx.restore();
 
-  // 「换一张」角标：小朋友一眼知道这张图可以点
+  // 「选照片」角标：小朋友一眼知道这张图可以点
   const bx = THUMB.x + THUMB.w - 4, by = THUMB.y + 4;
   ctx.save();
   ctx.beginPath();
@@ -131,7 +148,7 @@ function drawPanel(ctx, S) {
   ctx.fillText('🔄', bx, by + 1);
   ctx.restore();
 
-  text(ctx, '原图 · 点我换一张', cx, THUMB.y + THUMB.h + 26, '700', 15, '#b06a92');
+  text(ctx, '原图 · 点我选一张', cx, THUMB.y + THUMB.h + 26, '700', 15, '#b06a92');
   text(ctx, '长按 👀 看大图', cx, THUMB.y + THUMB.h + 52, '400', 13, '#c29aab');
 }
 
@@ -229,6 +246,71 @@ function drawPeek(ctx, S, L) {
   ctx.fillStyle = 'rgba(230,73,128,.85)';
   ctx.fill();
   text(ctx, '原图', L.BX + 60, L.BY + 34, '800', 19, '#ffffff');
+  ctx.restore();
+}
+
+/** 选照片弹层：盖住游戏区，点一张就换成它（点空白处收起） */
+function drawPicker(ctx, S, L) {
+  const P = pickLayout(photos.length, L);
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(244,232,240,.88)';
+  ctx.fillRect(0, 0, L.W, L.H);
+
+  rr(ctx, P.x - 10, P.y - 10, P.w + 20, P.h + 10, 26);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.strokeStyle = '#f3d7e6';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  text(ctx, '选一张照片拼一拼', L.W / 2, P.y + 38, '800', 24, '#b0578a');
+
+  for (let k = 0; k < photos.length; k++) {
+    const tx = P.x + (k % P.cols) * (P.cell + P.gap);
+    const ty = P.y + P.top + Math.floor(k / P.cols) * (P.cell + P.gap);
+    const im = photos[k];
+    const ok = im.complete && im.naturalWidth > 0;
+    const cur = k === S.imgIdx;
+
+    ctx.save();
+    rr(ctx, tx, ty, P.cell, P.cell, 14);
+    if (cur) {
+      ctx.shadowColor = 'rgba(230,73,128,.45)';
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 4;
+    }
+    ctx.fillStyle = ok ? '#ffffff' : '#ffd9c0';
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    if (ok) {
+      rr(ctx, tx, ty, P.cell, P.cell, 14);
+      ctx.clip();
+      const side = Math.min(im.naturalWidth, im.naturalHeight);
+      const ox = (im.naturalWidth - side) / 2;
+      const oy = (im.naturalHeight - side) / 2;
+      ctx.drawImage(im, ox, oy, side, side, tx, ty, P.cell, P.cell);
+    }
+    ctx.restore();
+
+    if (cur) {
+      rr(ctx, tx + 2, ty + 2, P.cell - 4, P.cell - 4, 12);
+      ctx.strokeStyle = '#ff6fa5';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      // 当前这张的右下角小勾
+      ctx.beginPath();
+      ctx.arc(tx + P.cell - 12, ty + P.cell - 12, 12, 0, TAU);
+      ctx.fillStyle = '#ff6fa5';
+      ctx.fill();
+      ctx.font = '800 15px ' + FONT_UI;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('✓', tx + P.cell - 12, ty + P.cell - 11);
+    }
+  }
   ctx.restore();
 }
 

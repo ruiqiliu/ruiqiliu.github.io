@@ -143,8 +143,16 @@ const SCRIPTS = {
 
       if (i % 97 === 0) g.action('peek', true);
       if (i % 97 === 10) g.action('peek', false);
-      if (i % 811 === 3) g.action('photo', true);    // 换一张照片（会重洗一局）
-      if (i % 811 === 13) g.action('photo', false);
+      // 每 811 帧走一次「选照片」：打开弹层 → 点网格里的一张（选中自动收起）
+      if (i % 811 === 3) {
+        g.action('photo', true);
+        const P = g.picker();
+        const k = rnd(i) % P.count;
+        g.press({
+          x: P.x + (k % P.cols) * (P.cell + P.gap) + P.cell / 2,
+          y: P.y + P.top + Math.floor(k / P.cols) * (P.cell + P.gap) + P.cell / 2
+        });
+      }
       if (i === 20000 || i === 80000) g.action('d5', true);   // 换 5×5 再洗一局
       if (i === 20010 || i === 80010) g.action('d5', false);
     }

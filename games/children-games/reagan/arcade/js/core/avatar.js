@@ -88,23 +88,6 @@ export const avatar = {
   },
 
   /**
-   * 本局主角的原图 Image（未裁圆、未缩放）。
-   * 「头像拼图」这类要把整张照片切块来画的游戏用这个，
-   * 圆形裁切的 draw() / hero() 满足不了它们。
-   */
-  heroImg() {
-    return imgs[heroIdx];
-  },
-
-  /**
-   * 第 i 张头像的原图 Image。下标越界自动取模（负数也安全），
-   * 给「换一张照片」这种轮着挑的玩法用。
-   */
-  imgAt(i) {
-    return imgs[((i % imgs.length) + imgs.length) % imgs.length];
-  },
-
-  /**
    * 画一个圆形头像。
    * key 传数字则直接当头像下标用（画主角就走这条）。
    * opt.alpha   整体透明度（默认 1）

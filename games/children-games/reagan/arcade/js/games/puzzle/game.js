@@ -8,8 +8,9 @@
 import { clamp, rand } from '../../core/util.js';
 import { loadNumber, saveNumber } from '../../core/storage.js';
 import { avatar } from '../../core/avatar.js';
+import { photos } from './photos.js';
 import { createControls } from './controls.js';
-import { draw, hud as hudOf, makeBackground, PADS, HINT, THUMB } from './view.js';
+import { draw, hud as hudOf, makeBackground, PADS, HINT, THUMB, pickLayout } from './view.js';
 
 export const meta = {
   id: 'puzzle',
@@ -49,6 +50,7 @@ export function create(env) {
     winT: 0,
     peek: 0,        // 0→1 看原图的透明度（按住才看）
     peekHold: false,
+    picking: false, // 选照片弹层开着
     sel: -1,        // 点选等待交换的格子，-1 = 没选
     press: null,    // 正按着的一块 {home, cell, px, py, grabX, grabY, moved}
     bg: null,
@@ -122,14 +124,37 @@ export function create(env) {
     Snd.soft();
   }
 
-  /** 换一张照片做原图：轮到下一张头像，重洗一局 */
-  function switchPhoto() {
-    S.imgIdx = (S.imgIdx + 1) % avatar.count;
+  /** 打开 / 收起「选照片」弹层 */
+  function togglePicker() {
+    S.picking = !S.picking;
+    Snd.hint();
+  }
+
+  /** 选定一张照片：换照片才重洗一局，点当前这张就只是收起 */
+  function selectPhoto(k) {
+    S.picking = false;
+    if (k === S.imgIdx) return;
+    S.imgIdx = k;
     newRound();
     Snd.pop(2);
   }
 
   /* ---------------- 交换 ---------------- */
+
+  /** 点在选照片弹层上：点中某张就换它，点空白处收起 */
+  function pickerPress(p) {
+    if (!p) { S.picking = false; return; }
+    const P = pickLayout(photos.length, L);
+    for (let k = 0; k < photos.length; k++) {
+      const tx = P.x + (k % P.cols) * (P.cell + P.gap);
+      const ty = P.y + P.top + Math.floor(k / P.cols) * (P.cell + P.gap);
+      if (p.x >= tx && p.x <= tx + P.cell && p.y >= ty && p.y <= ty + P.cell) {
+        selectPhoto(k);
+        return;
+      }
+    }
+    S.picking = false;
+  }
 
   function doSwap(a, b) {
     if (a < 0 || b < 0 || a === b) return;
@@ -178,11 +203,14 @@ export function create(env) {
   function press(p) {
     if (S.phase !== 'play') return;
 
-    // 点右侧「原图」缩略图 = 换一张照片
+    // 选照片弹层开着：只处理网格里的点按，点空白处收起
+    if (S.picking) { pickerPress(p); return; }
+
+    // 点右侧「原图」缩略图 = 打开选照片
     if (p &&
         p.x >= THUMB.x - 10 && p.x <= THUMB.x + THUMB.w + 10 &&
         p.y >= THUMB.y - 10 && p.y <= THUMB.y + THUMB.h + 10) {
-      switchPhoto();
+      togglePicker();
       return;
     }
 
@@ -295,9 +323,13 @@ export function create(env) {
     render() { draw(ctx, S, L); },
     hud() { return hudOf(S); },
 
-    action(name, down) {
+    action(name, down, e) {
       if (name === 'peek') { S.peekHold = !!down; return; }
-      if (name === 'photo') { if (down) switchPhoto(); return; }
+      if (name === 'photo') {
+        // 键盘长按会连发 keydown，靠 e.repeat 挡掉，弹层不来回翻
+        if (down && !(e && e.repeat) && S.phase === 'play') togglePicker();
+        return;
+      }
       if (!down) return;
       if (name === 'd3') setN(3);
       else if (name === 'd4') setN(4);
@@ -309,7 +341,10 @@ export function create(env) {
 
     /* 只读视图：selftest 用它来「看见」棋盘并贪心解局 */
     grid() { return S.cells.slice(); },
-    layout() { return { x: L.BX, y: L.BY, size: L.BOARD, n: S.n }; }
+    layout() { return { x: L.BX, y: L.BY, size: L.BOARD, n: S.n }; },
+    picker() {
+      return Object.assign(pickLayout(photos.length, L), { count: photos.length });
+    }
   };
 
   api.controls = createControls();

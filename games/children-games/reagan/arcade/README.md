@@ -31,7 +31,8 @@ arcade/
 │   │   ├── loop.js         requestAnimationFrame 主循环
 │   │   ├── storage.js      最高分持久化
 │   │   ├── avatar.js       儿童头像：按用途取脸、圆形裁切绘制
-│   │   └── avatar-data.js  ★ 自动生成：五张头像的 data URL
+│   │   ├── avatar-data.js  ★ 自动生成：五张头像的 data URL
+│   │   └── puzzle-data.js  ★ 自动生成：拼图原图池的 data URL
 │   ├── ui/                 DOM 界面
 │   │   ├── home.js         首页卡片
 │   │   └── play.js         HUD / 触屏按键 / 底部提示
@@ -45,11 +46,13 @@ arcade/
 │       ├── maze/           迷宫探险
 │       └── puzzle/         头像拼图
 ├── assets/avatars/         头像源文件（avatar-1.jpg ~ avatar-5.jpg）
+├── assets/puzzle/          拼图原图源文件（photo-1.jpg ~ photo-N.jpg）
 └── tools/
     ├── build.mjs           打包成单文件 dist/arcade.html
     ├── selftest.mjs        无头 Chrome 快进自检
     ├── face-detect.swift   macOS Vision 人脸框检测
-    └── gen-avatars.py      裁头像 → 重新生成 avatar-data.js
+    ├── gen-avatars.py      裁头像 → 重新生成 avatar-data.js
+    └── gen-puzzle-photos.py 裁拼图原图（人脸并集取景）→ puzzle-data.js
 ```
 
 **注意**：`index.html` 用的是 ES module，直接双击会因为浏览器的 CORS 策略加载不了 JS；
@@ -122,6 +125,20 @@ node tools/build.mjs && node tools/selftest.mjs --shots
    最简单的办法是调整传入脚本的照片顺序，而不是改代码。
    头顶被帽子压住时，改 `gen-avatars.py` 里的 `SCALE` / `OFFSET`：
    `SCALE` 是边长 ÷ 人脸宽（调小＝收紧），`OFFSET` 是取景框相对脸心上移的比例。
+
+## 换拼图照片
+
+拼图的照片池是「五张头像 + `assets/puzzle/` 里的家庭照片」，游戏里
+点「🖼️ 选照片」（或按 `H`）从弹层里挑一张来拼：
+
+```bash
+python3 tools/gen-puzzle-photos.py 照片1.jpg 照片2.jpg ...
+```
+
+和头像的「单脸取景」不同，拼图原图按**所有人脸的并集**取景 ——
+合影里全家都留在画面里；没检出人脸时退回居中裁剪。裁好的照片
+内联进 `js/core/puzzle-data.js`（前 5 张头像复用 avatar-data.js，
+不重复内联）。
 
 ## 开发与验证
 
