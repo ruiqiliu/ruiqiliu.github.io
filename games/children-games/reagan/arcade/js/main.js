@@ -33,13 +33,16 @@ const shell = createShell({ homeView, playView, homeTitle: HOME_TITLE });
 homeView.setPickHandler((id) => shell.open(id));
 
 /* ---------------- 输入 ---------------- */
+/* 首页用字母键选游戏：第 1 个 = a，第 2 个 = b …… 支持到 26 个。
+   只在首页生效（进游戏后字母键还给方向键），不会和操作冲突。 */
 installInput({
   shell,
   canvas,
   pads: padsEl,
-  onNumberKey(k) {
-    const n = parseInt(k, 10);
-    if (n >= 1 && n <= games.length) shell.open(games[n - 1].meta.id);
+  onLetterKey(k) {
+    if (!/^[a-z]$/.test(k)) return;
+    const i = k.charCodeAt(0) - 97;
+    if (i < games.length) shell.open(games[i].meta.id);
   }
 });
 

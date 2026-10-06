@@ -12,7 +12,7 @@ import { Snd } from './audio.js';
 /** 这些键会把页面滚起来，必须挡掉 */
 const PREVENT_KEYS = ['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' '];
 
-export function installInput({ shell, canvas, pads, onNumberKey }) {
+export function installInput({ shell, canvas, pads, onLetterKey }) {
   /** 触屏按键当前按下的动作，用来在全局 pointerup 时补一次「抬起」 */
   let heldPadAction = null;
 
@@ -23,7 +23,7 @@ export function installInput({ shell, canvas, pads, onNumberKey }) {
     if (PREVENT_KEYS.indexOf(k) >= 0) e.preventDefault();
 
     const game = shell.active;
-    if (!game) { onNumberKey(k); return; }   // 首页：数字键选游戏
+    if (!game) { onLetterKey(k); return; }   // 首页：字母键选游戏
     if (k === 'escape') { shell.goHome(); return; }
     if (k === 'r') { shell.restart(); return; }
 

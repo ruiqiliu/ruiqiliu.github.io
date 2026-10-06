@@ -473,13 +473,16 @@ const shell = createShell({ homeView, playView, homeTitle: HOME_TITLE });
 homeView.setPickHandler((id) => shell.open(id));
 
 /* ---------------- 输入 ---------------- */
+/* 首页用字母键选游戏：第 1 个 = a，第 2 个 = b …… 支持到 26 个。
+   只在首页生效（进游戏后字母键还给方向键），不会和操作冲突。 */
 installInput({
   shell,
   canvas,
   pads: padsEl,
-  onNumberKey(k) {
-    const n = parseInt(k, 10);
-    if (n >= 1 && n <= games.length) shell.open(games[n - 1].meta.id);
+  onLetterKey(k) {
+    if (!/^[a-z]$/.test(k)) return;
+    const i = k.charCodeAt(0) - 97;
+    if (i < games.length) shell.open(games[i].meta.id);
   }
 });
 
@@ -689,7 +692,7 @@ const { Snd } = __req("js/core/audio.js");
 /** 这些键会把页面滚起来，必须挡掉 */
 const PREVENT_KEYS = ['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' '];
 
-function installInput({ shell, canvas, pads, onNumberKey }) {
+function installInput({ shell, canvas, pads, onLetterKey }) {
   /** 触屏按键当前按下的动作，用来在全局 pointerup 时补一次「抬起」 */
   let heldPadAction = null;
 
@@ -700,7 +703,7 @@ function installInput({ shell, canvas, pads, onNumberKey }) {
     if (PREVENT_KEYS.indexOf(k) >= 0) e.preventDefault();
 
     const game = shell.active;
-    if (!game) { onNumberKey(k); return; }   // 首页：数字键选游戏
+    if (!game) { onLetterKey(k); return; }   // 首页：字母键选游戏
     if (k === 'escape') { shell.goHome(); return; }
     if (k === 'r') { shell.restart(); return; }
 
@@ -992,7 +995,7 @@ __factories["js/games/registry.js"] = function (exports) {
 /* =====================================================================
    games/registry.js — 游戏清单
    这里是唯一需要改动的地方：新增一个游戏，只要在数组里加一行。
-   首页卡片、数字快捷键（按 1~10）都会跟着自动更新。
+   首页卡片、字母快捷键（按 a~j）都会跟着自动更新。
    ===================================================================== */
 const breaker = __req("js/games/breaker/game.js");
 const snake = __req("js/games/snake/game.js");
@@ -7834,7 +7837,7 @@ function createHomeView({ root, cardsEl }) {
             '<span class="emo">' + avatar.imgHTML(i % avatar.count, m.name) + '</span>' +
             '<span class="nm">' + m.name + '</span>' +
             '<span class="ds">' + m.desc.join('<br>') + '</span>' +
-            '<span class="key">按 ' + (i + 1) + ' 开始</span>' +
+            '<span class="key">' + (i < 26 ? '按 ' + String.fromCharCode(97 + i).toUpperCase() + ' 开始' : '') + '</span>' +
           '</button>'
         );
       })

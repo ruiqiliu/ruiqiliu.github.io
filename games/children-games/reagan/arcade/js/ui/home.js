@@ -20,7 +20,7 @@ export function createHomeView({ root, cardsEl }) {
             '<span class="emo">' + avatar.imgHTML(i % avatar.count, m.name) + '</span>' +
             '<span class="nm">' + m.name + '</span>' +
             '<span class="ds">' + m.desc.join('<br>') + '</span>' +
-            '<span class="key">按 ' + (i + 1) + ' 开始</span>' +
+            '<span class="key">' + (i < 26 ? '按 ' + String.fromCharCode(97 + i).toUpperCase() + ' 开始' : '') + '</span>' +
           '</button>'
         );
       })
