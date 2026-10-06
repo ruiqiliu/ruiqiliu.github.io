@@ -1,6 +1,7 @@
 /* =====================================================================
    games/puzzle/controls.js — 头像拼图 · 控制层
-   画布上的点 / 拖 → press·move·release；数字键换难度，P 看原图
+   画布上的点 / 拖 → press·move·release；
+   数字键换难度，P 看原图，H 换一张照片
    ===================================================================== */
 
 export function createControls() {
@@ -10,7 +11,8 @@ export function createControls() {
       '1': 'd3',
       '2': 'd4',
       '3': 'd5',
-      p: 'peek'
+      p: 'peek',
+      h: 'photo'
     },
 
     /**

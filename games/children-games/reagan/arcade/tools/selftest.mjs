@@ -143,6 +143,8 @@ const SCRIPTS = {
 
       if (i % 97 === 0) g.action('peek', true);
       if (i % 97 === 10) g.action('peek', false);
+      if (i % 811 === 3) g.action('photo', true);    // 换一张照片（会重洗一局）
+      if (i % 811 === 13) g.action('photo', false);
       if (i === 20000 || i === 80000) g.action('d5', true);   // 换 5×5 再洗一局
       if (i === 20010 || i === 80010) g.action('d5', false);
     }

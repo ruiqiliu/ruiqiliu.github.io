@@ -7,8 +7,9 @@
    ===================================================================== */
 import { clamp, rand } from '../../core/util.js';
 import { loadNumber, saveNumber } from '../../core/storage.js';
+import { avatar } from '../../core/avatar.js';
 import { createControls } from './controls.js';
-import { draw, hud as hudOf, makeBackground, PADS, HINT } from './view.js';
+import { draw, hud as hudOf, makeBackground, PADS, HINT, THUMB } from './view.js';
 
 export const meta = {
   id: 'puzzle',
@@ -36,6 +37,7 @@ export function create(env) {
 
   const S = {
     n: 3,
+    imgIdx: 0,      // 当前用第几张照片做原图（进游戏默认本局主角那张）
     cells: [],      // cells[格子下标] = 这块拼图的「家」（正确的格子下标）
     pos: [],        // pos[家] = 现在在哪个格子（cells 的反表）
     anim: [],       // anim[家] = 画在哪里 {x, y, pop}（逻辑坐标，左上角）
@@ -120,6 +122,13 @@ export function create(env) {
     Snd.soft();
   }
 
+  /** 换一张照片做原图：轮到下一张头像，重洗一局 */
+  function switchPhoto() {
+    S.imgIdx = (S.imgIdx + 1) % avatar.count;
+    newRound();
+    Snd.pop(2);
+  }
+
   /* ---------------- 交换 ---------------- */
 
   function doSwap(a, b) {
@@ -168,6 +177,15 @@ export function create(env) {
 
   function press(p) {
     if (S.phase !== 'play') return;
+
+    // 点右侧「原图」缩略图 = 换一张照片
+    if (p &&
+        p.x >= THUMB.x - 10 && p.x <= THUMB.x + THUMB.w + 10 &&
+        p.y >= THUMB.y - 10 && p.y <= THUMB.y + THUMB.h + 10) {
+      switchPhoto();
+      return;
+    }
+
     const cell = cellAt(p);
     if (cell < 0) return;
     const xy = cellXY(cell);
@@ -264,6 +282,7 @@ export function create(env) {
     start() {
       const saved = loadNumber('puzzle-n', 3);
       S.n = NS.indexOf(saved) >= 0 ? saved : 3;
+      S.imgIdx = avatar.heroIndex();   // 进来先用本局主角那张，和首页卡片一致
       newRound();
       S.bg = makeBackground(L);
     },
@@ -278,6 +297,7 @@ export function create(env) {
 
     action(name, down) {
       if (name === 'peek') { S.peekHold = !!down; return; }
+      if (name === 'photo') { if (down) switchPhoto(); return; }
       if (!down) return;
       if (name === 'd3') setN(3);
       else if (name === 'd4') setN(4);

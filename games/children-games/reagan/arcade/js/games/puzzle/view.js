@@ -3,7 +3,7 @@
    拼图块 = 圆角裁切 + 按「家」的位置从原图上取对应那一小块；
    右侧小面板常驻一张原图参照，按住 👀 还能把原图放大铺满棋盘。
    ===================================================================== */
-import { rr, FONT_UI, FONT_EMOJI } from '../../core/util.js';
+import { TAU, rr, FONT_UI, FONT_EMOJI } from '../../core/util.js';
 import { surface } from '../../core/surface.js';
 import { avatar } from '../../core/avatar.js';
 
@@ -13,12 +13,13 @@ export const PADS =
     '<button class="pad" data-act="d4">4×4</button>' +
     '<button class="pad" data-act="d5">5×5</button>' +
     '<button class="pad wide" data-act="peek">👀 看原图</button>' +
+    '<button class="pad wide" data-act="photo">🖼️ 换一张</button>' +
   '</div>';
 
 export const HINT =
   '点一块，再点另一块，两块就交换（拖着走也行）· ' +
   '<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 换难度 · ' +
-  '按住 <kbd>P</kbd> 看原图 · 拼完整张照片就赢啦';
+  '按住 <kbd>P</kbd> 看原图 · <kbd>H</kbd> 换一张照片 · 拼完整张照片就赢啦';
 
 export function hud(S) {
   return [
@@ -29,9 +30,10 @@ export function hud(S) {
   ];
 }
 
-/* 右侧小面板（静态底板和每帧绘制共用同一套坐标） */
+/* 右侧小面板（静态底板和每帧绘制共用同一套坐标）。
+   THUMB 同时给 game.js 做点击热区：点缩略图 = 换一张照片 */
 const PANEL = { x: 546, y: 60, w: 204, h: 440 };
-const THUMB = { x: PANEL.x + 22, y: 232, w: 160, h: 160 };
+export const THUMB = { x: PANEL.x + 22, y: 232, w: 160, h: 160 };
 
 function text(g, t, x, y, weight, size, color) {
   g.save();
@@ -43,9 +45,9 @@ function text(g, t, x, y, weight, size, color) {
   g.restore();
 }
 
-/** 本局主角的原图（方形照片）。没解码好时 ok=false，画占位色块 */
-function heroImage() {
-  const im = avatar.heroImg();
+/** 当前选中的原图 Image（小朋友可以换）。没解码好时 ok=false，画占位色块 */
+function sourceImage(S) {
+  const im = avatar.imgAt(S.imgIdx);
   return { im, ok: !!(im && im.complete && im.naturalWidth > 0) };
 }
 
@@ -84,17 +86,17 @@ export function makeBackground(L) {
 export function draw(ctx, S, L) {
   ctx.drawImage(S.bg, 0, 0, L.W, L.H);
 
-  drawPanel(ctx);
+  drawPanel(ctx, S);
   drawTiles(ctx, S, L);
   drawPeek(ctx, S, L);
 
   if (S.phase === 'win') drawWin(ctx, S, L);
 }
 
-/** 右侧小面板：主角头像 + 常驻原图参照 */
-function drawPanel(ctx) {
+/** 右侧小面板：主角头像 + 当前原图参照（点它换一张照片） */
+function drawPanel(ctx, S) {
   const cx = PANEL.x + PANEL.w / 2;
-  const { im, ok } = heroImage();
+  const { im, ok } = sourceImage(S);
 
   avatar.hero(ctx, cx, 134, 44, { ringW: 4 });
   text(ctx, '拼一拼自己', cx, 198, '700', 16, '#b06a92');
@@ -116,12 +118,25 @@ function drawPanel(ctx) {
   }
   ctx.restore();
 
-  text(ctx, '原图', cx, THUMB.y + THUMB.h + 26, '700', 15, '#b06a92');
+  // 「换一张」角标：小朋友一眼知道这张图可以点
+  const bx = THUMB.x + THUMB.w - 4, by = THUMB.y + 4;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(bx, by, 18, 0, TAU);
+  ctx.fillStyle = 'rgba(230,73,128,.92)';
+  ctx.fill();
+  ctx.font = '19px ' + FONT_EMOJI;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🔄', bx, by + 1);
+  ctx.restore();
+
+  text(ctx, '原图 · 点我换一张', cx, THUMB.y + THUMB.h + 26, '700', 15, '#b06a92');
   text(ctx, '长按 👀 看大图', cx, THUMB.y + THUMB.h + 52, '400', 13, '#c29aab');
 }
 
 function drawTiles(ctx, S, L) {
-  const { im, ok } = heroImage();
+  const { im, ok } = sourceImage(S);
   const t = L.BOARD / S.n;
   const gap = Math.max(2, Math.round(t * 0.035));
   const drag = S.press && S.press.moved ? S.press.home : -1;
@@ -197,7 +212,7 @@ function drawTile(ctx, S, im, ok, home, t, gap, dragging) {
 /** 按住 👀 时把原图铺满棋盘 */
 function drawPeek(ctx, S, L) {
   if (S.peek <= 0.01 || S.phase === 'win') return;
-  const { im, ok } = heroImage();
+  const { im, ok } = sourceImage(S);
 
   ctx.save();
   ctx.globalAlpha = S.peek;
