@@ -20,12 +20,13 @@ export const PADS =
 
 export const HINT =
   '车库：点 ◀ ▶ 换零件，点绿色「出发」上路 · ' +
-  '路上：按住右半边或「油门」跑，左半边或「刹车」减速 · 随时回车库改造';
+  '路上：按住「油门」跑、「刹车」减速，撞到雪糕筒会慢下来 · ' +
+  '绕完 20 公里环形赛道就到终点！';
 
 export function hud(S) {
   if (S.phase === 'build') return [['阶段', '车库造车'], ['选好零件', '就出发！']];
   return [
-    ['里程', Math.floor(S.dist / 10) + ' 米'],
+    ['里程', (S.dist / 10 / 1000).toFixed(2) + ' / 20 km'],
     ['速度', Math.round(S.speed * 0.36) + ' km/h'],
     ['星星', S.starCount]
   ];
@@ -129,6 +130,9 @@ export function draw(ctx, S, L) {
     drawCar(ctx, 280, 470, S.part, 0, Math.sin(S.T * 2) * 2, 1.3, false);
     drawPanel(ctx, S);
     drawStartBtn(ctx, S.T);
+  } else if (S.phase === 'finish') {
+    drawDrive(ctx, S, L);
+    drawFinish(ctx, S, L);
   } else {
     drawDrive(ctx, S, L);
   }
@@ -306,10 +310,35 @@ function drawDrive(ctx, S, L) {
   ctx.fillStyle = '#8fd96a';
   ctx.fillRect(0, L.GROUND + 62, L.W, L.H - L.GROUND - 62);
 
-  // 车
+  // 雪糕筒路障（撞倒的画成倒地）
+  const c0 = Math.max(0, Math.floor(S.dist / L.CONE_GAP) - 1);
+  for (let i = c0; i <= c0 + Math.ceil(L.W / L.CONE_GAP) + 2; i++) {
+    const wx = i * L.CONE_GAP + 900;
+    const x = wx - S.dist + L.CAR_X;
+    if (x < -40 || x > L.W + 40) continue;
+    const hit = S.coneHits.has(wx);
+    ctx.save();
+    ctx.translate(x, L.GROUND + 24);
+    if (hit) { ctx.rotate(Math.PI / 2.2); ctx.globalAlpha = 0.55; }
+    ctx.fillStyle = '#ff922b';
+    ctx.beginPath();
+    ctx.moveTo(0, -30); ctx.lineTo(13, 0); ctx.lineTo(-13, 0);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-8, -16, 16, 5);
+    rr(ctx, -16, -2, 32, 6, 3);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 车（撞过雪糕筒会晃一阵）
   const bobAmp = WHEELS[S.part.wheel].bob * Math.min(1, S.speed / 120);
   const bob = Math.sin(S.wheelAngle * 0.9) * bobAmp;
-  drawCar(ctx, L.CAR_X, L.GROUND, S.part, S.wheelAngle, bob, 1, true, S.speed);
+  const wobRot = Math.sin(S.T * 26) * S.wobble * 0.1;
+  drawCar(ctx, L.CAR_X, L.GROUND, S.part, S.wheelAngle, bob, 1, true, S.speed, wobRot);
+
+  // 环形赛道小地图
+  drawMinimap(ctx, S, L);
 
   // 高速时的速度线
   if (S.speed > 240) {
@@ -366,7 +395,7 @@ function drawLight(ctx, x, y, type, scale, glow) {
 
 /* ---------------- 画一辆车（两个场景共用） ---------------- */
 
-function drawCar(ctx, cx, groundY, part, angle, bob, scale, driving, speed) {
+function drawCar(ctx, cx, groundY, part, angle, bob, scale, driving, speed, wobRot) {
   const wheel = WHEELS[part.wheel];
   const color = COLORS[part.color];
   const r = wheel.r * scale;
@@ -376,6 +405,11 @@ function drawCar(ctx, cx, groundY, part, angle, bob, scale, driving, speed) {
   const bodyTop = bodyBottom - bodyH;
 
   ctx.save();
+  if (wobRot) {
+    ctx.translate(cx, groundY - r);
+    ctx.rotate(wobRot);
+    ctx.translate(-cx, -(groundY - r));
+  }
 
   // 尾翼（画在车身后面）
   if (part.spoiler > 0) {
@@ -446,6 +480,59 @@ function drawCar(ctx, cx, groundY, part, angle, bob, scale, driving, speed) {
     drawWheel(ctx, wx, groundY - r + bob, r, part.wheel === 2, part.wheel === 1, angle);
   }
 
+  ctx.restore();
+}
+
+/** 环形赛道小地图：车身颜色的点绕圈，亮黄弧是已跑进度 */
+function drawMinimap(ctx, S, L) {
+  const cx = L.W - 76, cy = 104, r = 40;
+  const prog = Math.min(1, S.dist / L.GOAL);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, TAU);
+  ctx.fillStyle = 'rgba(0,0,0,.16)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, TAU);
+  ctx.strokeStyle = 'rgba(255,255,255,.85)';
+  ctx.lineWidth = 7;
+  ctx.stroke();
+  if (prog > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + TAU * prog);
+    ctx.strokeStyle = '#ffd43b';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+  emoji(ctx, '🏁', cx, cy - r - 18, 20);
+  const a = -Math.PI / 2 + TAU * prog;
+  ctx.beginPath();
+  ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 8, 0, TAU);
+  ctx.fillStyle = COLORS[S.part.color];
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  text(ctx, Math.round(prog * 100) + '%', cx, cy + 2, '800', 15, '#ffffff');
+  ctx.restore();
+}
+
+function drawFinish(ctx, S, L) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,.86)';
+  ctx.fillRect(0, 0, L.W, L.H);
+  text(ctx, '到达终点！', L.W / 2, 140, '800', 52, '#7048e8');
+  emoji(ctx, '🏆', L.W / 2 - 96, 250, 62);
+  avatar.hero(ctx, L.W / 2, 250, 36, { ringW: 4 });
+  emoji(ctx, '🎉', L.W / 2 + 96, 250, 56);
+  const m = Math.floor(S.driveT / 60);
+  const sec = Math.floor(S.driveT % 60);
+  text(ctx, '20 公里环形赛道跑完啦！用时 ' + m + ' 分 ' + (sec < 10 ? '0' : '') + sec + ' 秒',
+    L.W / 2, 344, '800', 25, '#2b3550');
+  text(ctx, '捡到 ' + S.starCount + ' 颗星星', L.W / 2, 390, '700', 20, '#7a849e');
+  text(ctx, '点一下回车库，改辆车再跑！', L.W / 2, 440, '800', 22, '#7048e8');
   ctx.restore();
 }
 

@@ -174,7 +174,7 @@ const SCRIPTS = {
   },
 
   garage: {
-    logic: 40000,    // 纯逻辑快进：长距离驾驶，覆盖捡星星与里程碑
+    logic: 80000,    // 纯逻辑快进：两圈完整驾驶，覆盖雪糕筒 / 里程碑 / 终点
     frames: 6000,
     press: function (i, g) {
       const p = i >= 100000 ? i - 100000 : i;   // 第二段帧号偏移 100000，先归零
@@ -183,9 +183,8 @@ const SCRIPTS = {
       if (p === 700) g.action('gas', true);          // 油门按住
       if (p % 400 === 350) g.action('brake', true);  // 偶尔刹车
       if (p % 400 === 380) g.action('brake', false);
-      if (p === 30000) g.action('garage', true);     // 回车库再造
-      if (p === 30200) g.action('start', true);      // 再出发
-      if (p === 30400) g.action('gas', true);
+      if (p === 45000) g.action('start', true);      // 第一圈终点后自动回车库，再出发
+      if (p === 46000) g.action('gas', true);
     }
   },
 

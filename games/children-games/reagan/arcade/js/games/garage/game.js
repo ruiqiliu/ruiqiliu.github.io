@@ -29,7 +29,9 @@ export const L = {
   DRAG: 60,        // 松油门的自然阻力
   VMAX_BASE: 320,
   STAR_GAP: 260,   // 星星间距 px
-  MILE: 500        // 每跑 500 米庆祝一次
+  CONE_GAP: 2200,  // 雪糕筒间距 px
+  MILE: 500,       // 每跑 500 米庆祝一次
+  GOAL: 200000     // 环形赛程一圈 20 公里（10px = 1 米）
 };
 
 export const WHEELS = [
@@ -49,7 +51,6 @@ export function create(env) {
   const { ctx, Snd, FX } = env;
 
   const S = {
-    phase: 'build',       // build | drive
     part: { wheel: 0, light: 0, spoiler: 0, color: 0 },
     selCat: 0,            // 键盘 ← → 换零件时作用的分类
     speed: 0,
@@ -60,6 +61,11 @@ export function create(env) {
     brake: false,
     wheelAngle: 0,
     puffT: 0,
+    wobble: 0,        // 撞雪糕筒后的晃动（0~1）
+    driveT: 0,        // 本圈用时
+    coneHits: new Set(),
+    finishT: 0,
+    phase: 'build',   // build | drive | finish
     bg: null,
     T: 0
   };
@@ -82,6 +88,9 @@ export function create(env) {
     S.starCount = 0;
     S.gas = false;
     S.brake = false;
+    S.wobble = 0;
+    S.driveT = 0;
+    S.coneHits = new Set();
     Snd.star();
     Snd.engine(true);
   }
@@ -100,7 +109,15 @@ export function create(env) {
 
   function update(dt) {
     S.T += dt;
+    if (S.phase === 'finish') {
+      S.finishT -= dt;
+      if (S.finishT <= 0) backToGarage();
+      return;
+    }
     if (S.phase !== 'drive') return;
+
+    S.driveT += dt;
+    if (S.wobble > 0) S.wobble = Math.max(0, S.wobble - dt);
 
     if (S.gas && !S.brake) S.speed += L.ACCEL * dt;
     if (S.brake) S.speed -= L.BRAKE * dt;
@@ -131,6 +148,30 @@ export function create(env) {
       FX.burst(L.CAR_X, L.GROUND - 120, ['#ffd43b', '#fff3bf', '#ffffff'], 14, 1);
       FX.text(L.CAR_X, L.GROUND - 145, '+1', '#f08c00', 22);
       Snd.star();
+    }
+
+    // 雪糕筒路障：撞上速度掉到四分之一，提前刹车能少掉速
+    const c0 = Math.max(0, Math.floor((S.dist - 80) / L.CONE_GAP));
+    for (let i = c0; i <= c0 + 2; i++) {
+      const wx = i * L.CONE_GAP + 900;
+      if (S.coneHits.has(wx) || Math.abs(wx - S.dist) > 34) continue;
+      S.coneHits.add(wx);
+      S.speed *= 0.25;
+      S.wobble = 0.8;
+      FX.burst(L.CAR_X + 40, L.GROUND - 26, ['#ff922b', '#ffd43b', '#ffffff'], 16, 1);
+      FX.text(L.CAR_X + 40, L.GROUND - 80, '哎哟！', '#e8590c', 22);
+      Snd.bump();
+    }
+
+    // 到达终点：跑完环形赛道的 20 公里
+    if (S.dist >= L.GOAL) {
+      S.phase = 'finish';
+      S.finishT = 5;
+      S.gas = false;
+      S.brake = false;
+      Snd.engine(false);
+      Snd.win();
+      return;
     }
 
     // 里程碑庆祝
@@ -170,7 +211,7 @@ export function create(env) {
       if (name === 'brake') { S.brake = !!down; return; }
       if (!down) return;
       if (name === 'start') { if (S.phase === 'build') startDrive(); return; }
-      if (name === 'garage') { if (S.phase === 'drive') backToGarage(); return; }
+      if (name === 'garage') { if (S.phase !== 'build') backToGarage(); return; }
       if (name === 'cat1') { S.selCat = 0; cycle(0, 1); return; }
       if (name === 'cat2') { S.selCat = 1; cycle(1, 1); return; }
       if (name === 'cat3') { S.selCat = 2; cycle(2, 1); return; }
@@ -182,6 +223,7 @@ export function create(env) {
     /* 控制层的指针入口 */
     press(p) {
       if (!p) return;
+      if (S.phase === 'finish') { backToGarage(); return; }
       if (S.phase === 'build') {
         // 出发按钮
         if (p.x >= START_BTN.x && p.x <= START_BTN.x + START_BTN.w &&
