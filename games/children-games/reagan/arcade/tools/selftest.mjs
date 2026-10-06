@@ -105,6 +105,47 @@ const SCRIPTS = {
       g.action(d, false);
       if (i === 60 || i === 30000) g.action('hint', true);
     }
+  },
+
+  puzzle: {
+    logic: 120000,   // 纯逻辑快进：贪心把错位的块换回家，必定踩到「拼好」与存最佳
+    frames: 2500,
+    press: function (i, g) {
+      const L = g.layout();
+      const t = L.size / L.n;
+      const at = (k) => ({ x: L.x + (k % L.n) * t + t / 2, y: L.y + Math.floor(k / L.n) * t + t / 2 });
+
+      // 每 5 帧点两块交换：找一块不在家的，和它「家」里的那块换，
+      // 错位的块单调减少，必然会拼好（随机乱换在小步数内踩不到胜利）
+      if (i % 5 === 0) {
+        const grid = g.grid();
+        let from = -1;
+        for (let k = 0; k < grid.length; k++) if (grid[k] !== k) { from = k; break; }
+        if (from >= 0) {
+          const a = at(from), b = at(grid.indexOf(from));
+          g.press(a); g.release(a);   // 点第一块 = 选中
+          g.press(b); g.release(b);   // 点第二块 = 交换
+        }
+      }
+
+      // 每 500 帧走一次拖拽路径：按住一块拖到另一格
+      if (i % 500 === 250) {
+        const grid = g.grid();
+        let from = -1;
+        for (let k = 0; k < grid.length; k++) if (grid[k] !== k) { from = k; break; }
+        if (from >= 0) {
+          const a = at(from), b = at(grid.indexOf(from));
+          g.press(a);
+          g.move({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+          g.release(b);
+        }
+      }
+
+      if (i % 97 === 0) g.action('peek', true);
+      if (i % 97 === 10) g.action('peek', false);
+      if (i === 20000 || i === 80000) g.action('d5', true);   // 换 5×5 再洗一局
+      if (i === 20010 || i === 80010) g.action('d5', false);
+    }
   }
 };
 
