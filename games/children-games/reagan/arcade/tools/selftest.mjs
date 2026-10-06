@@ -156,6 +156,21 @@ const SCRIPTS = {
       if (i === 20000 || i === 80000) g.action('d5', true);   // 换 5×5 再洗一局
       if (i === 20010 || i === 80010) g.action('d5', false);
     }
+  },
+
+  '1024': {
+    logic: 200000,   // 纯逻辑快进：随机方向狂滑，踩到合并 / 爱心救援 / 结束重开
+    frames: 3000,
+    press: function (i, g) {
+      const dirs = ['up', 'down', 'left', 'right'];
+      const d = dirs[rnd(i) & 3];
+      g.action(d, true);
+      g.action(d, false);
+      if (i === 60000) g.action('d3', true);    // 换 3×3：更快挤满，覆盖救援与结束
+      if (i === 60010) g.action('d3', false);
+      if (i === 120000) g.action('d5', true);   // 再换回 5×5
+      if (i === 120010) g.action('d5', false);
+    }
   }
 };
 

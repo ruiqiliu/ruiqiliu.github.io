@@ -452,7 +452,7 @@ const { createHomeView } = __req("js/ui/home.js");
 const { createPlayView } = __req("js/ui/play.js");
 const { createShell } = __req("js/shell.js");
 
-const HOME_TITLE = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 小鸟飞飞 / 迷宫探险 / 头像拼图';
+const HOME_TITLE = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 小鸟飞飞 / 迷宫探险 / 头像拼图 / 1024';
 
 /* ---------------- 画布 ---------------- */
 const canvas = document.getElementById('cv');
@@ -962,7 +962,7 @@ __factories["js/games/registry.js"] = function (exports) {
 /* =====================================================================
    games/registry.js — 游戏清单
    这里是唯一需要改动的地方：新增一个游戏，只要在数组里加一行。
-   首页卡片、数字快捷键（按 1~7）都会跟着自动更新。
+   首页卡片、数字快捷键（按 1~8）都会跟着自动更新。
    ===================================================================== */
 const breaker = __req("js/games/breaker/game.js");
 const snake = __req("js/games/snake/game.js");
@@ -971,8 +971,9 @@ const moto = __req("js/games/moto/game.js");
 const flappy = __req("js/games/flappy/game.js");
 const maze = __req("js/games/maze/game.js");
 const puzzle = __req("js/games/puzzle/game.js");
+const g1024 = __req("js/games/g1024/game.js");
 
-const games = [breaker, snake, tetris, moto, flappy, maze, puzzle];
+const games = [breaker, snake, tetris, moto, flappy, maze, puzzle, g1024];
 
 function findById(id) {
   return games.find((g) => g.meta.id === id) || null;
@@ -5727,6 +5728,645 @@ function drawWin(ctx, S, L) {
 
 
 Object.assign(exports, { PADS, HINT, hud, THUMB, pickLayout, makeBackground, draw });
+};
+__factories["js/games/g1024/game.js"] = function (exports) {
+/* =====================================================================
+   games/g1024/game.js — 1024 合并 · 逻辑层
+   经典滑块合并玩法：整个棋盘往一个方向滑，相同数字撞在一起就合并
+   成两倍，合出 1024 就赢（之后还能继续冲击 2048）。
+   儿童版改动：难度 = 棋盘大小（3×3 / 4×4 / 5×5，越大越宽松）；
+   棋盘卡死不判负 —— 用掉一颗爱心，把最小的四块变走救场，
+   爱心用光才结束，结束时点一下就能重来。
+   ===================================================================== */
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/g1024/controls.js");
+const { draw, hud: hudOf, makeBackground, PADS, HINT } = __req("js/games/g1024/view.js");
+
+const meta = {
+  id: '1024',
+  name: '1024',
+  icon: '🔢',
+  accent: '#ffe8cc',
+  desc: ['同数相撞变两倍', '合出 1024 就赢啦']
+};
+
+/* ---------------- 版面与节奏 ---------------- */
+const L = {
+  W: 800,
+  H: 560,
+  BX: 70,       // 棋盘左上角（和头像拼图同一套版面）
+  BY: 60,
+  BOARD: 440,
+  TARGET: 1024,
+  EASE: 18,     // 滑块的缓动速度
+  HEARTS: 3,
+  WIN_TIME: 2.2
+};
+
+const NS = [3, 4, 5];
+const DIRS = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 }
+};
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    n: 4,
+    grid: [],        // grid[row][col] = 滑块引用 | null
+    tiles: [],       // 活着的滑块 {id, val, col, row, x, y, pop, born, merged}
+    ghosts: [],      // 刚被合并吸收的滑块：滑向合并点再消失
+    score: 0,
+    best: 0,
+    hearts: L.HEARTS,
+    won: false,      // 已合出过 1024（庆祝一次就不再触发）
+    winT: 0,
+    phase: 'play',   // play | win | over
+    bg: null,
+    T: 0
+  };
+
+  let nextId = 1;
+
+  /* ---------------- 小工具 ---------------- */
+
+  const tile = () => L.BOARD / S.n;
+
+  function cellXY(col, row) {
+    const t = tile();
+    return { x: L.BX + col * t, y: L.BY + row * t };
+  }
+
+  function cellCenter(t) {
+    const p = cellXY(t.col, t.row);
+    return { x: p.x + tile() / 2, y: p.y + tile() / 2 };
+  }
+
+  const bestKey = () => 'hpy-1024-best-' + S.n;
+
+  function addTile(col, row, val) {
+    const p = cellXY(col, row);
+    const t = {
+      id: nextId++, val, col, row,
+      x: p.x, y: p.y,
+      pop: 0, born: 1, merged: false
+    };
+    S.grid[row][col] = t;
+    S.tiles.push(t);
+    return t;
+  }
+
+  function spawn() {
+    const empties = [];
+    for (let y = 0; y < S.n; y++) {
+      for (let x = 0; x < S.n; x++) {
+        if (!S.grid[y][x]) empties.push([x, y]);
+      }
+    }
+    if (!empties.length) return;
+    const [x, y] = empties[Math.floor(Math.random() * empties.length)];
+    addTile(x, y, Math.random() < 0.9 ? 2 : 4);
+  }
+
+  /* ---------------- 开局 / 难度 ---------------- */
+
+  function reset() {
+    S.grid = Array.from({ length: S.n }, () => Array(S.n).fill(null));
+    S.tiles = [];
+    S.ghosts = [];
+    S.score = 0;
+    S.hearts = L.HEARTS;
+    S.won = false;
+    S.winT = 0;
+    S.phase = 'play';
+    spawn();
+    spawn();
+  }
+
+  function setN(n) {
+    if (NS.indexOf(n) < 0) return;
+    S.n = n;
+    saveNumber('hpy-1024-n', n);
+    S.best = loadNumber(bestKey(), 0);
+    S.bg = makeBackground(L, n);
+    reset();
+    Snd.soft();
+  }
+
+  /* ---------------- 合并 ---------------- */
+
+  function winRound() {
+    S.won = true;
+    S.phase = 'win';
+    S.winT = L.WIN_TIME;
+    Snd.win();
+    const c = { x: L.BX + L.BOARD / 2, y: L.BY + L.BOARD / 2 };
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => FX.burst(
+        c.x + Math.random() * 260 - 130, c.y + Math.random() * 260 - 130,
+        ['#ffd43b', '#ff8fb1', '#5b9dff', '#69db7c'], 18, 1.2
+      ), i * 120);
+    }
+  }
+
+  /** 棋盘是不是真的卡死了：没有空格，也没有相邻的同数滑块 */
+  function isStuck() {
+    for (let y = 0; y < S.n; y++) {
+      for (let x = 0; x < S.n; x++) {
+        const t = S.grid[y][x];
+        if (!t) return false;
+        const r = S.grid[y][x + 1];
+        const d = y + 1 < S.n ? S.grid[y + 1][x] : null;
+        if ((r && r.val === t.val) || (d && d.val === t.val)) return false;
+      }
+    }
+    return true;
+  }
+
+  /** 爱心救场：把最小的四块变走，给孩子腾出喘息空间 */
+  function rescue() {
+    S.hearts--;
+    const doomed = S.tiles.slice().sort((a, b) => a.val - b.val).slice(0, 4);
+    for (const t of doomed) {
+      S.grid[t.row][t.col] = null;
+      S.tiles.splice(S.tiles.indexOf(t), 1);
+      const c = cellCenter(t);
+      FX.burst(c.x, c.y, ['#ffdeeb', '#fcc2d7', '#ffffff'], 12, 0.9);
+    }
+    FX.text(L.BX + L.BOARD / 2, L.BY + L.BOARD / 2 - 40, '爱心救援！', '#e64980', 26);
+    Snd.star();
+  }
+
+  function gameOver() {
+    S.phase = 'over';
+    if (S.score > S.best) {
+      S.best = S.score;
+      saveNumber(bestKey(), S.best);
+    }
+    Snd.soft();
+  }
+
+  /* ---------------- 滑动 ---------------- */
+
+  function move(dir) {
+    const d = DIRS[dir];
+    if (!d) return;
+    if (S.phase === 'over') { reset(); return; }   // 结束后随便滑一下就重来
+    if (S.phase !== 'play') return;
+
+    const n = S.n;
+    const idx = [];
+    for (let i = 0; i < n; i++) idx.push(i);
+    const xs = d.x === 1 ? idx.slice().reverse() : idx;
+    const ys = d.y === 1 ? idx.slice().reverse() : idx;
+
+    for (const t of S.tiles) t.merged = false;
+
+    let steps = 0;
+    let merges = 0;
+
+    // 从滑向的那一侧先处理，同一次滑动里一块最多合并一次
+    for (const y of ys) {
+      for (const x of xs) {
+        const t = S.grid[y][x];
+        if (!t) continue;
+
+        // 一路滑到头
+        let nx = x, ny = y;
+        for (;;) {
+          const ax = nx + d.x, ay = ny + d.y;
+          if (ax < 0 || ay < 0 || ax >= n || ay >= n || S.grid[ay][ax]) break;
+          nx = ax; ny = ay;
+        }
+
+        const ax = nx + d.x, ay = ny + d.y;
+        const nb = (ax < 0 || ay < 0 || ax >= n || ay >= n) ? null : S.grid[ay][ax];
+
+        if (nb && nb.val === t.val && !nb.merged) {
+          S.grid[y][x] = null;
+          S.tiles.splice(S.tiles.indexOf(t), 1);
+          S.ghosts.push({
+            val: t.val, x: t.x, y: t.y,
+            tx: cellXY(nb.col, nb.row).x, ty: cellXY(nb.col, nb.row).y, t: 0
+          });
+          nb.val *= 2;
+          nb.merged = true;
+          nb.pop = 1;
+          S.score += nb.val;
+          merges++;
+
+          const c = cellCenter(nb);
+          FX.text(c.x, c.y - 10, '+' + nb.val, '#e8590c', 20);
+          if (nb.val >= 128) {
+            FX.burst(c.x, c.y, ['#ffd43b', '#ffe8cc', '#ffffff'], 14, 1);
+          }
+          Snd.pop(merges);
+          if (nb.val >= L.TARGET && !S.won) winRound();
+        } else if (nx !== x || ny !== y) {
+          S.grid[y][x] = null;
+          S.grid[ny][nx] = t;
+          t.col = nx; t.row = ny;
+          steps++;
+        }
+      }
+    }
+
+    if (!steps && !merges) return;   // 这步没动
+
+    if (!merges) Snd.turn();
+    if (S.score > S.best) {
+      S.best = S.score;
+      saveNumber(bestKey(), S.best);
+    }
+
+    spawn();
+    if (isStuck()) {
+      if (S.hearts > 0) rescue();
+      else gameOver();
+    }
+  }
+
+  /* ---------------- 每帧推进 ---------------- */
+
+  function update(dt) {
+    S.T += dt;
+
+    // 被吸收的滑块滑向合并点，然后消失
+    for (let i = S.ghosts.length - 1; i >= 0; i--) {
+      const g = S.ghosts[i];
+      g.t += dt;
+      const k = Math.min(1, dt * L.EASE * 1.5);
+      g.x += (g.tx - g.x) * k;
+      g.y += (g.ty - g.y) * k;
+      if (g.t > 0.22) S.ghosts.splice(i, 1);
+    }
+
+    // 活着的滑块滑向自己的格子，弹跳 / 出生动画衰减
+    const k = Math.min(1, dt * L.EASE);
+    for (const t of S.tiles) {
+      const p = cellXY(t.col, t.row);
+      t.x += (p.x - t.x) * k;
+      t.y += (p.y - t.y) * k;
+      t.pop = Math.max(0, t.pop - dt * 3.5);
+      t.born = Math.max(0, t.born - dt * 6);
+    }
+
+    if (S.phase === 'win') {
+      S.winT -= dt;
+      if (S.winT <= 0) S.phase = 'play';   // 庆祝完继续，可以冲击 2048
+    }
+  }
+
+  /* ---------------- 对外接口 ---------------- */
+
+  const api = {
+    W: L.W,
+    H: L.H,
+    pads: PADS,
+    hint: HINT,
+    cursor: 'pointer',
+
+    start() {
+      const saved = loadNumber('hpy-1024-n', 4);
+      S.n = NS.indexOf(saved) >= 0 ? saved : 4;
+      S.best = loadNumber(bestKey(), 0);
+      S.bg = makeBackground(L, S.n);
+      reset();
+    },
+
+    resize() { S.bg = makeBackground(L, S.n); },
+    restart() { reset(); },
+    destroy() {},
+
+    update,
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      if (name === 'confirm') { if (S.phase === 'over') reset(); return; }
+      if (name === 'd3') { setN(3); return; }
+      if (name === 'd4') { setN(4); return; }
+      if (name === 'd5') { setN(5); return; }
+      move(name);
+    },
+
+    /* 只读视图：selftest 用来确认棋盘在动 */
+    snapshot() {
+      return {
+        phase: S.phase,
+        score: S.score,
+        hearts: S.hearts,
+        tiles: S.tiles.length,
+        max: S.tiles.reduce((m, t) => Math.max(m, t.val), 0)
+      };
+    }
+  };
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/g1024/controls.js"] = function (exports) {
+/* =====================================================================
+   games/g1024/controls.js — 1024 合并 · 控制层
+   方向键 / WASD / 画布上滑动 → up·down·left·right；
+   数字键换棋盘大小，空格在结束后重来
+   ===================================================================== */
+
+function createControls() {
+  let swipe = null;
+
+  return {
+    keys: {
+      arrowup: 'up',
+      w: 'up',
+      arrowdown: 'down',
+      s: 'down',
+      arrowleft: 'left',
+      a: 'left',
+      arrowright: 'right',
+      d: 'right',
+      ' ': 'confirm',
+      enter: 'confirm',
+      '1': 'd3',
+      '2': 'd4',
+      '3': 'd5'
+    },
+
+    /** 画布上滑动 → 方向（和迷宫探险同一种手感） */
+    pointer(game, p, type) {
+      if (type === 'down') { swipe = { x: p.x, y: p.y }; return; }
+      if (type === 'up') { swipe = null; return; }
+      if (type !== 'move' || !swipe) return;
+
+      const dx = p.x - swipe.x;
+      const dy = p.y - swipe.y;
+      if (Math.hypot(dx, dy) < 30) return;
+
+      game.action(
+        Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'),
+        true
+      );
+      swipe = null;
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/g1024/view.js"] = function (exports) {
+/* =====================================================================
+   games/g1024/view.js — 1024 合并 · UI 层
+   滑块 = 糖果色圆角方块，数字越大颜色越艳；右侧面板画出
+   2 → 1024 的合成路线，已经合出过的数字是亮色，给孩子一个目标感。
+   ===================================================================== */
+const { TAU, rr, FONT_UI, FONT_EMOJI } = __req("js/core/util.js");
+const { surface } = __req("js/core/surface.js");
+const { avatar } = __req("js/core/avatar.js");
+
+const PADS =
+  '<div class="dpad">' +
+    '<span class="sp"></span><button class="pad" data-act="up">▲</button><span class="sp"></span>' +
+    '<button class="pad" data-act="left">◀</button>' +
+    '<button class="pad" data-act="down">▼</button>' +
+    '<button class="pad" data-act="right">▶</button>' +
+  '</div>' +
+  '<div class="row">' +
+    '<button class="pad" data-act="d3">3×3</button>' +
+    '<button class="pad" data-act="d4">4×4</button>' +
+    '<button class="pad" data-act="d5">5×5</button>' +
+  '</div>';
+
+const HINT =
+  '方向键 / WASD 滑动，相同数字撞在一起就合并 · ' +
+  '<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 换棋盘大小 · ' +
+  '合出 1024 就赢啦 · 卡住了会有爱心帮你救场';
+
+function hud(S) {
+  return [
+    ['难度', S.n + '×' + S.n],
+    ['得分', S.score],
+    ['爱心', '❤️'.repeat(Math.max(0, S.hearts)) || '—'],
+    ['最佳', S.best]
+  ];
+}
+
+/* 右侧小面板（静态底板和每帧绘制共用同一套坐标） */
+const PANEL = { x: 546, y: 60, w: 204, h: 440 };
+
+/** 数值 → [底色, 文字色]，数字越大越艳 */
+const COLORS = {
+  2:    ['#eef5ff', '#5b9dff'],
+  4:    ['#e5faee', '#2fa96c'],
+  8:    ['#fff6dc', '#f0a202'],
+  16:   ['#ffe7ec', '#f06595'],
+  32:   ['#f1e7ff', '#9a4fd0'],
+  64:   ['#dff3fe', '#1c8ed6'],
+  128:  ['#ffeed9', '#e97212'],
+  256:  ['#fdf7c9', '#c9a103'],
+  512:  ['#fce4f1', '#d6338f'],
+  1024: ['#e9e4ff', '#7048e8']
+};
+const colorsOf = (val) => COLORS[val] || ['#ffe3e3', '#e03131'];
+
+function text(g, t, x, y, weight, size, color) {
+  g.save();
+  g.font = weight + ' ' + size + 'px ' + FONT_UI;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillStyle = color;
+  g.fillText(t, x, y);
+  g.restore();
+}
+
+/* ================================================================
+   预渲染：底色 + 棋盘外框 + 空格子 + 右侧面板底板
+   （空格子的数量随难度变，换难度会重画一次）
+   ================================================================ */
+function makeBackground(L, n) {
+  const { canvas, ctx: g } = surface.offscreen(L.W, L.H);
+
+  const grad = g.createLinearGradient(0, 0, 0, L.H);
+  grad.addColorStop(0, '#fff9f0');
+  grad.addColorStop(1, '#fff1e2');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, L.W, L.H);
+
+  // 棋盘外框
+  rr(g, L.BX - 14, L.BY - 14, L.BOARD + 28, L.BOARD + 28, 26);
+  g.fillStyle = '#ffffff';
+  g.fill();
+  g.lineWidth = 3;
+  g.strokeStyle = '#f5dfc4';
+  g.stroke();
+
+  // 空格子
+  const t = L.BOARD / n;
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      rr(g, L.BX + x * t + 3, L.BY + y * t + 3, t - 6, t - 6, t * 0.12);
+      g.fillStyle = '#f7efe2';
+      g.fill();
+    }
+  }
+
+  // 右侧面板
+  rr(g, PANEL.x, PANEL.y, PANEL.w, PANEL.h, 26);
+  g.fillStyle = 'rgba(255,255,255,.8)';
+  g.fill();
+  g.stroke();
+
+  text(g, '合成路线', PANEL.x + PANEL.w / 2, PANEL.y + 30, '800', 18, '#c77b2a');
+  return canvas;
+}
+
+/* ================================================================
+   每帧绘制
+   ================================================================ */
+function draw(ctx, S, L) {
+  ctx.drawImage(S.bg, 0, 0, L.W, L.H);
+
+  drawChain(ctx, S);
+  drawGhosts(ctx, S, L);
+  drawTiles(ctx, S, L);
+
+  if (S.phase === 'win') drawWin(ctx, S, L);
+  if (S.phase === 'over') drawOver(ctx, S, L);
+}
+
+/** 右侧合成路线：合出过的数字点亮 */
+function drawChain(ctx, S) {
+  let max = 0;
+  for (const t of S.tiles) max = Math.max(max, t.val);
+
+  const cx = PANEL.x + PANEL.w / 2;
+  const w = PANEL.w - 48;
+  let y = PANEL.y + 52;
+
+  for (let val = 2; val <= 1024; val *= 2) {
+    const [bg, fg] = colorsOf(val);
+    const lit = val <= max;
+
+    ctx.save();
+    ctx.globalAlpha = lit ? 1 : 0.35;
+    rr(ctx, cx - w / 2, y, w, 28, 9);
+    ctx.fillStyle = bg;
+    ctx.fill();
+    text(ctx, String(val), cx, y + 15, '800', 16, fg);
+    ctx.restore();
+
+    y += 35;
+  }
+}
+
+function drawTiles(ctx, S, L) {
+  const t = L.BOARD / S.n;
+  for (const tile of S.tiles) drawTile(ctx, tile, t, false);
+}
+
+function drawTile(ctx, tile, t, ghost, alpha) {
+  const [bg, fg] = colorsOf(tile.val);
+  const r = Math.max(6, t * 0.12);
+  const scale = ghost ? 1 : (1 + tile.pop * 0.12) * (1 - tile.born * 0.55);
+  const gap = Math.max(2, Math.round(t * 0.03));
+
+  ctx.save();
+  if (ghost) ctx.globalAlpha = alpha;
+  ctx.translate(tile.x + t / 2, tile.y + t / 2);
+  ctx.scale(scale, scale);
+
+  const w = t - gap;
+  rr(ctx, -w / 2, -w / 2, w, w, r);
+  ctx.shadowColor = 'rgba(160,100,40,.25)';
+  ctx.shadowBlur = 9;
+  ctx.shadowOffsetY = 3;
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+
+  ctx.strokeStyle = 'rgba(0,0,0,.05)';
+  ctx.lineWidth = 1.5;
+  rr(ctx, -w / 2, -w / 2, w, w, r);
+  ctx.stroke();
+
+  const digits = String(tile.val).length;
+  const size = t * (digits <= 2 ? 0.44 : digits === 3 ? 0.36 : 0.29);
+  text(ctx, String(tile.val), 0, 1, '800', Math.round(size), fg);
+
+  ctx.restore();
+}
+
+/** 被合并吸收的滑块：一边滑向合并点一边淡出 */
+function drawGhosts(ctx, S, L) {
+  const t = L.BOARD / S.n;
+  for (const g of S.ghosts) {
+    drawTile(ctx, g, t, true, Math.max(0, 1 - g.t / 0.22));
+  }
+}
+
+function drawWin(ctx, S, L) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,.82)';
+  ctx.fillRect(0, 0, L.W, L.H);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = '800 50px ' + FONT_UI;
+  ctx.fillStyle = '#e8590c';
+  ctx.fillText('合出 1024 啦！', L.W / 2, 168);
+
+  avatar.hero(ctx, L.W / 2 - 62, 244, 30, { ringW: 4 });
+  ctx.font = '46px ' + FONT_EMOJI;
+  ctx.fillText('🎉', L.W / 2, 246);
+  avatar.hero(ctx, L.W / 2 + 62, 244, 30, { ringW: 4 });
+
+  ctx.font = '800 25px ' + FONT_UI;
+  ctx.fillStyle = '#2b3550';
+  ctx.fillText('得分 ' + S.score, L.W / 2, 322);
+
+  ctx.font = '700 20px ' + FONT_UI;
+  ctx.fillStyle = '#8b7f95';
+  ctx.fillText('还能继续合，冲一冲 2048！', L.W / 2, 366);
+  ctx.restore();
+}
+
+function drawOver(ctx, S, L) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,.86)';
+  ctx.fillRect(0, 0, L.W, L.H);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = '800 46px ' + FONT_UI;
+  ctx.fillStyle = '#f08c00';
+  ctx.fillText('棋盘满啦！', L.W / 2, 158);
+
+  avatar.hero(ctx, L.W / 2, 244, 34, { ringW: 4 });
+
+  ctx.font = '800 30px ' + FONT_UI;
+  ctx.fillStyle = '#2b3550';
+  ctx.fillText('得分 ' + S.score, L.W / 2, 330);
+
+  ctx.font = '700 20px ' + FONT_UI;
+  ctx.fillStyle = '#7a849e';
+  ctx.fillText('最大合到 ' + S.tiles.reduce((m, t) => Math.max(m, t.val), 0) + ' · 最好成绩 ' + S.best, L.W / 2, 372);
+
+  ctx.font = '800 22px ' + FONT_UI;
+  ctx.fillStyle = '#e8590c';
+  ctx.fillText('点一下 / 按方向键，再来一局！', L.W / 2, 428);
+  ctx.restore();
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, makeBackground, draw });
 };
 __factories["js/ui/home.js"] = function (exports) {
 /* =====================================================================
