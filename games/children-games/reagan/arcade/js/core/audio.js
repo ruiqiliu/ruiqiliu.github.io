@@ -59,5 +59,34 @@ export const Snd = {
 
   /* --- 迷宫探险 --- */
   step() { this.tone(360, 0.04, 'sine', 0.025); },
-  hint() { this.tone(1040, 0.1, 'sine', 0.04, 1400); }
+  hint() { this.tone(1040, 0.1, 'sine', 0.04, 1400); },
+
+  /* --- 车库大师：持续引擎音，音调随速度 --- */
+  _eng: null,
+  engine(on) {
+    if (!on) {
+      if (this._eng) {
+        try { this._eng.o.stop(); } catch (e) { /* 已停止 */ }
+        this._eng = null;
+      }
+      return;
+    }
+    this.ensure();
+    if (!this.ac || this._eng) return;
+    const o = this.ac.createOscillator();
+    const g = this.ac.createGain();
+    o.type = 'sawtooth';
+    o.frequency.value = 58;
+    g.gain.value = 0.0001;
+    o.connect(g);
+    g.connect(this.ac.destination);
+    o.start();
+    this._eng = { o, g };
+  },
+  /** k: 0~1 油门深度对应的转速 */
+  engineRev(k) {
+    if (!this._eng) return;
+    this._eng.o.frequency.value = 58 + k * 150;
+    this._eng.g.gain.value = this.on ? 0.018 + k * 0.028 : 0.0001;
+  }
 };

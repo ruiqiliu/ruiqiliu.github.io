@@ -8,17 +8,17 @@
   <title>Java 简史 | Ruiqi Liu&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="description" content="Java 8、9、10的新特性Java 10JDK 10 发布于 2018年3月20日。主要更新是局部变量推断和垃圾回收及编译算法提高。 JDK 10是个短期的版本，将要于今天九月份发布的JDK 11是个LTS版本。 主要特点：  Local variable type inference： 使用初始化语句推段变量类型 G1 支持并行化： 提高 worst-case 延迟 优化 class-dat">
-<meta name="keywords" content="Java">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Java 简史">
-<meta property="og:url" content="http://yoursite.com/2018/05/13/Java-简史/index.html">
+<meta property="og:url" content="https://ruiqiliu.github.io/2018/05/13/Java-%E7%AE%80%E5%8F%B2/index.html">
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
 <meta property="og:description" content="Java 8、9、10的新特性Java 10JDK 10 发布于 2018年3月20日。主要更新是局部变量推断和垃圾回收及编译算法提高。 JDK 10是个短期的版本，将要于今天九月份发布的JDK 11是个LTS版本。 主要特点：  Local variable type inference： 使用初始化语句推段变量类型 G1 支持并行化： 提高 worst-case 延迟 优化 class-dat">
-<meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-05-28T16:38:54.095Z">
+<meta property="og:locale">
+<meta property="article:published_time" content="2018-05-13T00:14:13.000Z">
+<meta property="article:modified_time" content="2026-10-06T10:38:11.423Z">
+<meta property="article:author" content="Ritchie">
+<meta property="article:tag" content="Java">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Java 简史">
-<meta name="twitter:description" content="Java 8、9、10的新特性Java 10JDK 10 发布于 2018年3月20日。主要更新是局部变量推断和垃圾回收及编译算法提高。 JDK 10是个短期的版本，将要于今天九月份发布的JDK 11是个LTS版本。 主要特点：  Local variable type inference： 使用初始化语句推段变量类型 G1 支持并行化： 提高 worst-case 延迟 优化 class-dat">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -28,9 +28,10 @@
   
     <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
   
-  <link rel="stylesheet" href="/css/style.css">
-<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
-</head>
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 8.1.2"></head>
 
 <body>
   <div id="container">
@@ -55,8 +56,8 @@
           <a class="main-nav-link" href="/">Home</a>
         
           <a class="main-nav-link" href="/archives">Archives</a>
-          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="main">Reagan&#39;s games</a>
-
+        
+          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/">Reagan&#39;s games</a>
         
       </nav>
       <nav id="sub-nav">
@@ -66,7 +67,7 @@
         <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://ruiqiliu.github.io"></form>
       </div>
     </div>
   </div>
@@ -74,7 +75,7 @@
       <div class="outer">
         <section id="main"><article id="post-Java-简史" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2018/05/13/Java-简史/" class="article-date">
+    <a href="/2018/05/13/Java-%E7%AE%80%E5%8F%B2/" class="article-date">
   <time datetime="2018-05-13T00:14:13.000Z" itemprop="datePublished">2018-05-13</time>
 </a>
     
@@ -104,7 +105,7 @@
 <li>Docker awareness：在linux 平台，JVM可以知道 Container-specifi-information</li>
 <li>三个新的JVM参数，用户Docker可以控制系统内存</li>
 <li><code>jShell REPL tool</code> 启动优化</li>
-<li>不可变集合实例化：Set.copyof，Map.copyOf，Collectors类的新方法：toUnmodifiableList/toUnmodifiableSet/toUnmodifableMap</li>
+<li>不可变集合实例化：Set.copyof，Map.copyOf，Collectors类的新方法：toUnmodifiableList&#x2F;toUnmodifiableSet&#x2F;toUnmodifableMap</li>
 <li>GC 接口更新，用于更方便地增加新的collector</li>
 <li>G1并行化</li>
 <li>HotSpot支持把对象堆分配到指定的内存设备上</li>
@@ -120,9 +121,9 @@
 <li>Project Panama： native code和JVM的交互增强</li>
 <li>Valhalla： valued types and generic specialization</li>
 <li>Project Loom： 目的是减少编写并发程序的难度</li>
-<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html" target="_blank" rel="noopener">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a></li>
+<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a></li>
 </ul>
-<h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3><p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入<br><a href="https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-9/index.html" target="_blank" rel="noopener">IBM Blog</a></p>
+<h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3><p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入<br><a href="https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-9/index.html">IBM Blog</a></p>
 <h4 id="Java平台模块系统"><a href="#Java平台模块系统" class="headerlink" title="Java平台模块系统"></a>Java平台模块系统</h4><ul>
 <li>Project Jigsaw把模块化开发实践引入到了Java平台</li>
 <li>通过jlink工具，创建出只包含所依赖的JDK模块的自定义运行时镜像</li>
@@ -137,23 +138,24 @@
 <li>JVM提供了相应的API和模块系统进行交互</li>
 </ul>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">module</span> com.mycompany.sample &#123; <span class="comment">//模块声明定义</span></span><br><span class="line">    <span class="keyword">exports</span> com.mycompany.sample; </span><br><span class="line">    <span class="keyword">requires</span> com.mycompany.common; </span><br><span class="line">    provides com.mycompany.common.DemoService with</span><br><span class="line">        com.mycompany.sample.DemoServiceImpl; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <h4 id="Jshell"><a href="#Jshell" class="headerlink" title="Jshell"></a>Jshell</h4><p>Jshell提供的功能类似于NodeJS和Python中的Read-Evaluation-PrintLoop 功能。</p>
 <ul>
 <li>基本的表达式计算</li>
 <li>创建Java 类和方法</li>
 <li>执行代码片段</li>
-<li>详细介绍请执行 <code>jshell</code> =&gt; <code>/help /list</code></li>
+<li>详细介绍请执行 <code>jshell</code> &#x3D;&gt; <code>/help /list</code></li>
 </ul>
 <h4 id="集合、Stream、Optional、进程"><a href="#集合、Stream、Optional、进程" class="headerlink" title="集合、Stream、Optional、进程"></a>集合、Stream、Optional、进程</h4><ul>
 <li>List.of()\Set.of()\Map.of()\Map.ofEntries()等工厂方法返回不可变集合</li>
 <li>Stream新增API：filtering、flatMapping <a href="StreamAPI.md">todo</a></li>
 <li>Optional 类新增API： ifPresentOrElse、or、stream</li>
 <li>进程API：接口ProcessHandle可以对原生进程进行管理</li>
-<li><p>平台日志API：System.LoggerFinder 来管理日志记录器实现</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123; </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> System.Logger LOGGER = System.getLogger(<span class="string">"Main"</span>); </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> </span>&#123; </span><br><span class="line">        LOGGER.log(Level.INFO, <span class="string">"Run!"</span>);</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>Reactive Streams: <code>java.util.concurrent.Flow</code>, 核心接口：</p>
+<li>平台日志API：System.LoggerFinder 来管理日志记录器实现</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123; </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> System.<span class="type">Logger</span> <span class="variable">LOGGER</span> <span class="operator">=</span> System.getLogger(<span class="string">&quot;Main&quot;</span>); </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> &#123; </span><br><span class="line">        LOGGER.log(Level.INFO, <span class="string">&quot;Run!&quot;</span>);</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <ul>
+<li>Reactive Streams: <code>java.util.concurrent.Flow</code>, 核心接口：<ul>
 <li>Flow.Publisher</li>
 <li>Flow.Subscriber</li>
 <li>Flow.Subscription</li>
@@ -167,7 +169,8 @@
 <li>IO： <code>readAllBytes</code>,<code>readNBytes</code>,<code>transferTo</code></li>
 <li>新增SHA-3 哈希算法，java.security.SecureRandom生成使用DRBG算法的强随机数</li>
 </ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.codec.binary.Hex; </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SHA3</span> </span>&#123; </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> <span class="keyword">throws</span> NoSuchAlgorithmException </span>&#123; </span><br><span class="line">        <span class="keyword">final</span> MessageDigest instance = MessageDigest.getInstance(<span class="string">"SHA3-224"</span>); </span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">byte</span>[] digest = instance.digest(<span class="string">""</span>.getBytes()); </span><br><span class="line">        System.out.println(Hex.encodeHexString(digest)); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.codec.binary.Hex; </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SHA3</span> &#123; </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> <span class="keyword">throws</span> NoSuchAlgorithmException &#123; </span><br><span class="line">        <span class="keyword">final</span> <span class="type">MessageDigest</span> <span class="variable">instance</span> <span class="operator">=</span> MessageDigest.getInstance(<span class="string">&quot;SHA3-224&quot;</span>); </span><br><span class="line">        <span class="keyword">final</span> <span class="type">byte</span>[] <span class="variable">digest</span> <span class="operator">=</span> instance.digest(<span class="string">&quot;&quot;</span>.getBytes()); </span><br><span class="line">        System.out.println(Hex.encodeHexString(digest)); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <ul>
 <li>统一JVM日志： <code>-Xlog</code>控制JVM日志输出的标签、级别、修饰符、输出目标</li>
 <li>新增jcmd调用的诊断命令</li>
@@ -182,20 +185,23 @@
 <li>增加静态方法，可以直接通过接口调用</li>
 </ul>
 </li>
-<li><p>Streaming API：实现集合的并行处理和函数式操作，根据操作返回结果的不同，流式操作分为中间操作和最终操作，前者返回流本身，后者返回一特定类型的结果，实现了集合的过滤、排序、映射等</p>
-<ul>
-<li>stream.sequential() 返回串行流 </li>
-<li><p><code>int count= (int) ((Stream) list.stream().sequential()).sorted().count();</code></p>
+<li>Streaming API：实现集合的并行处理和函数式操作，根据操作返回结果的不同，流式操作分为中间操作和最终操作，前者返回流本身，后者返回一特定类型的结果，实现了集合的过滤、排序、映射等<ul>
+<li><p>stream.sequential() 返回串行流 </p>
+</li>
+<li><p><code> int count= (int) ((Stream) list.stream().sequential()).sorted().count();</code></p>
 </li>
 <li><p>stream.parallel() 返回并行流 </p>
 </li>
-<li><code>int count = (int)((Stream) list.stream().parallel()).sorted().count();</code></li>
-<li>中间操作：<code>filter/sorted/map/distinct/subStream list.stream() .filter((s) -&gt; s.startsWith(&quot;s&quot;)) .forEach(System.out::println);</code></li>
-<li>终止操作：forEach/toArray/findFirst/anyMatch</li>
+<li><p><code>int count = (int)((Stream) list.stream().parallel()).sorted().count();</code></p>
+</li>
+<li><p>中间操作：<code>filter/sorted/map/distinct/subStream list.stream() .filter((s) -&gt; s.startsWith(&quot;s&quot;)) .forEach(System.out::println);</code></p>
+</li>
+<li><p>终止操作：forEach&#x2F;toArray&#x2F;findFirst&#x2F;anyMatch</p>
+</li>
 </ul>
 </li>
 <li>注解的更新：<ul>
-<li>增加了类型注解：ElementType.TYPE_USE/ElementType.TPYE_PARAMETER</li>
+<li>增加了类型注解：ElementType.TYPE_USE&#x2F;ElementType.TPYE_PARAMETER</li>
 <li>使用Checker Framework等第三方工具在编译期检查出运行时错误</li>
 <li>支持重复注解：@Repeatable（XX.class）</li>
 </ul>
@@ -212,7 +218,7 @@
 <li>NIO改进：<ul>
 <li>改进了java.nio.charset.Charset实现</li>
 <li>优化了String.getBytes性能</li>
-<li>新增API：BufferedReader.line()/File.lines(Path,Charset)/File.list(Path)/File.walk(Path,int,FileVisitOption)/Find.find(…)</li>
+<li>新增API：BufferedReader.line()&#x2F;File.lines(Path,Charset)&#x2F;File.list(Path)&#x2F;File.walk(Path,int,FileVisitOption)&#x2F;Find.find(…)</li>
 </ul>
 </li>
 <li>全球化功能：<ul>
@@ -230,10 +236,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/13/Java-简史/" data-id="ckdg33rvx0003a27anthmu1m6" class="article-share-link">Share</a>
+      <a data-url="https://ruiqiliu.github.io/2018/05/13/Java-%E7%AE%80%E5%8F%B2/" data-id="cuid0NA2hTWiKJgjKlLSfIE97" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/" rel="tag">Java</a></li></ul>
 
     </footer>
   </div>
@@ -241,19 +247,19 @@
     
 <nav id="article-nav">
   
-    <a href="/2018/05/13/hello-world/" id="article-nav-newer" class="article-nav-link-wrap">
+    <a href="/2018/05/17/http/" id="article-nav-newer" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Newer</strong>
       <div class="article-nav-title">
         
-          Hexo Tutorial
+          HTTP 学习笔记
         
       </div>
     </a>
   
   
-    <a href="/2018/05/06/t-io-start/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2018/05/13/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">即时通讯框架T-IO学习</div>
+      <div class="article-nav-title">Hexo Tutorial</div>
     </a>
   
 </nav>
@@ -272,7 +278,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/" rel="tag">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/" rel="tag">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/" rel="tag">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/" rel="tag">spring</a></li></ul>
     </div>
   </div>
 
@@ -335,7 +341,7 @@
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2020 Ritchie<br>
+      &copy; 2026 Ritchie<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -346,8 +352,8 @@
     <a href="/" class="mobile-nav-link">Home</a>
   
     <a href="/archives" class="mobile-nav-link">Archives</a>
-    <a class="mobile-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="mobile">Reagan&#39;s games</a>
-
+  
+    <a href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" class="mobile-nav-link">Reagan&#39;s games</a>
   
 </nav>
     
@@ -355,11 +361,24 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
 
-  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
 
 
 <script src="/js/script.js"></script>
+
+
+
+
+
+
+<!-- 51LA Analytics -->
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
 
 
 

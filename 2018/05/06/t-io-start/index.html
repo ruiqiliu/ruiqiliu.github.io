@@ -7,18 +7,19 @@
   
   <title>即时通讯框架T-IO学习 | Ruiqi Liu&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="t-io学习笔记常见应用场景 IM（官方提供了im例子，含web端） 实时监控 推送服务（已内置API） RPC 游戏 物联网（已有很多案例） 其它实时通讯类型的场景，不一一列举  用t-io做的web immaven坐标12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;org.t-io&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;">
-<meta name="keywords" content="Java,NIO">
+  <meta name="description" content="t-io学习笔记常见应用场景 IM（官方提供了im例子，含web端） 实时监控 推送服务（已内置API） RPC 游戏 物联网（已有很多案例） 其它实时通讯类型的场景，不一一列举  用t-io做的web immaven坐标12345&lt;dependency&gt;    &lt;groupId&gt;org.t-io&lt;&#x2F;groupId&gt;    &lt;artifactId&gt;">
 <meta property="og:type" content="article">
 <meta property="og:title" content="即时通讯框架T-IO学习">
-<meta property="og:url" content="http://yoursite.com/2018/05/06/t-io-start/index.html">
+<meta property="og:url" content="https://ruiqiliu.github.io/2018/05/06/t-io-start/index.html">
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
-<meta property="og:description" content="t-io学习笔记常见应用场景 IM（官方提供了im例子，含web端） 实时监控 推送服务（已内置API） RPC 游戏 物联网（已有很多案例） 其它实时通讯类型的场景，不一一列举  用t-io做的web immaven坐标12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;org.t-io&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;">
-<meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-09-29T14:48:36.148Z">
+<meta property="og:description" content="t-io学习笔记常见应用场景 IM（官方提供了im例子，含web端） 实时监控 推送服务（已内置API） RPC 游戏 物联网（已有很多案例） 其它实时通讯类型的场景，不一一列举  用t-io做的web immaven坐标12345&lt;dependency&gt;    &lt;groupId&gt;org.t-io&lt;&#x2F;groupId&gt;    &lt;artifactId&gt;">
+<meta property="og:locale">
+<meta property="article:published_time" content="2018-05-06T00:06:11.000Z">
+<meta property="article:modified_time" content="2026-10-06T10:38:11.425Z">
+<meta property="article:author" content="Ritchie">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="NIO">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="即时通讯框架T-IO学习">
-<meta name="twitter:description" content="t-io学习笔记常见应用场景 IM（官方提供了im例子，含web端） 实时监控 推送服务（已内置API） RPC 游戏 物联网（已有很多案例） 其它实时通讯类型的场景，不一一列举  用t-io做的web immaven坐标12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;org.t-io&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -28,9 +29,10 @@
   
     <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
   
-  <link rel="stylesheet" href="/css/style.css">
-<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
-</head>
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 8.1.2"></head>
 
 <body>
   <div id="container">
@@ -55,8 +57,8 @@
           <a class="main-nav-link" href="/">Home</a>
         
           <a class="main-nav-link" href="/archives">Archives</a>
-          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="main">Reagan&#39;s games</a>
-
+        
+          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/">Reagan&#39;s games</a>
         
       </nav>
       <nav id="sub-nav">
@@ -66,7 +68,7 @@
         <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://ruiqiliu.github.io"></form>
       </div>
     </div>
   </div>
@@ -103,7 +105,8 @@
 <li>物联网（已有很多案例）</li>
 <li>其它实时通讯类型的场景，不一一列举</li>
 </ul>
-<h3 id="用t-io做的web-im"><a href="#用t-io做的web-im" class="headerlink" title="用t-io做的web im"></a>用t-io做的<a href="http://t-io.org/webim/" target="_blank" rel="noopener">web im</a></h3><h3 id="maven坐标"><a href="#maven坐标" class="headerlink" title="maven坐标"></a>maven坐标</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.t-io&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;tio-core&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;1.7.2.v20170705-RELEASE&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="用t-io做的web-im"><a href="#用t-io做的web-im" class="headerlink" title="用t-io做的web im"></a>用t-io做的<a href="http://t-io.org/webim/">web im</a></h3><h3 id="maven坐标"><a href="#maven坐标" class="headerlink" title="maven坐标"></a>maven坐标</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.t-io&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;tio-core&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;1.7.2.v20170705-RELEASE&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
 <h3 id="对开发人员极体贴的内置功能"><a href="#对开发人员极体贴的内置功能" class="headerlink" title="对开发人员极体贴的内置功能"></a>对开发人员极体贴的内置功能</h3><ul>
 <li><strong>内置心跳检测</strong></li>
 <li><strong>内置心跳发送</strong></li>
@@ -113,38 +116,46 @@
 <li><strong>各项消息统计等功能，全部一键内置搞定，省却各种烦恼</strong></li>
 </ul>
 <h2 id="各种传送门"><a href="#各种传送门" class="headerlink" title="各种传送门"></a><strong>各种传送门</strong></h2><ul>
-<li><a href="http://t-io.org/webim/" target="_blank" rel="noopener">t-io + layim + vue + ivivew + webpack + google-protobuf开发的web im</a></li>
-<li><a href="http://t-io.org?t_io_v=34344545676" target="_blank" rel="noopener">官 网</a></li>
-<li><a href="https://git.oschina.net/tywo45/t-io" target="_blank" rel="noopener">代码托管平台码云</a></li>
-<li><a href="https://www.oschina.net/p/t-io" target="_blank" rel="noopener">开源中国收录t-tio地址</a></li>
-<li><p><a href="https://my.oschina.net/talenttan/blog?catalog=5625247" target="_blank" rel="noopener">talent-tan写的t-io系列文档</a></p>
+<li><p><a href="http://t-io.org/webim/">t-io + layim + vue + ivivew + webpack + google-protobuf开发的web im</a></p>
+</li>
+<li><p><a href="http://t-io.org/?t_io_v=34344545676">官 网</a></p>
+</li>
+<li><p><a href="https://git.oschina.net/tywo45/t-io">代码托管平台码云</a></p>
+</li>
+<li><p><a href="https://www.oschina.net/p/t-io">开源中国收录t-tio地址</a></p>
+</li>
+<li><p><a href="https://my.oschina.net/talenttan/blog?catalog=5625247">talent-tan写的t-io系列文档</a></p>
 <ul>
-<li><a href="https://my.oschina.net/talenttan/blog/884806" target="_blank" rel="noopener">aio系列文档（1）—-t-io的hello world</a></li>
-<li><a href="https://my.oschina.net/talenttan/blog/889887" target="_blank" rel="noopener">aio系列文档（2）—-图解bytebuffer</a></li>
-<li><a href="https://my.oschina.net/talenttan/blog/885477" target="_blank" rel="noopener">aio系列文档（3）—-protobuf入门与使用</a></li>
-<li><a href="https://my.oschina.net/talenttan/blog/884466" target="_blank" rel="noopener">aio系列文档（4）—-t-io源代码阅读小记</a>（具体内容<a href="http://www.jianshu.com/u/be7966e52d09" target="_blank" rel="noopener">millions_chan</a>所写）</li>
+<li><a href="https://my.oschina.net/talenttan/blog/884806">aio系列文档（1）—-t-io的hello world</a></li>
+<li><a href="https://my.oschina.net/talenttan/blog/889887">aio系列文档（2）—-图解bytebuffer</a></li>
+<li><a href="https://my.oschina.net/talenttan/blog/885477">aio系列文档（3）—-protobuf入门与使用</a></li>
+<li><a href="https://my.oschina.net/talenttan/blog/884466">aio系列文档（4）—-t-io源代码阅读小记</a>（具体内容<a href="http://www.jianshu.com/u/be7966e52d09">millions_chan</a>所写）</li>
 </ul>
 </li>
-<li><p><a href="https://my.oschina.net/u/2461727/blog" target="_blank" rel="noopener">卡尔码农写的t-io系列文档</a></p>
+<li><p><a href="https://my.oschina.net/u/2461727/blog">卡尔码农写的t-io系列文档</a></p>
 <ul>
-<li><a href="https://my.oschina.net/u/2461727/blog/897548" target="_blank" rel="noopener">t-io 入门篇（三）即时消息发送demo学习</a></li>
-<li><a href="https://my.oschina.net/u/2461727/blog/894533" target="_blank" rel="noopener">t-io入门篇（二）</a></li>
-<li><a href="https://my.oschina.net/u/2461727/blog/893899" target="_blank" rel="noopener">t-io学习入门篇（一）</a></li>
+<li><a href="https://my.oschina.net/u/2461727/blog/897548">t-io 入门篇（三）即时消息发送demo学习</a></li>
+<li><a href="https://my.oschina.net/u/2461727/blog/894533">t-io入门篇（二）</a></li>
+<li><a href="https://my.oschina.net/u/2461727/blog/893899">t-io学习入门篇（一）</a></li>
 </ul>
 </li>
-<li>其它小伙伴写的零碎文章和作品<ul>
-<li><a href="https://my.oschina.net/u/1168934/blog/864239" target="_blank" rel="noopener">给jfinal写的t-io插件</a>—-小徐同学花10分钟完成的作品</li>
-<li><a href="https://my.oschina.net/longtutengfei/blog/892053" target="_blank" rel="noopener">用t-io实现的简单rpc</a>—-仅作思路参考，部分实现待完善</li>
-<li><a href="https://git.oschina.net/kobe577590/im" target="_blank" rel="noopener">jfinal + t-io完成的im项目</a>—-作者天蓬小猪正在完善</li>
+<li><p>其它小伙伴写的零碎文章和作品</p>
+<ul>
+<li><a href="https://my.oschina.net/u/1168934/blog/864239">给jfinal写的t-io插件</a>—-小徐同学花10分钟完成的作品</li>
+<li><a href="https://my.oschina.net/longtutengfei/blog/892053">用t-io实现的简单rpc</a>—-仅作思路参考，部分实现待完善</li>
+<li><a href="https://git.oschina.net/kobe577590/im">jfinal + t-io完成的im项目</a>—-作者天蓬小猪正在完善</li>
 </ul>
 </li>
-<li><a href="http://t-io.org/apidocs/org/tio/core/Aio.html?t_io_v=34344545676" target="_blank" rel="noopener">API</a>(只需要看<a href="http://t-io.org/apidocs/org/tio/core/Aio.html?t_io_v=34344545676" target="_blank" rel="noopener">Aio.java</a>)</li>
-<li><a href="https://my.oschina.net/talenttan/blog/863545" target="_blank" rel="noopener">资料及问题汇总</a></li>
+<li><p><a href="http://t-io.org/apidocs/org/tio/core/Aio.html?t_io_v=34344545676">API</a>(只需要看<a href="http://t-io.org/apidocs/org/tio/core/Aio.html?t_io_v=34344545676">Aio.java</a>)</p>
+</li>
+<li><p><a href="https://my.oschina.net/talenttan/blog/863545">资料及问题汇总</a></p>
+</li>
 </ul>
 <h3 id="了解代码目录结构"><a href="#了解代码目录结构" class="headerlink" title="了解代码目录结构"></a>了解代码目录结构</h3><p>所有工程都是maven工程，后续目录有可能稍有变动，不定期更新</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line">├─bin----------------脚本目录（方便快速操作）</span><br><span class="line">│      clean.bat----------------清空所有工程的target目录</span><br><span class="line">│      clean.sh</span><br><span class="line">│      deploy.bat----------------作者用来发布到maven中心仓库的脚本，放出来主要是供大家参考</span><br><span class="line">│      deploy.sh</span><br><span class="line">│      dist-examples.bat----------------把所有的例子打包到dist目录，方便用户直接执行</span><br><span class="line">│      dist-examples.sh</span><br><span class="line">│      install.bat----------------安装工程到本地仓库</span><br><span class="line">│      install.sh</span><br><span class="line">|      start-http-server.bat----------------启动tio-httpserver</span><br><span class="line">│      start-helloworld-client.bat----------------启动helloworld的客户端</span><br><span class="line">│      start-helloworld-client.sh</span><br><span class="line">│      start-helloworld-server.bat----------------启动helloworld的服务端</span><br><span class="line">│      start-helloworld-server.sh</span><br><span class="line">│      start-im-client.bat----------------启动im的客户端</span><br><span class="line">│      start-im-client.sh</span><br><span class="line">│      start-im-server.bat----------------启动im的服务端</span><br><span class="line">│      start-im-server.sh</span><br><span class="line">│      start-showcase-client.bat----------------启动showcase的客户端</span><br><span class="line">│      start-showcase-client.sh</span><br><span class="line">│      start-showcase-server.bat----------------启动showcase的服务端</span><br><span class="line">│      start-showcase-server.sh</span><br><span class="line">├─docs</span><br><span class="line">│  │  </span><br><span class="line">│  ├─blog----------------本人博客草稿（大部分博客是在线编辑，所以此处就没有了）</span><br><span class="line">│  │      </span><br><span class="line">│  ├─performance----------------一些性能测试截图（随着版本的增多，有些截图已经过时，但仍保留）</span><br><span class="line">│  │</span><br><span class="line">│  ├─release----------------新版本发布时的log</span><br><span class="line">│  </span><br><span class="line">├─dist----------------成品</span><br><span class="line">│  └─examples----------------用t-io写的例子成品</span><br><span class="line">│      ├─helloworld</span><br><span class="line">│      │  ├─client----------------helloworld的客户端</span><br><span class="line">│      │  └─server----------------helloworld的服务端</span><br><span class="line">│      ├─im</span><br><span class="line">│      │  ├─client----------------im的客户端</span><br><span class="line">│      │  └─server----------------im的服务端</span><br><span class="line">│      └─showcase</span><br><span class="line">│          ├─client----------------showcase的客户端</span><br><span class="line">│          └─server----------------showcase的服务端</span><br><span class="line">└─src</span><br><span class="line">    ├─core----------------t-io的核心代码</span><br><span class="line">    ├─zoo----------------t-io的生态圈</span><br><span class="line">    │  ├─http----------------用t-io实现的http服务器</span><br><span class="line">    │  ├─websocket----------------用t-io实现的websocket服务器</span><br><span class="line">    ├─example----------------用t-io写的例子的源代码</span><br><span class="line">    │  ├─parent----------------例子的maven parent</span><br><span class="line">    │  ├─helloworld----------------helloworld的源代码</span><br><span class="line">    │  │  ├─client</span><br><span class="line">    │  │  ├─common</span><br><span class="line">    │  │  └─server</span><br><span class="line">    │  ├─im----------------im的源代码</span><br><span class="line">    │  │  ├─client</span><br><span class="line">    │  │  ├─common</span><br><span class="line">    │  │  └─server</span><br><span class="line">    │  └─showcase----------------showcase的源代码，这个例子是为了帮助用户学习t-io专门写的</span><br><span class="line">    │      ├─client</span><br><span class="line">    │      ├─common</span><br><span class="line">    │      └─server</span><br><span class="line">    └─parent----------------maven工程的parent</span><br></pre></td></tr></table></figure>
-<h3 id="学习万能的helloworld例子"><a href="#学习万能的helloworld例子" class="headerlink" title="学习万能的helloworld例子"></a>学习万能的helloworld例子</h3><p>花30分钟看一下t-io官方提供的helloworld，了解一下TCP编程的大概流程，文档传送门: <a href="https://my.oschina.net/talenttan/blog/884806" target="_blank" rel="noopener">t-io的hello world</a></p>
-<h3 id="学习用于进阶的showcase例子"><a href="#学习用于进阶的showcase例子" class="headerlink" title="学习用于进阶的showcase例子"></a>学习用于进阶的showcase例子</h3><p>showcase一词是从springside借来的，放这很应景，<a href="https://git.oschina.net/kobe577590/im" target="_blank" rel="noopener">天蓬元帅</a>就是这样学习的，可以和他交流，他后面会出详细的教程。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line">├─bin----------------脚本目录（方便快速操作）</span><br><span class="line">│      clean.bat----------------清空所有工程的target目录</span><br><span class="line">│      clean.sh</span><br><span class="line">│      deploy.bat----------------作者用来发布到maven中心仓库的脚本，放出来主要是供大家参考</span><br><span class="line">│      deploy.sh</span><br><span class="line">│      dist-examples.bat----------------把所有的例子打包到dist目录，方便用户直接执行</span><br><span class="line">│      dist-examples.sh</span><br><span class="line">│      install.bat----------------安装工程到本地仓库</span><br><span class="line">│      install.sh</span><br><span class="line">|      start-http-server.bat----------------启动tio-httpserver</span><br><span class="line">│      start-helloworld-client.bat----------------启动helloworld的客户端</span><br><span class="line">│      start-helloworld-client.sh</span><br><span class="line">│      start-helloworld-server.bat----------------启动helloworld的服务端</span><br><span class="line">│      start-helloworld-server.sh</span><br><span class="line">│      start-im-client.bat----------------启动im的客户端</span><br><span class="line">│      start-im-client.sh</span><br><span class="line">│      start-im-server.bat----------------启动im的服务端</span><br><span class="line">│      start-im-server.sh</span><br><span class="line">│      start-showcase-client.bat----------------启动showcase的客户端</span><br><span class="line">│      start-showcase-client.sh</span><br><span class="line">│      start-showcase-server.bat----------------启动showcase的服务端</span><br><span class="line">│      start-showcase-server.sh</span><br><span class="line">├─docs</span><br><span class="line">│  │  </span><br><span class="line">│  ├─blog----------------本人博客草稿（大部分博客是在线编辑，所以此处就没有了）</span><br><span class="line">│  │      </span><br><span class="line">│  ├─performance----------------一些性能测试截图（随着版本的增多，有些截图已经过时，但仍保留）</span><br><span class="line">│  │</span><br><span class="line">│  ├─release----------------新版本发布时的log</span><br><span class="line">│  </span><br><span class="line">├─dist----------------成品</span><br><span class="line">│  └─examples----------------用t-io写的例子成品</span><br><span class="line">│      ├─helloworld</span><br><span class="line">│      │  ├─client----------------helloworld的客户端</span><br><span class="line">│      │  └─server----------------helloworld的服务端</span><br><span class="line">│      ├─im</span><br><span class="line">│      │  ├─client----------------im的客户端</span><br><span class="line">│      │  └─server----------------im的服务端</span><br><span class="line">│      └─showcase</span><br><span class="line">│          ├─client----------------showcase的客户端</span><br><span class="line">│          └─server----------------showcase的服务端</span><br><span class="line">└─src</span><br><span class="line">    ├─core----------------t-io的核心代码</span><br><span class="line">    ├─zoo----------------t-io的生态圈</span><br><span class="line">    │  ├─http----------------用t-io实现的http服务器</span><br><span class="line">    │  ├─websocket----------------用t-io实现的websocket服务器</span><br><span class="line">    ├─example----------------用t-io写的例子的源代码</span><br><span class="line">    │  ├─parent----------------例子的maven parent</span><br><span class="line">    │  ├─helloworld----------------helloworld的源代码</span><br><span class="line">    │  │  ├─client</span><br><span class="line">    │  │  ├─common</span><br><span class="line">    │  │  └─server</span><br><span class="line">    │  ├─im----------------im的源代码</span><br><span class="line">    │  │  ├─client</span><br><span class="line">    │  │  ├─common</span><br><span class="line">    │  │  └─server</span><br><span class="line">    │  └─showcase----------------showcase的源代码，这个例子是为了帮助用户学习t-io专门写的</span><br><span class="line">    │      ├─client</span><br><span class="line">    │      ├─common</span><br><span class="line">    │      └─server</span><br><span class="line">    └─parent----------------maven工程的parent</span><br></pre></td></tr></table></figure>
+
+<h3 id="学习万能的helloworld例子"><a href="#学习万能的helloworld例子" class="headerlink" title="学习万能的helloworld例子"></a>学习万能的helloworld例子</h3><p>花30分钟看一下t-io官方提供的helloworld，了解一下TCP编程的大概流程，文档传送门: <a href="https://my.oschina.net/talenttan/blog/884806">t-io的hello world</a></p>
+<h3 id="学习用于进阶的showcase例子"><a href="#学习用于进阶的showcase例子" class="headerlink" title="学习用于进阶的showcase例子"></a>学习用于进阶的showcase例子</h3><p>showcase一词是从springside借来的，放这很应景，<a href="https://git.oschina.net/kobe577590/im">天蓬元帅</a>就是这样学习的，可以和他交流，他后面会出详细的教程。</p>
 <h3 id="InAction"><a href="#InAction" class="headerlink" title="InAction"></a>InAction</h3><ul>
 <li>执行测试用例失败： <code>mvn -Dmaven.test.skip=false -Dtest=DemoTest -DfailIfNoTests=false  test</code></li>
 </ul>
@@ -160,26 +171,26 @@
 <li>配置文件加载工具：ClassPathResource</li>
 </ul>
 <h2 id="列一下推荐的国产开源软件"><a href="#列一下推荐的国产开源软件" class="headerlink" title="列一下推荐的国产开源软件"></a>列一下推荐的国产开源软件</h2><ol>
-<li><a href="https://www.oschina.net/p/weixin-java-tools-new" target="_blank" rel="noopener">https://www.oschina.net/p/weixin-java-tools-new</a> （使用一年）</li>
-<li><a href="http://layim.layui.com" target="_blank" rel="noopener">http://layim.layui.com</a>（2017年5月11号开始使用）</li>
-<li><a href="https://www.oschina.net/p/ztree" target="_blank" rel="noopener">https://www.oschina.net/p/ztree</a> （使用五年以上吧）</li>
-<li><a href="https://www.oschina.net/p/echarts" target="_blank" rel="noopener">https://www.oschina.net/p/echarts</a> （使用两年以上吧）</li>
-<li><a href="http://git.oschina.net/tywo45/talent-validate" target="_blank" rel="noopener">http://git.oschina.net/tywo45/talent-validate</a> （使用十年了，开源出来有五年以上吧，原来是博客开源，现在移到开源中国了）</li>
-<li><a href="https://www.oschina.net/p/hutool" target="_blank" rel="noopener">https://www.oschina.net/p/hutool</a>（懒 人必备，强烈推荐，使用两个月）</li>
-<li><a href="https://www.oschina.net/p/t-io" target="_blank" rel="noopener">https://www.oschina.net/p/t-io</a>（使用五年了，开源出来半年）</li>
-<li><a href="https://www.oschina.net/p/druid" target="_blank" rel="noopener">https://www.oschina.net/p/druid</a>（使用三年以上吧）</li>
-<li><a href="https://www.oschina.net/p/dubbo" target="_blank" rel="noopener">https://www.oschina.net/p/dubbo</a>（使用两年）</li>
-<li><a href="https://git.oschina.net/jfinal/jfinal-weixin/" target="_blank" rel="noopener">https://git.oschina.net/jfinal/jfinal-weixin</a>（使用一年左右）</li>
-<li><a href="https://www.oschina.net/p/fastjson" target="_blank" rel="noopener">https://www.oschina.net/p/fastjson</a>（使用三年以上）</li>
+<li><a href="https://www.oschina.net/p/weixin-java-tools-new">https://www.oschina.net/p/weixin-java-tools-new</a> （使用一年）</li>
+<li><a href="http://layim.layui.com/">http://layim.layui.com</a>（2017年5月11号开始使用）</li>
+<li><a href="https://www.oschina.net/p/ztree">https://www.oschina.net/p/ztree</a> （使用五年以上吧）</li>
+<li><a href="https://www.oschina.net/p/echarts">https://www.oschina.net/p/echarts</a> （使用两年以上吧）</li>
+<li><a href="http://git.oschina.net/tywo45/talent-validate">http://git.oschina.net/tywo45/talent-validate</a> （使用十年了，开源出来有五年以上吧，原来是博客开源，现在移到开源中国了）</li>
+<li><a href="https://www.oschina.net/p/hutool">https://www.oschina.net/p/hutool</a>（懒 人必备，强烈推荐，使用两个月）</li>
+<li><a href="https://www.oschina.net/p/t-io">https://www.oschina.net/p/t-io</a>（使用五年了，开源出来半年）</li>
+<li><a href="https://www.oschina.net/p/druid">https://www.oschina.net/p/druid</a>（使用三年以上吧）</li>
+<li><a href="https://www.oschina.net/p/dubbo">https://www.oschina.net/p/dubbo</a>（使用两年）</li>
+<li><a href="https://git.oschina.net/jfinal/jfinal-weixin/">https://git.oschina.net/jfinal/jfinal-weixin</a>（使用一年左右）</li>
+<li><a href="https://www.oschina.net/p/fastjson">https://www.oschina.net/p/fastjson</a>（使用三年以上）</li>
 </ol>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/06/t-io-start/" data-id="ckdg33rw5000ca27a8yw1fhle" class="article-share-link">Share</a>
+      <a data-url="https://ruiqiliu.github.io/2018/05/06/t-io-start/" data-id="cuidHSrWS9yLcQdGrGJ20lBGz" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/NIO/">NIO</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li></ul>
 
     </footer>
   </div>
@@ -187,11 +198,11 @@
     
 <nav id="article-nav">
   
-    <a href="/2018/05/13/Java-简史/" id="article-nav-newer" class="article-nav-link-wrap">
+    <a href="/2018/05/13/hello-world/" id="article-nav-newer" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Newer</strong>
       <div class="article-nav-title">
         
-          Java 简史
+          Hexo Tutorial
         
       </div>
     </a>
@@ -213,7 +224,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/" rel="tag">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/" rel="tag">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/" rel="tag">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/" rel="tag">spring</a></li></ul>
     </div>
   </div>
 
@@ -276,7 +287,7 @@
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2020 Ritchie<br>
+      &copy; 2026 Ritchie<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -287,8 +298,8 @@
     <a href="/" class="mobile-nav-link">Home</a>
   
     <a href="/archives" class="mobile-nav-link">Archives</a>
-    <a class="mobile-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="mobile">Reagan&#39;s games</a>
-
+  
+    <a href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" class="mobile-nav-link">Reagan&#39;s games</a>
   
 </nav>
     
@@ -296,11 +307,24 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
 
-  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
 
 
 <script src="/js/script.js"></script>
+
+
+
+
+
+
+<!-- 51LA Analytics -->
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
 
 
 

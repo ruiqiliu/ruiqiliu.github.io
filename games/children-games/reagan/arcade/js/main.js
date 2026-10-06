@@ -13,7 +13,7 @@ import { createHomeView } from './ui/home.js';
 import { createPlayView } from './ui/play.js';
 import { createShell } from './shell.js';
 
-const HOME_TITLE = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 小鸟飞飞 / 迷宫探险 / 头像拼图 / 1024 / 2和3';
+const HOME_TITLE = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 小鸟飞飞 / 迷宫探险 / 头像拼图 / 1024 / 2和3 / 车库大师';
 
 /* ---------------- 画布 ---------------- */
 const canvas = document.getElementById('cv');

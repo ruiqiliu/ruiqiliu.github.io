@@ -173,6 +173,22 @@ const SCRIPTS = {
     }
   },
 
+  garage: {
+    logic: 40000,    // 纯逻辑快进：长距离驾驶，覆盖捡星星与里程碑
+    frames: 6000,
+    press: function (i, g) {
+      const p = i >= 100000 ? i - 100000 : i;   // 第二段帧号偏移 100000，先归零
+      if (p % 90 === 0) g.cycle(Math.floor(p / 90) % 4, 1);
+      if (p === 500) g.action('start', true);        // 出发
+      if (p === 700) g.action('gas', true);          // 油门按住
+      if (p % 400 === 350) g.action('brake', true);  // 偶尔刹车
+      if (p % 400 === 380) g.action('brake', false);
+      if (p === 30000) g.action('garage', true);     // 回车库再造
+      if (p === 30200) g.action('start', true);      // 再出发
+      if (p === 30400) g.action('gas', true);
+    }
+  },
+
   '23': {
     logic: 200000,   // 纯逻辑快进：随机方向狂滑，覆盖合并 / 救援 / 结束
     frames: 3000,

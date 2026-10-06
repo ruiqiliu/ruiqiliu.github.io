@@ -7,18 +7,18 @@
   
   <title>HTTP 学习笔记 | Ruiqi Liu&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="HTTP 协议、安全、应用HTTP协议，即Hypertext transfer protocol，是 World Wide Web Consortium和Internet Engineering Task Force合作的结果， 是一种WWW服务器之间通信的数据传输协议， 由请求和相应组成，应用于网页等Web应用。HTTP默认的端口号为80，HTTPS的端口号为443 主要特点 支持B/S模式：支">
-<meta name="keywords" content="Web">
+  <meta name="description" content="HTTP 协议、安全、应用HTTP协议，即Hypertext transfer protocol，是 World Wide Web Consortium和Internet Engineering Task Force合作的结果， 是一种WWW服务器之间通信的数据传输协议， 由请求和相应组成，应用于网页等Web应用。HTTP默认的端口号为80，HTTPS的端口号为443 主要特点 支持B&#x2F;">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HTTP 学习笔记">
-<meta property="og:url" content="http://yoursite.com/2018/05/17/http/index.html">
+<meta property="og:url" content="https://ruiqiliu.github.io/2018/05/17/http/index.html">
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
-<meta property="og:description" content="HTTP 协议、安全、应用HTTP协议，即Hypertext transfer protocol，是 World Wide Web Consortium和Internet Engineering Task Force合作的结果， 是一种WWW服务器之间通信的数据传输协议， 由请求和相应组成，应用于网页等Web应用。HTTP默认的端口号为80，HTTPS的端口号为443 主要特点 支持B/S模式：支">
-<meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-06-12T16:10:37.753Z">
+<meta property="og:description" content="HTTP 协议、安全、应用HTTP协议，即Hypertext transfer protocol，是 World Wide Web Consortium和Internet Engineering Task Force合作的结果， 是一种WWW服务器之间通信的数据传输协议， 由请求和相应组成，应用于网页等Web应用。HTTP默认的端口号为80，HTTPS的端口号为443 主要特点 支持B&#x2F;">
+<meta property="og:locale">
+<meta property="article:published_time" content="2018-05-16T16:24:07.000Z">
+<meta property="article:modified_time" content="2026-10-06T10:38:11.423Z">
+<meta property="article:author" content="Ritchie">
+<meta property="article:tag" content="Web">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="HTTP 学习笔记">
-<meta name="twitter:description" content="HTTP 协议、安全、应用HTTP协议，即Hypertext transfer protocol，是 World Wide Web Consortium和Internet Engineering Task Force合作的结果， 是一种WWW服务器之间通信的数据传输协议， 由请求和相应组成，应用于网页等Web应用。HTTP默认的端口号为80，HTTPS的端口号为443 主要特点 支持B/S模式：支">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -28,9 +28,10 @@
   
     <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
   
-  <link rel="stylesheet" href="/css/style.css">
-<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
-</head>
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 8.1.2"></head>
 
 <body>
   <div id="container">
@@ -55,8 +56,8 @@
           <a class="main-nav-link" href="/">Home</a>
         
           <a class="main-nav-link" href="/archives">Archives</a>
-          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="main">Reagan&#39;s games</a>
-
+        
+          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/">Reagan&#39;s games</a>
         
       </nav>
       <nav id="sub-nav">
@@ -66,7 +67,7 @@
         <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://ruiqiliu.github.io"></form>
       </div>
     </div>
   </div>
@@ -96,7 +97,7 @@
       
         <h1 id="HTTP-协议、安全、应用"><a href="#HTTP-协议、安全、应用" class="headerlink" title="HTTP 协议、安全、应用"></a>HTTP 协议、安全、应用</h1><p>HTTP协议，即Hypertext transfer protocol，是 World Wide Web Consortium和Internet Engineering Task Force合作的结果， 是一种WWW服务器之间通信的数据传输协议， 由请求和相应组成，应用于网页等Web应用。<br>HTTP默认的端口号为80，HTTPS的端口号为443</p>
 <h2 id="主要特点"><a href="#主要特点" class="headerlink" title="主要特点"></a>主要特点</h2><ul>
-<li>支持B/S模式：支持不同的认证方式</li>
+<li>支持B&#x2F;S模式：支持不同的认证方式</li>
 <li>支持不同的消息类型： Content-Type可以指定</li>
 <li>HTTP v0.9和v1.0使用非连续连接：限制每次链接只处理一个请求； v1.1使用连续连接：一个连接可以传送多个对象</li>
 <li>无状态：协议对于事务没有记忆能力</li>
@@ -105,7 +106,8 @@
 <h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><ul>
 <li>请求头域与响应头域</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">GET /img/ridox.jpg HTTP/1.1\r\n</span><br><span class="line">HOST: img0.promise.com\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">\r\n</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span> 响应</span><br><span class="line">HTTP/1.1 200 ok\r\n</span><br><span class="line">Server: JSPO2/1.0.27\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Content-Type：image/gif\r\n</span><br><span class="line">Content-Length: 228\r\n</span><br><span class="line">ETag: "1693457"\r\n</span><br><span class="line">Expires: Fri,18 Jul 2014 05:44:45\r\n</span><br><span class="line">Cache-Control: max-age=604800\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">GET /img/ridox.jpg HTTP/1.1\r\n</span><br><span class="line">HOST: img0.promise.com\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">\r\n</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">响应</span></span><br><span class="line">HTTP/1.1 200 ok\r\n</span><br><span class="line">Server: JSPO2/1.0.27\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Content-Type：image/gif\r\n</span><br><span class="line">Content-Length: 228\r\n</span><br><span class="line">ETag: &quot;1693457&quot;\r\n</span><br><span class="line">Expires: Fri,18 Jul 2014 05:44:45\r\n</span><br><span class="line">Cache-Control: max-age=604800\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
+
 <h2 id="请求动作"><a href="#请求动作" class="headerlink" title="请求动作"></a>请求动作</h2><p>方法区分大小写，Request Line中是全大写</p>
 <ul>
 <li>options：服务器返回针对特定资源支持的方法，测试服务请的功能</li>
@@ -132,14 +134,13 @@
 <li><code>If-Modified-Since</code>: 请求头，服务器把该时间与文件最后修改时间对比，一致，则返回<code>304</code>, 否则返回200和新的文件内容</li>
 <li><code>If-None-Match</code>：请求头，取值为Etag，服务器验证对应的Etag值是否一致，一致，则返回304，否则返回200和新的文件内容</li>
 <li><code>Pragma</code>:请求头，取值<code>no-cache</code>，表示服务器必须返回刷新后的文档，即使（代理）服务器已经有了本地拷贝</li>
-<li><code>Cache-Control</code>: 取值包括public、private、no-cache、no-store、no-transform、must-revalidate、proxy-revalidate、max-age、s-maxage<br><em><code>Authorization</code>：授权信息
-</em><code>Range</code>:请求实体的一个或者多个子范围，但是服务器可以忽略此请求头，如果无条件GET包含Range请求头，响应会以状态码206（PartialContent）返回而不是以200（OK）<ul>
-<li>表示头500个字节：bytes=0-499</li>
-<li>表示第二个500字节：bytes=500-999</li>
-<li>表示最后500个字节：bytes=-500</li>
-<li>表示500字节以后的范围：bytes=500-</li>
-<li>第一个和最后一个字节：bytes=0-0,-1</li>
-<li>同时指定几个范围：bytes=500-600,601-999</li>
+<li><code>Cache-Control</code>: 取值包括public、private、no-cache、no-store、no-transform、must-revalidate、proxy-revalidate、max-age、s-maxage<br>*<code>Authorization</code>：授权信息<br>*<code>Range</code>:请求实体的一个或者多个子范围，但是服务器可以忽略此请求头，如果无条件GET包含Range请求头，响应会以状态码206（PartialContent）返回而不是以200（OK）<ul>
+<li>表示头500个字节：bytes&#x3D;0-499</li>
+<li>表示第二个500字节：bytes&#x3D;500-999</li>
+<li>表示最后500个字节：bytes&#x3D;-500</li>
+<li>表示500字节以后的范围：bytes&#x3D;500-</li>
+<li>第一个和最后一个字节：bytes&#x3D;0-0,-1</li>
+<li>同时指定几个范围：bytes&#x3D;500-600,601-999</li>
 </ul>
 </li>
 <li><code>Allow</code>: 服务器支持的请求方法（如Get）</li>
@@ -264,15 +265,15 @@
 <li>Content-Range 响应的资源范围</li>
 <li>在连接断开重连时，客户端只请求该资源未下载的部分，而不是重新请求整个资源，来实现断点续传</li>
 <li>分块请求资源实例</li>
-<li>Eg1：Range: bytes=306302- ：请求这个资源从306302个字节到末尾的部分</li>
-<li>Eg2：Content-Range: bytes 306302-604047/604048：响应中指示携带的是该资源的第306302-604047的字节，该资源共604048个字节</li>
+<li>Eg1：Range: bytes&#x3D;306302- ：请求这个资源从306302个字节到末尾的部分</li>
+<li>Eg2：Content-Range: bytes 306302-604047&#x2F;604048：响应中指示携带的是该资源的第306302-604047的字节，该资源共604048个字节</li>
 <li>客户端通过并发的请求相同资源的不同片段，来实现对某个资源的并发分块下载。从而达到快速下载的目的</li>
 <li>目前流行的FlashGet和迅雷基本都是这个原理</li>
 </ul>
 </li>
 <li>多线程下载<ul>
 <li>下载工具开启多个发出HTTP请求的线程</li>
-<li>每个http请求只请求资源文件的一部分：Content-Range: bytes 20000-40000/47000</li>
+<li>每个http请求只请求资源文件的一部分：Content-Range: bytes 20000-40000&#x2F;47000</li>
 <li>合并每个线程下载的文件</li>
 </ul>
 </li>
@@ -296,44 +297,46 @@
 <li>HTTP请求报头： Authorization</li>
 <li>HTTP响应报头： 认证失败-》WWW-Authenticate；认证成功返回指定内容</li>
 <li>Oauth认证：增强版，放在Authorization中的token使用了更强的加密算法</li>
-<li><a href="http://www.ruanyifeng.com/blog/2014/05/oauth_2_0.html" target="_blank" rel="noopener">阮一峰讲 Oauth</a></li>
+<li><a href="http://www.ruanyifeng.com/blog/2014/05/oauth_2_0.html">阮一峰讲 Oauth</a></li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> 请求服务器使用基本认证保护资源</span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span> 应答</span><br><span class="line">HTTP/1.0 401 Authorization Required</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:18:15 GMT</span><br><span class="line">WWW-Authenticate: Basic realm="Secure Area"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span> 客户端加上用户名密码后重新请求，浏览器使用BASE64Encode(UserName:PassWork)生成token</span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</span><br><span class="line"><span class="meta">#</span> 服务器认证通过，返回请求内容</span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:19:07 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 10476</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">请求服务器使用基本认证保护资源</span></span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">应答</span></span><br><span class="line">HTTP/1.0 401 Authorization Required</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:18:15 GMT</span><br><span class="line">WWW-Authenticate: Basic realm=&quot;Secure Area&quot;</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">客户端加上用户名密码后重新请求，浏览器使用BASE64Encode(UserName:PassWork)生成token</span></span><br><span class="line">GET /private/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">服务器认证通过，返回请求内容</span></span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/1.0</span><br><span class="line">Date: Sat, 27 Nov 2004 10:19:07 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 10476</span><br></pre></td></tr></table></figure>
+
 <h3 id="摘要认证"><a href="#摘要认证" class="headerlink" title="摘要认证"></a>摘要认证</h3><ul>
 <li>Http1.1开始提供</li>
 <li>引入安全增强选项:qop</li>
-<li>HA1 = MD5(A1) = MD5(username:realm:password)</li>
-<li><code>qop = auth or undefined</code>: HA2 = MD5(A2) = MD5(method:digestURI)</li>
-<li><code>qop = auth-int</code> : HA2 = MD5(A2) = MD5(method:digetURI:MD5(entityBody))</li>
-<li><code>qop = auth or auth-int</code>: response = MD5(HA1:nonce:nonceCount:clientNone:qop:HA2)</li>
-<li><code>qop = undefined</code>: reponse = MD5(HA1:nonce:HA2)</li>
+<li>HA1 &#x3D; MD5(A1) &#x3D; MD5(username:realm:password)</li>
+<li><code>qop = auth or undefined</code>: HA2 &#x3D; MD5(A2) &#x3D; MD5(method:digestURI)</li>
+<li><code>qop = auth-int</code> : HA2 &#x3D; MD5(A2) &#x3D; MD5(method:digetURI:MD5(entityBody))</li>
+<li><code>qop = auth or auth-int</code>: response &#x3D; MD5(HA1:nonce:nonceCount:clientNone:qop:HA2)</li>
+<li><code>qop = undefined</code>: reponse &#x3D; MD5(HA1:nonce:HA2)</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>客户端请求 (无认证)：</span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta">#</span>服务端返回401</span><br><span class="line">HTTP/1.0 401 Unauthorized</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:26:47 GMT</span><br><span class="line">WWW-Authenticate: Digest realm="testrealm@host.com",//认证域</span><br><span class="line">                        qop="auth,auth-int",   //保护质量</span><br><span class="line">                        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",  //服务器密码随机数</span><br><span class="line">                        opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta">#</span>客户端重新发出请求 (用户名 "Mufasa", 密码 "Circle Of Life")：</span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Digest username="Mufasa",</span><br><span class="line">                     realm="testrealm@host.com",</span><br><span class="line">                     nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",</span><br><span class="line">                     uri="/dir/index.html",</span><br><span class="line">                     qop=auth,</span><br><span class="line">                     nc=00000001,    //请求计数</span><br><span class="line">                     cnonce="0a4f113b",   //客户端密码随机数</span><br><span class="line">                     response="6629fae49393a05397450978507c4ef1",</span><br><span class="line">                     opaque="5ccc069c403ebaf9f0171e9517f40e41"</span><br><span class="line"><span class="meta">#</span>服务器响应：</span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:27:03 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 7984</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">客户端请求 (无认证)：</span></span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">服务端返回401</span></span><br><span class="line">HTTP/1.0 401 Unauthorized</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:26:47 GMT</span><br><span class="line">WWW-Authenticate: Digest realm=&quot;testrealm@host.com&quot;,//认证域</span><br><span class="line">                        qop=&quot;auth,auth-int&quot;,   //保护质量</span><br><span class="line">                        nonce=&quot;dcd98b7102dd2f0e8b11d0f600bfb0c093&quot;,  //服务器密码随机数</span><br><span class="line">                        opaque=&quot;5ccc069c403ebaf9f0171e9517f40e41&quot;</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 311</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">客户端重新发出请求 (用户名 <span class="string">&quot;Mufasa&quot;</span>, 密码 <span class="string">&quot;Circle Of Life&quot;</span>)：</span></span><br><span class="line">GET /dir/index.html HTTP/1.0</span><br><span class="line">Host: localhost</span><br><span class="line">Authorization: Digest username=&quot;Mufasa&quot;,</span><br><span class="line">                     realm=&quot;testrealm@host.com&quot;,</span><br><span class="line">                     nonce=&quot;dcd98b7102dd2f0e8b11d0f600bfb0c093&quot;,</span><br><span class="line">                     uri=&quot;/dir/index.html&quot;,</span><br><span class="line">                     qop=auth,</span><br><span class="line">                     nc=00000001,    //请求计数</span><br><span class="line">                     cnonce=&quot;0a4f113b&quot;,   //客户端密码随机数</span><br><span class="line">                     response=&quot;6629fae49393a05397450978507c4ef1&quot;,</span><br><span class="line">                     opaque=&quot;5ccc069c403ebaf9f0171e9517f40e41&quot;</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">服务器响应：</span></span><br><span class="line">HTTP/1.0 200 OK</span><br><span class="line">Server: HTTPd/0.9</span><br><span class="line">Date: Sun, 10 Apr 2005 20:27:03 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 7984</span><br></pre></td></tr></table></figure>
+
 <h2 id="HTTPS-原理"><a href="#HTTPS-原理" class="headerlink" title="HTTPS 原理"></a>HTTPS 原理</h2><ul>
 <li>Hypertext Transfer Protocol over Secure Socket Layer: HTTPS的基础上SSL</li>
 <li>两种基本加密类型：<ul>
 <li>对称加密：使用一个密钥，加解密速度快，例子：DES、AES</li>
-<li>非对称加密：密钥和公钥成对出现=》密钥加密，公钥解密；公钥加密，密钥解密</li>
+<li>非对称加密：密钥和公钥成对出现&#x3D;》密钥加密，公钥解密；公钥加密，密钥解密</li>
 </ul>
 </li>
 </ul>
-<h3 id="Https过程如下"><a href="#Https过程如下" class="headerlink" title="Https过程如下:"></a><a href="https://www.jianshu.com/p/1c2b4bbb4e50" target="_blank" rel="noopener">Https过程如下</a>:</h3><p>①客户端发起SSL通信，报文中包含客户端支持的SSL的指定版本，加密组件列表(加密算法及密码长度)</p>
+<h3 id="Https过程如下"><a href="#Https过程如下" class="headerlink" title="Https过程如下:"></a><a href="https://www.jianshu.com/p/1c2b4bbb4e50">Https过程如下</a>:</h3><p>①客户端发起SSL通信，报文中包含客户端支持的SSL的指定版本，加密组件列表(加密算法及密码长度)</p>
 <p>②服务端通过SSL通信，将SSL版本及加密算法版本中的一组发送至客户端.</p>
 <p>③服务端发送客户端Certificate报文，报文中包含公开密钥证书.</p>
 <p>④客户端验证证书的合法性(<code>颁发证书的机构是否合法，证书中包含的网站地址是否与正在访问的地址一致等</code>),如果证书受信任，则浏览器栏里面会显示一个小锁头，否则会给出证书不受信的提示;<br>如果证书受信任，或者用户接受了不受信的证书，客户端会生成一个Pre-master secret的随机密码串，并且通过接受到公钥加密.</p>
 <p>⑤服务端会通过私钥解密出Pre-master sercret随机密码串，通过Pre-master sercret解密密发来的握手信息，并验证Hash是否与浏览器发来的一致.之后通过密码加密一段握手信息，发给客户端.</p>
 <p>⑥客户端解密并计算握手信息的Hash,如果与Server发来的Hash一致，此时握手过程结束，<code>利用对称加密算法进行加密</code>.</p>
 <h2 id="参考地址"><a href="#参考地址" class="headerlink" title="参考地址"></a>参考地址</h2><ul>
-<li><a href="https://www.cnblogs.com/EricaMIN1987_IT/p/3837436.html" target="_blank" rel="noopener">博客 HTTP 详解 https://www.cnblogs.com/EricaMIN1987_IT/p/3837436.html</a></li>
+<li><a href="https://www.cnblogs.com/EricaMIN1987_IT/p/3837436.html">博客 HTTP 详解 https://www.cnblogs.com/EricaMIN1987_IT&#x2F;p&#x2F;3837436.html</a></li>
 </ul>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/05/17/http/" data-id="ckdg33rxa0017a27aom886pi2" class="article-share-link">Share</a>
+      <a data-url="https://ruiqiliu.github.io/2018/05/17/http/" data-id="cuidkoBIbcK8zduuODI1ZDZL7" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
 
     </footer>
   </div>
@@ -351,9 +354,9 @@
     </a>
   
   
-    <a href="/2018/05/13/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2018/05/13/Java-%E7%AE%80%E5%8F%B2/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">Hexo Tutorial</div>
+      <div class="article-nav-title">Java 简史</div>
     </a>
   
 </nav>
@@ -372,7 +375,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/" rel="tag">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/" rel="tag">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/" rel="tag">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/" rel="tag">spring</a></li></ul>
     </div>
   </div>
 
@@ -435,7 +438,7 @@
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2020 Ritchie<br>
+      &copy; 2026 Ritchie<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -446,8 +449,8 @@
     <a href="/" class="mobile-nav-link">Home</a>
   
     <a href="/archives" class="mobile-nav-link">Archives</a>
-    <a class="mobile-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="mobile">Reagan&#39;s games</a>
-
+  
+    <a href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" class="mobile-nav-link">Reagan&#39;s games</a>
   
 </nav>
     
@@ -455,11 +458,24 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
 
-  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
 
 
 <script src="/js/script.js"></script>
+
+
+
+
+
+
+<!-- 51LA Analytics -->
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
 
 
 

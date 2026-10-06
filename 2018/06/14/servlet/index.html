@@ -8,17 +8,18 @@
   <title>Java Web | Ruiqi Liu&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="description" content="Servlet简介Servlet是由Web服务器加载，独立于平台和协议的Java应用程序。JSP改变了Servlet提供HTTP服务时的编程方式。 Servlet的生命周期 加载和实例化 Servlet容器加载类 通过反射机制创建实例   初始化 调用Servlet的init方法 每个Servlet实例，只会调用一次init 参数为ServletConfig实例   执行 请求到来，容器针对该请求">
-<meta name="keywords" content="Java,Web">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Java Web">
-<meta property="og:url" content="http://yoursite.com/2018/06/14/servlet/index.html">
+<meta property="og:url" content="https://ruiqiliu.github.io/2018/06/14/servlet/index.html">
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
 <meta property="og:description" content="Servlet简介Servlet是由Web服务器加载，独立于平台和协议的Java应用程序。JSP改变了Servlet提供HTTP服务时的编程方式。 Servlet的生命周期 加载和实例化 Servlet容器加载类 通过反射机制创建实例   初始化 调用Servlet的init方法 每个Servlet实例，只会调用一次init 参数为ServletConfig实例   执行 请求到来，容器针对该请求">
-<meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-06-14T04:44:30.524Z">
+<meta property="og:locale">
+<meta property="article:published_time" content="2018-06-14T04:38:28.000Z">
+<meta property="article:modified_time" content="2026-10-06T10:38:11.423Z">
+<meta property="article:author" content="Ritchie">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="Web">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Java Web">
-<meta name="twitter:description" content="Servlet简介Servlet是由Web服务器加载，独立于平台和协议的Java应用程序。JSP改变了Servlet提供HTTP服务时的编程方式。 Servlet的生命周期 加载和实例化 Servlet容器加载类 通过反射机制创建实例   初始化 调用Servlet的init方法 每个Servlet实例，只会调用一次init 参数为ServletConfig实例   执行 请求到来，容器针对该请求">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -28,9 +29,10 @@
   
     <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
   
-  <link rel="stylesheet" href="/css/style.css">
-<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
-</head>
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 8.1.2"></head>
 
 <body>
   <div id="container">
@@ -55,8 +57,8 @@
           <a class="main-nav-link" href="/">Home</a>
         
           <a class="main-nav-link" href="/archives">Archives</a>
-          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="main">Reagan&#39;s games</a>
-
+        
+          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/">Reagan&#39;s games</a>
         
       </nav>
       <nav id="sub-nav">
@@ -66,7 +68,7 @@
         <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://ruiqiliu.github.io"></form>
       </div>
     </div>
   </div>
@@ -131,16 +133,17 @@
 <li>HttpSession： getId、invalidate（使当前会话失效）、setAttributes、getAttributeNames</li>
 </ol>
 <h3 id="web-xml配置"><a href="#web-xml配置" class="headerlink" title="web.xml配置"></a>web.xml配置</h3><ul>
-<li>webApp自定义web.xml路径：WEB-INF/web.xml</li>
+<li>webApp自定义web.xml路径：WEB-INF&#x2F;web.xml</li>
 </ul>
 <figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">servlet</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-class</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">servlet-mapping</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">url-pattern</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
 <h4 id="web-xml关键元素说明"><a href="#web-xml关键元素说明" class="headerlink" title="web.xml关键元素说明"></a>web.xml关键元素说明</h4><ul>
 <li>welcome-file-list：tomcat按顺序查找欢迎页</li>
 <li>listener: 注册监听器，用于初始化Spring框架</li>
 <li>error-page:根据error-code或者exception-type指定location</li>
 </ul>
 <h4 id="struts-properties"><a href="#struts-properties" class="headerlink" title="struts.properties"></a>struts.properties</h4><ul>
-<li>放置在src路径下；编译部署后，位于WEB-INF/classes 路径下</li>
+<li>放置在src路径下；编译部署后，位于WEB-INF&#x2F;classes 路径下</li>
 <li>设置国际化编码、devMode、locale、theme等</li>
 </ul>
 <h4 id="struts-xml"><a href="#struts-xml" class="headerlink" title="struts.xml"></a>struts.xml</h4><ul>
@@ -245,7 +248,7 @@
 <li>C3P0连接池：<ul>
 <li>Hibernate实现类一个插件结构，可以继承第三方连接池</li>
 <li>Hibernate提供类对C3P0的内嵌支持</li>
-<li>可以配置：最大/小连接数、超时时长、缓存statement数量</li>
+<li>可以配置：最大&#x2F;小连接数、超时时长、缓存statement数量</li>
 </ul>
 </li>
 <li>JNDI数据源</li>
@@ -268,7 +271,7 @@
 <li><code>class</code>声明一个持久化类</li>
 <li><code>id</code>映射标识属性<ul>
 <li>经验表明自然主键很容易出现问题，一般使用代理主键</li>
-<li>uuid：长度32位的16进制字符串，由IP、JVM启动时间（精确到1/4秒）、系统时间、JVM中的唯一计数器值生成</li>
+<li>uuid：长度32位的16进制字符串，由IP、JVM启动时间（精确到1&#x2F;4秒）、系统时间、JVM中的唯一计数器值生成</li>
 </ul>
 </li>
 <li><code>property</code>元素映射普通属性</li>
@@ -285,10 +288,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/06/14/servlet/" data-id="ckdg33rw10008a27a1is68ud0" class="article-share-link">Share</a>
+      <a data-url="https://ruiqiliu.github.io/2018/06/14/servlet/" data-id="cuidqw6QLTFvIpaMP24cZWuGy" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
 
     </footer>
   </div>
@@ -327,7 +330,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/" rel="tag">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/" rel="tag">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/" rel="tag">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/" rel="tag">spring</a></li></ul>
     </div>
   </div>
 
@@ -390,7 +393,7 @@
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2020 Ritchie<br>
+      &copy; 2026 Ritchie<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -401,8 +404,8 @@
     <a href="/" class="mobile-nav-link">Home</a>
   
     <a href="/archives" class="mobile-nav-link">Archives</a>
-    <a class="mobile-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="mobile">Reagan&#39;s games</a>
-
+  
+    <a href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" class="mobile-nav-link">Reagan&#39;s games</a>
   
 </nav>
     
@@ -410,11 +413,24 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
 
-  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
 
 
 <script src="/js/script.js"></script>
+
+
+
+
+
+
+<!-- 51LA Analytics -->
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
 
 
 

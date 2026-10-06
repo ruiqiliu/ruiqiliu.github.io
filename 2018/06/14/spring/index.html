@@ -8,17 +8,20 @@
   <title>spring | Ruiqi Liu&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="description" content="Spring框架学习笔记Spring是Java平台上的开源应用框架，起源于Rod Johnson于2002年所著的《Expert One-on-One：J2EE Design and Development》，2003年Rod公开了框架源码，2004年1.0版Spring正式发布。框架优势：  有效组织中间层对象 实现面向接口编程的范式 易于进行单元测试 简化了数据库访问层  依赖注入与控制反转传">
-<meta name="keywords" content="Java,Web,Architecture,Spring">
 <meta property="og:type" content="article">
 <meta property="og:title" content="spring">
-<meta property="og:url" content="http://yoursite.com/2018/06/14/spring/index.html">
+<meta property="og:url" content="https://ruiqiliu.github.io/2018/06/14/spring/index.html">
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
 <meta property="og:description" content="Spring框架学习笔记Spring是Java平台上的开源应用框架，起源于Rod Johnson于2002年所著的《Expert One-on-One：J2EE Design and Development》，2003年Rod公开了框架源码，2004年1.0版Spring正式发布。框架优势：  有效组织中间层对象 实现面向接口编程的范式 易于进行单元测试 简化了数据库访问层  依赖注入与控制反转传">
-<meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2020-08-01T09:20:19.556Z">
+<meta property="og:locale">
+<meta property="article:published_time" content="2018-06-14T04:38:28.000Z">
+<meta property="article:modified_time" content="2026-10-06T10:38:11.425Z">
+<meta property="article:author" content="Ritchie">
+<meta property="article:tag" content="Architecture">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="Spring">
+<meta property="article:tag" content="Web">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="spring">
-<meta name="twitter:description" content="Spring框架学习笔记Spring是Java平台上的开源应用框架，起源于Rod Johnson于2002年所著的《Expert One-on-One：J2EE Design and Development》，2003年Rod公开了框架源码，2004年1.0版Spring正式发布。框架优势：  有效组织中间层对象 实现面向接口编程的范式 易于进行单元测试 简化了数据库访问层  依赖注入与控制反转传">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -28,9 +31,10 @@
   
     <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
   
-  <link rel="stylesheet" href="/css/style.css">
-<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
-</head>
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 8.1.2"></head>
 
 <body>
   <div id="container">
@@ -55,8 +59,8 @@
           <a class="main-nav-link" href="/">Home</a>
         
           <a class="main-nav-link" href="/archives">Archives</a>
-          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="main">Reagan&#39;s games</a>
-
+        
+          <a class="main-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/">Reagan&#39;s games</a>
         
       </nav>
       <nav id="sub-nav">
@@ -66,7 +70,7 @@
         <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://ruiqiliu.github.io"></form>
       </div>
     </div>
   </div>
@@ -112,11 +116,13 @@
 <li>Context：扩展BeanFactory，提供上下文信息，添加了I18N、资源加载、校验等功能</li>
 <li>Expression Language：用于访问和操纵运行时对象</li>
 </ul>
-<h4 id="AbstractApplicationContext"><a href="#AbstractApplicationContext" class="headerlink" title="AbstractApplicationContext"></a>AbstractApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">refresh</span><span class="params">()</span> <span class="keyword">throws</span> BeansException, IllegalStateException </span>&#123;</span><br><span class="line">    Object var1 = <span class="keyword">this</span>.startupShutdownMonitor;<span class="comment">//同步锁</span></span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="keyword">this</span>.startupShutdownMonitor) &#123;</span><br><span class="line">        <span class="keyword">this</span>.prepareRefresh();<span class="comment">//为刷新准备新的Context</span></span><br><span class="line">        ConfigurableListableBeanFactory beanFactory = <span class="keyword">this</span>.obtainFreshBeanFactory();<span class="comment">//刷新所有BeanFacotry子容器</span></span><br><span class="line">        <span class="keyword">this</span>.prepareBeanFactory(beanFactory);<span class="comment">//创建BeanFactory</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">this</span>.postProcessBeanFactory(beanFactory);</span><br><span class="line">            <span class="keyword">this</span>.invokeBeanFactoryPostProcessors(beanFactory);</span><br><span class="line">            <span class="keyword">this</span>.registerBeanPostProcessors(beanFactory);</span><br><span class="line">            <span class="keyword">this</span>.initMessageSource();</span><br><span class="line">            <span class="keyword">this</span>.initApplicationEventMulticaster();</span><br><span class="line">            <span class="keyword">this</span>.onRefresh();<span class="comment">//刷新由子类实现的方法</span></span><br><span class="line">            <span class="keyword">this</span>.registerListeners();</span><br><span class="line">            <span class="keyword">this</span>.finishBeanFactoryInitialization(beanFactory);</span><br><span class="line">            <span class="keyword">this</span>.finishRefresh();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (BeansException var5) &#123;</span><br><span class="line">            <span class="keyword">this</span>.destroyBeans();</span><br><span class="line">            <span class="keyword">this</span>.cancelRefresh(var5);</span><br><span class="line">            <span class="keyword">throw</span> var5;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="BeanFactory详解"><a href="#BeanFactory详解" class="headerlink" title="BeanFactory详解"></a>BeanFactory详解</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Bean Factory 接口</span></span><br><span class="line"><span class="function">Boolean <span class="title">containsBean</span><span class="params">(String name)</span> <span class="comment">//check Bean existing</span></span></span><br><span class="line"><span class="function">Object <span class="title">getBean</span><span class="params">(String name)</span></span></span><br><span class="line"><span class="function">Class <span class="title">getType</span><span class="params">(String name)</span></span></span><br><span class="line"><span class="function"><span class="comment">//Application 子接口,扩展附加功能</span></span></span><br><span class="line"><span class="function">ClassPathXmlApplicationContext</span></span><br><span class="line"><span class="function">FileSystemXmlApplicationContext</span></span><br><span class="line"><span class="function">XmlWebApplicationContext</span></span><br></pre></td></tr></table></figure>
+<h4 id="AbstractApplicationContext"><a href="#AbstractApplicationContext" class="headerlink" title="AbstractApplicationContext"></a>AbstractApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">void</span> <span class="title function_">refresh</span><span class="params">()</span> <span class="keyword">throws</span> BeansException, IllegalStateException &#123;</span><br><span class="line">    <span class="type">Object</span> <span class="variable">var1</span> <span class="operator">=</span> <span class="built_in">this</span>.startupShutdownMonitor;<span class="comment">//同步锁</span></span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>.startupShutdownMonitor) &#123;</span><br><span class="line">        <span class="built_in">this</span>.prepareRefresh();<span class="comment">//为刷新准备新的Context</span></span><br><span class="line">        <span class="type">ConfigurableListableBeanFactory</span> <span class="variable">beanFactory</span> <span class="operator">=</span> <span class="built_in">this</span>.obtainFreshBeanFactory();<span class="comment">//刷新所有BeanFacotry子容器</span></span><br><span class="line">        <span class="built_in">this</span>.prepareBeanFactory(beanFactory);<span class="comment">//创建BeanFactory</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.postProcessBeanFactory(beanFactory);</span><br><span class="line">            <span class="built_in">this</span>.invokeBeanFactoryPostProcessors(beanFactory);</span><br><span class="line">            <span class="built_in">this</span>.registerBeanPostProcessors(beanFactory);</span><br><span class="line">            <span class="built_in">this</span>.initMessageSource();</span><br><span class="line">            <span class="built_in">this</span>.initApplicationEventMulticaster();</span><br><span class="line">            <span class="built_in">this</span>.onRefresh();<span class="comment">//刷新由子类实现的方法</span></span><br><span class="line">            <span class="built_in">this</span>.registerListeners();</span><br><span class="line">            <span class="built_in">this</span>.finishBeanFactoryInitialization(beanFactory);</span><br><span class="line">            <span class="built_in">this</span>.finishRefresh();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (BeansException var5) &#123;</span><br><span class="line">            <span class="built_in">this</span>.destroyBeans();</span><br><span class="line">            <span class="built_in">this</span>.cancelRefresh(var5);</span><br><span class="line">            <span class="keyword">throw</span> var5;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="BeanFactory详解"><a href="#BeanFactory详解" class="headerlink" title="BeanFactory详解"></a>BeanFactory详解</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Bean Factory 接口</span></span><br><span class="line"><span class="type">Boolean</span> <span class="title function_">containsBean</span><span class="params">(String name)</span> <span class="comment">//check Bean existing</span></span><br><span class="line"><span class="type">Object</span> <span class="title function_">getBean</span><span class="params">(String name)</span></span><br><span class="line"><span class="type">Class</span> <span class="title function_">getType</span><span class="params">(String name)</span></span><br><span class="line"><span class="comment">//Application 子接口,扩展附加功能</span></span><br><span class="line">ClassPathXmlApplicationContext</span><br><span class="line">FileSystemXmlApplicationContext</span><br><span class="line">XmlWebApplicationContext</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
 <h3 id="数据访问"><a href="#数据访问" class="headerlink" title="数据访问"></a>数据访问</h3><ul>
 <li>ORM模块提供对象关系映射API，集成了JPA、JDO、hibernate、iBatis</li>
-<li>OXM：提供Object/XML映射抽象</li>
+<li>OXM：提供Object&#x2F;XML映射抽象</li>
 <li>JMS模块包含了发布和订阅特性</li>
 <li>Transaction模块提供了对声明式和编程式事务的支持</li>
 </ul>
@@ -159,10 +165,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/06/14/spring/" data-id="ckdg33rw00007a27ayigr1j6g" class="article-share-link">Share</a>
+      <a data-url="https://ruiqiliu.github.io/2018/06/14/spring/" data-id="cuidAxNmEDmTqnJeX1y-UZ_fx" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Spring/">Spring</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
 
     </footer>
   </div>
@@ -201,7 +207,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/" rel="tag">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/" rel="tag">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/" rel="tag">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/" rel="tag">spring</a></li></ul>
     </div>
   </div>
 
@@ -264,7 +270,7 @@
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2020 Ritchie<br>
+      &copy; 2026 Ritchie<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -275,8 +281,8 @@
     <a href="/" class="mobile-nav-link">Home</a>
   
     <a href="/archives" class="mobile-nav-link">Archives</a>
-    <a class="mobile-nav-link" href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" data-nav="mobile">Reagan&#39;s games</a>
-
+  
+    <a href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/" class="mobile-nav-link">Reagan&#39;s games</a>
   
 </nav>
     
@@ -284,11 +290,24 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
 
-  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
 
 
 <script src="/js/script.js"></script>
+
+
+
+
+
+
+<!-- 51LA Analytics -->
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js?id=3RQRMtIBrS5DhXbk&ck=3RQRMtIBrS5DhXbk&autoTrack=true"></script>
 
 
 
