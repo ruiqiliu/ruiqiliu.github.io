@@ -14,8 +14,11 @@
 <meta property="og:site_name" content="Ruiqi Liu&#39;s Blog">
 <meta property="og:description" content="本文是给家里小朋友做「太阳系漫游」网页（直达）过程中的技术调研与实践记录：先简单梳理浏览器 3D 技术的发展脉络，然后看两份有代表性的资料——three.js 官方的 llms.txt 和一个用 WebGPU 手写引擎的钓鱼游戏 Tidewater，最后拆解我们自己的太阳系架构与踩坑实录。全文无框架、零构建依赖，代码都在 GitHub。  一、浏览器 3D 的十五年把时间线拉长看，网页 3D 大">
 <meta property="og:locale">
+<meta property="og:image" content="https://ruiqiliu.github.io/images/solar-live2.jpg">
+<meta property="og:image" content="https://ruiqiliu.github.io/images/solar-jupiter.jpg">
+<meta property="og:image" content="https://ruiqiliu.github.io/images/solar-earth.jpg">
 <meta property="article:published_time" content="2026-10-07T13:30:00.000Z">
-<meta property="article:modified_time" content="2026-10-07T06:01:02.636Z">
+<meta property="article:modified_time" content="2026-10-07T06:03:10.453Z">
 <meta property="article:author" content="Ritchie">
 <meta property="article:tag" content="3D">
 <meta property="article:tag" content="WebGL">
@@ -23,6 +26,7 @@
 <meta property="article:tag" content="three.js">
 <meta property="article:tag" content="前端">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://ruiqiliu.github.io/images/solar-live2.jpg">
   
     <link rel="alternate" href="/atom.xml" title="Ruiqi Liu&#39;s Blog" type="application/atom+xml">
   
@@ -168,6 +172,7 @@
 <p>页面有一条很诚实的提示：首次启动要编译数百个着色器，「可能需要一两分钟」，之后靠浏览器缓存加速。这其实是 WebGPU 应用当前普遍的代价——着色器编译与管线缓存策略，会直接影响用户的第一印象。</p>
 <p>它和 llms.txt 一起构成了一个有意思的对照：<strong>three.js 在把「正确姿势」标准化以便普及，而 Tidewater 们在探索标准化之外的极限</strong>。两者都值得写业务代码时对照着看。</p>
 <h2 id="四、本项目：给小朋友的太阳系"><a href="#四、本项目：给小朋友的太阳系" class="headerlink" title="四、本项目：给小朋友的太阳系"></a>四、本项目：给小朋友的太阳系</h2><p>有了上面的坐标系，再回头看这个项目要做什么：给 5~10 岁的小朋友做一个「太阳系漫游」——可以选星球抵近观看、切换视角看整个太阳系旋转、抵近看地月旋转、每个星球有中英双语说明。成品在<a href="https://ruiqiliu.github.io/games/solar-system/">这里</a>（入口在博客导航）。</p>
+<p><img src="/images/solar-live2.jpg" alt="太阳系全景：太阳、轨道线、小行星带与八大行星"></p>
 <h3 id="4-1-约束决定架构"><a href="#4-1-约束决定架构" class="headerlink" title="4.1 约束决定架构"></a>4.1 约束决定架构</h3><p>三条约束几乎决定了所有技术选择：</p>
 <ol>
 <li><strong>观众在国内、以平板和手机为主</strong> → Three.js 必须本地 vendored（不走 CDN），页面不能有国外依赖；</li>
@@ -181,7 +186,9 @@
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 开普勒第三定律的玩具版：轨道半径决定角速度</span></span><br><span class="line"><span class="keyword">const</span> a = (simT * <span class="variable constant_">KEPLER</span>) / <span class="title class_">Math</span>.<span class="title function_">pow</span>(body.<span class="property">orbit</span>, <span class="number">1.5</span>);</span><br><span class="line">sys.<span class="property">position</span>.<span class="title function_">set</span>(<span class="title class_">Math</span>.<span class="title function_">cos</span>(a) * body.<span class="property">orbit</span>, <span class="number">0</span>, <span class="title class_">Math</span>.<span class="title function_">sin</span>(a) * body.<span class="property">orbit</span>);</span><br></pre></td></tr></table></figure>
 
 <p><strong>程序化贴图 + 真实贴图的混合</strong>。木星条纹、火星锈斑与极冠、水星陨石坑全部用 canvas 逐行生成（512×256 一次性生成，零外部资源）；只有地球和月球用 NASA 公有领域贴图。小朋友看到的土星不是「贴图球」，而是条纹 + 大红斑 + 冰环的组合。</p>
+<p><img src="/images/solar-jupiter.jpg" alt="木星特写：程序化条纹与大红斑（NASA 贴图的地球&#x2F;月球在文中另有展示）"></p>
 <p><strong>自写轨道控制</strong>。拖拽旋转、滚轮缩放、双指捏合，加起来六十行——不引入 OrbitControls 附件，vendored 目录里只有一个 three 模块文件。聚焦某个天体时，相机会被摆到「太阳 → 天体」的延长线上（略抬高），保证看到的是被照亮的一面，地月同框时月球轨道环也一目了然。</p>
+<p><img src="/images/solar-earth.jpg" alt="抵近地球：地月同框，月球轨道环清晰可见"></p>
 <p><strong>面向 5 岁的视觉兜底</strong>。环境光调到 1.0，让行星暗面呈深蓝而不是纯黑；行星名用 sprite 标签（中文 + 英文）随场景旋转，可一键关闭；所有交互目标都是大按钮。</p>
 <h3 id="4-3-单文件打包：Import-Map-的另一种用法"><a href="#4-3-单文件打包：Import-Map-的另一种用法" class="headerlink" title="4.3 单文件打包：Import Map 的另一种用法"></a>4.3 单文件打包：Import Map 的另一种用法</h3><p>和游戏合集一样，这个页面也要有「双击就能玩、微信转发就能开」的版本。做法是把 three.js 整个模块文件变成 <strong>import map 里的 data URL</strong>：</p>
 <figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">&quot;importmap&quot;</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">&#123; <span class="string">&quot;imports&quot;</span>: &#123; <span class="string">&quot;three&quot;</span>: <span class="string">&quot;data:text/javascript;base64,...&quot;</span> &#125; &#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"><span class="variable language_">window</span>.<span class="property">TEX_URLS</span> = &#123; <span class="attr">earth</span>: <span class="string">&#x27;data:image/jpeg;base64,...&#x27;</span>, <span class="attr">moon</span>: <span class="string">&#x27;...&#x27;</span> &#125;;</span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">&quot;module&quot;</span>&gt;</span><span class="language-javascript"><span class="comment">/* main.js 原样内联 */</span></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
