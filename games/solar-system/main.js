@@ -217,6 +217,8 @@ try {
 }
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
 document.getElementById('stage').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -224,8 +226,8 @@ scene.background = new THREE.Color(0x04050f);
 
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.5, 6000);
 
-scene.add(new THREE.AmbientLight(0x8fa0c8, 0.8));
-const sunLight = new THREE.PointLight(0xfff2d8, 2.6, 0, 0);
+scene.add(new THREE.AmbientLight(0x9fb0d8, 1.0));
+const sunLight = new THREE.PointLight(0xfff2d8, 1.15, 0, 0);
 scene.add(sunLight);
 
 // 星空
@@ -333,13 +335,16 @@ for (const body of BODIES) {
   const earth = systems.earth;
   earth.texDone = false;
   const earthMesh = earth.mesh;
-  const realEarth = new THREE.MeshLambertMaterial({ color: 0x5f8fd8 });
-  loader.load('tex/earth.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; realEarth.map = t; realEarth.needsUpdate = true; });
+  const realEarth = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+  (window.__solarMats = window.__solarMats || {}).earth = realEarth;
+  loader.load('tex/earth.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; realEarth.map = t; realEarth.color.set(0xffffff); realEarth.needsUpdate = true; });
+  earthMesh.material = realEarth;   // ★ 真正把材质挂到网格上（之前就是丢了这行导致白球）
 
   const pivot = new THREE.Group();
   earth.sys.add(pivot);
   const moonMat = new THREE.MeshLambertMaterial({ color: 0xc9c9c9 });
-  loader.load('tex/moon.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; moonMat.map = t; moonMat.needsUpdate = true; });
+  window.__solarMats.moon = moonMat;
+  loader.load('tex/moon.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; moonMat.map = t; moonMat.color.set(0xffffff); moonMat.needsUpdate = true; });
   const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 24), moonMat);
   moonMesh.position.set(7.5, 0.4, 0);
   moonMesh.userData.key = 'moon';
@@ -408,7 +413,18 @@ for (const body of BODIES) {
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const belt = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x9a8f80, size: 1.1, transparent: true, opacity: 0.75 }));
+  const dot = canvasTexture(32, 32, (g, w) => {
+    const rad = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+    rad.addColorStop(0, 'rgba(235,220,190,1)');
+    rad.addColorStop(0.6, 'rgba(200,180,150,.8)');
+    rad.addColorStop(1, 'rgba(200,180,150,0)');
+    g.fillStyle = rad;
+    g.fillRect(0, 0, w, w);
+  });
+  const belt = new THREE.Points(geo, new THREE.PointsMaterial({
+    map: dot, size: 2.4, sizeAttenuation: false,
+    transparent: true, opacity: 0.8, depthWrite: false, alphaTest: 0.05
+  }));
   scene.add(belt);
   systems.belt = { mesh: belt };
 }
@@ -486,7 +502,10 @@ function pick(e) {
 let simT = 0;
 let timeScale = 1;
 let selected = 'sun';
-let tween = null;   // {t, dur, r0, r1, phi0, phi1, theta0, theta1}
+let focusKey = 'sun';
+let framing = 0;          // >0 时每帧把相机摆到太阳侧（聚焦取景）
+let tween = null;
+const tmpV2 = new THREE.Vector3();   // {t, dur, r0, r1, phi0, phi1, theta0, theta1}
 
 function bodyWorldPos(key, out) {
   const s = systems[key];
@@ -497,6 +516,8 @@ function bodyWorldPos(key, out) {
 
 function selectBody(key) {
   selected = key;
+  focusKey = key;
+  framing = 1.2;
   const s = systems[key];
   const sph = sunSideSpherical(key, Math.max(s.body.minR * 1.7, 14));
   startTween(sph.r, sph.phi, sph.theta, key);
@@ -508,7 +529,8 @@ function selectBody(key) {
 function sunSideSpherical(key, r1) {
   const bw = bodyWorldPos(key, new THREE.Vector3());
   const dir = bw.length() > 0.001 ? bw.clone().normalize() : new THREE.Vector3(1, 0, 0);
-  const off = dir.multiplyScalar(r1);
+  // 相机放在太阳与天体之间，看到的是被照亮的一面
+  const off = dir.multiplyScalar(-r1);
   off.y += r1 * 0.3;
   const len = off.length();
   return {
@@ -520,6 +542,8 @@ function sunSideSpherical(key, r1) {
 
 function goView(v) {
   if (v === 'earth') {
+    focusKey = 'earth';
+    framing = 1.2;
     const sp = sunSideSpherical('earth', 30);
     startTween(sp.r, sp.phi, sp.theta, 'earth');
     return;
@@ -626,6 +650,19 @@ function tick() {
   if (focus.body && focus.body.key === 'sun') tmpV.set(0, 0, 0);
   controls.target.lerp(tmpV, tween ? 0.12 : 1);
 
+  // 聚焦取景期：相机始终放在「太阳 → 天体」延长线上（照亮面朝向相机）
+  if (framing > 0 && focusKey !== 'sun') {
+    framing -= dt;
+    bodyWorldPos(focusKey, tmpV2);
+    if (tmpV2.length() > 0.001) {
+      const dir = tmpV2.clone().normalize();
+      const off = dir.multiplyScalar(-controls.r);
+      off.y += controls.r * 0.3;
+      controls.phi = Math.acos(Math.max(-1, Math.min(1, off.y / controls.r)));
+      controls.theta = Math.atan2(off.z, off.x);
+    }
+  }
+
   if (tween) {
     tween.t += dt / tween.dur;
     const k = tween.t >= 1 ? 1 : 1 - Math.pow(1 - tween.t, 3);
@@ -646,7 +683,7 @@ function tick() {
 }
 renderer.setAnimationLoop(tick);
 /* 调试 / 自动化测试用：可以手动推帧（无头截图时 rAF 会被冻结） */
-window.__solar = { tick };
+window.__solar = { tick, THREE, scene, camera };
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
