@@ -72,6 +72,142 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-threejs-solar-system" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2026/10/07/threejs-solar-system/" class="article-date">
+  <time datetime="2026-10-07T13:30:00.000Z" itemprop="datePublished">2026-10-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%89%8D%E7%AB%AF/">前端</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2026/10/07/threejs-solar-system/">从 WebGL 到 WebGPU：给小朋友写一个 three.js 太阳系</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <blockquote>
+<p>本文是给家里小朋友做「太阳系漫游」网页（<a href="https://ruiqiliu.github.io/games/solar-system/">直达</a>）过程中的技术调研与实践记录：先简单梳理浏览器 3D 技术的发展脉络，然后看两份有代表性的资料——three.js 官方的 <code>llms.txt</code> 和一个用 WebGPU 手写引擎的钓鱼游戏 Tidewater，最后拆解我们自己的太阳系架构与踩坑实录。全文无框架、零构建依赖，代码都在 <a href="https://github.com/ruiqiliu/hexo">GitHub</a>。</p>
+</blockquote>
+<h2 id="一、浏览器-3D-的十五年"><a href="#一、浏览器-3D-的十五年" class="headerlink" title="一、浏览器 3D 的十五年"></a>一、浏览器 3D 的十五年</h2><p>把时间线拉长看，网页 3D 大致经历了四个阶段：</p>
+<ul>
+<li><strong>插件时代（2006–2011）</strong>：3D 内容靠 Flash（Away3D）、Unity Web Player、Java Applet 这类插件承载，浏览器本身对 3D 一无所知。</li>
+<li><strong>WebGL 时代（2011–2022）</strong>：2011 年 3 月 Khronos 发布 WebGL 1.0（基于 OpenGL ES 2.0），浏览器第一次原生拥有 GPU 渲染能力；同年 mrdoob（Ricardo Cabello）开源了 three.js。2017 年 WebGL 2.0 与 glTF 2.0 格式先后落地，前者带来实例化渲染等能力，后者统一了 3D 模型的「JPEG」标准。</li>
+<li><strong>WebGPU 时代（2023– ）</strong>：2023 年 4 月 Chrome 113 默认启用 WebGPU——对标 Vulkan&#x2F;Metal&#x2F;DirectX 12 的现代图形 API，支持计算着色器（Compute Shader）和间接绘制，WGSL 取代 GLSL。three.js 随之推出 WebGPURenderer 和 TSL 着色语言。</li>
+<li><strong>AI 与 3D 汇合（进行中）</strong>：一方面官方文档开始为 LLM 优化（下文的 llms.txt），另一方面 Text-to-3D &#x2F; 图生 3D 模型工具开始进入生产流程。</li>
+</ul>
+<p>工具链层面同样在演进：从「全局脚本 + 多个 <code>script</code> 标签」到 ES Module + Import Map，从手动管理矩阵到场景图&#x2F;材质系统，从 GLSL 手写着色器到节点式着色语言。这些变化决定了今天写一个网页 3D 项目的「正确姿势」。</p>
+<h2 id="二、three-js-的-llms-txt：给-AI-看的官方文档"><a href="#二、three-js-的-llms-txt：给-AI-看的官方文档" class="headerlink" title="二、three.js 的 llms.txt：给 AI 看的官方文档"></a>二、three.js 的 llms.txt：给 AI 看的官方文档</h2><h3 id="2-1-llms-txt-是什么"><a href="#2-1-llms-txt-是什么" class="headerlink" title="2.1 llms.txt 是什么"></a>2.1 llms.txt 是什么</h3><p><a href="https://llmstxt.org/">llms.txt</a> 是 2024 年由 Answer.AI 提出的社区约定：网站在根路径放一个 Markdown 索引，供大语言模型快速定位权威内容——因为直接把整站 HTML 塞给模型，噪音太大。</p>
+<p>three.js 官方文档现在提供了 <a href="https://threejs.org/docs/llms.txt"><code>threejs.org/docs/llms.txt</code></a>，开头第一句就是「生成 three.js 代码时请遵循以下指南」。它同时承担两个角色：</p>
+<ol>
+<li><strong>防坑指南</strong>：用 WRONG&#x2F;CORRECT 正反代码对照，纠正 LLM 最常犯的过时写法；</li>
+<li><strong>文档导航</strong>：按板块列出官方手册与 API 的链接，让模型（和人）按需深入。</li>
+</ol>
+<h3 id="2-2-结构概要"><a href="#2-2-结构概要" class="headerlink" title="2.2 结构概要"></a>2.2 结构概要</h3><p>整份文件的组织如下：</p>
+<table>
+<thead>
+<tr>
+<th>板块</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Instructions for LLMs</td>
+<td>四条强制规范：Import Map 写入方式、WebGLRenderer vs WebGPURenderer 的选择标准、TSL 着色语言、NodeMaterial 材质族</td>
+</tr>
+<tr>
+<td>Getting Started</td>
+<td>Installation &#x2F; Creating a Scene &#x2F; Fundamentals &#x2F; Responsive Design</td>
+</tr>
+<tr>
+<td>Renderer Guides</td>
+<td>WebGPURenderer 指南</td>
+</tr>
+<tr>
+<td>Core Concepts</td>
+<td>TSL 指南与参考、动画系统、模型加载、场景图、材质、纹理、灯光、相机、阴影</td>
+</tr>
+<tr>
+<td>Essential API</td>
+<td>按 Core &#x2F; Scenes &#x2F; Cameras &#x2F; Renderers &#x2F; Objects &#x2F; Materials &#x2F; Geometries &#x2F; Lights &#x2F; Loaders &#x2F; Controls &#x2F; Math 分类的 API 链接</td>
+</tr>
+</tbody></table>
+<p>其中最有时代感的两条规范：</p>
+<p><strong>① 引入方式</strong>——明确禁止 LLM 最爱生成的旧式写法：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- WRONG：LLM 十有八九会生成这个 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">src</span>=<span class="string">&quot;https://unpkg.com/three@0.128.0/build/three.min.js&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!-- CORRECT：ESM + Import Map --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">&quot;importmap&quot;</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">&#123; <span class="string">&quot;imports&quot;</span>: &#123; <span class="string">&quot;three&quot;</span>: <span class="string">&quot;https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.min.js&quot;</span>,</span></span><br><span class="line"><span class="language-javascript">               <span class="string">&quot;three/addons/&quot;</span>: <span class="string">&quot;https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/&quot;</span> &#125; &#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>② 渲染器选择</strong>——默认用 WebGLRenderer 保证兼容性；只有需要 TSL 自定义着色器、Compute Shader 或节点材质时才上 WebGPURenderer（且必须 <code>await renderer.init()</code>）。TSL 的目标之一是让同一份着色逻辑在两个渲染器间迁移。</p>
+<p>给 AI 看的文档，本质上是把「这个生态认为的正确姿势」固化成机器可读的约束——对我们人类的价值是：它是这个生态当前最佳实践的一份浓缩清单。</p>
+<h2 id="三、Tidewater：看看-WebGPU-能把网页做到什么程度"><a href="#三、Tidewater：看看-WebGPU-能把网页做到什么程度" class="headerlink" title="三、Tidewater：看看 WebGPU 能把网页做到什么程度"></a>三、Tidewater：看看 WebGPU 能把网页做到什么程度</h2><p>如果说 llms.txt 是「怎么正确写」，那 <a href="https://dgreenheck.github.io/tidewater/">Tidewater</a>（作者 Daniel Greenheck，MIT 协议）就是「能写到什么程度」的样本：一个<strong>直接跑在 WebGPU + WGSL 上、自研渲染引擎、零框架</strong>的岛屿钓鱼游戏——驾船出海、抛竿、搏鱼、天黑前把渔获卖给码头边的 Joe。</p>
+<p>几个让我印象深刻的技术点：</p>
+<ul>
+<li><strong>水体</strong>：Tessendorf 谱方法的四级联 FFT 海洋（含泡沫、白帽、风条纹、涌浪），加上深度感知的破碎浪、浅水上冲流、船尾迹和海床焦散——基本是主机游戏的配置；</li>
+<li><strong>大气与光照</strong>：基于物理的 Hillaire 2020 大气模型（太阳&#x2F;月亮&#x2F;星空）、体积云及其投影、级联阴影 + 屏幕空间接触阴影、GTAO 环境光遮蔽；</li>
+<li><strong>后处理链</strong>：TAAU 时序超分 + 锐化、bloom、自动曝光、运动模糊、水下合成；</li>
+<li><strong>工程化</strong>：Vite 构建、<code>src/engine|ocean|sky|world|post|game</code> 分层清晰、无头引擎冒烟测试、大量 <code>?noClouds</code>&#x2F;<code>?noSim</code> 类降级开关、动态分辨率。</li>
+</ul>
+<p>页面有一条很诚实的提示：首次启动要编译数百个着色器，「可能需要一两分钟」，之后靠浏览器缓存加速。这其实是 WebGPU 应用当前普遍的代价——着色器编译与管线缓存策略，会直接影响用户的第一印象。</p>
+<p>它和 llms.txt 一起构成了一个有意思的对照：<strong>three.js 在把「正确姿势」标准化以便普及，而 Tidewater 们在探索标准化之外的极限</strong>。两者都值得写业务代码时对照着看。</p>
+<h2 id="四、本项目：给小朋友的太阳系"><a href="#四、本项目：给小朋友的太阳系" class="headerlink" title="四、本项目：给小朋友的太阳系"></a>四、本项目：给小朋友的太阳系</h2><p>有了上面的坐标系，再回头看这个项目要做什么：给 5~10 岁的小朋友做一个「太阳系漫游」——可以选星球抵近观看、切换视角看整个太阳系旋转、抵近看地月旋转、每个星球有中英双语说明。成品在<a href="https://ruiqiliu.github.io/games/solar-system/">这里</a>（入口在博客导航）。</p>
+<h3 id="4-1-约束决定架构"><a href="#4-1-约束决定架构" class="headerlink" title="4.1 约束决定架构"></a>4.1 约束决定架构</h3><p>三条约束几乎决定了所有技术选择：</p>
+<ol>
+<li><strong>观众在国内、以平板和手机为主</strong> → Three.js 必须本地 vendored（不走 CDN），页面不能有国外依赖；</li>
+<li><strong>面向 5 岁小朋友</strong> → 没有文字化 UI（零件&#x2F;信息全是画出来的或图标化）、没有失败状态、暗面不能黑到看不见；</li>
+<li><strong>和游戏合集同一个部署体系</strong>（Hexo 产物仓库 + rsync）→ 页面放 <code>source/games/solar-system/</code>，用 <code>skip_render: games/**</code> 原样拷贝。</li>
+</ol>
+<p>最终结构非常克制：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">source/games/solar-system/</span><br><span class="line">├── index.html                  页面外壳（深空主题 + UI 面板 + 51LA 统计）</span><br><span class="line">├── main.js                     场景 / 交互 / 双语数据（约 500 行）</span><br><span class="line">├── lib/three.module.min.js     vendored three@0.170（约 660 KB）</span><br><span class="line">├── tex/earth.jpg  moon.jpg     NASA 公有领域贴图（地球/月球）</span><br><span class="line">└── tools/build-solar.mjs       打包自包含单文件 dist/solar-system.html</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-几个核心设计"><a href="#4-2-几个核心设计" class="headerlink" title="4.2 几个核心设计"></a>4.2 几个核心设计</h3><p><strong>数据驱动的天体表</strong>。太阳、行星、月球都是同一份 <code>BODIES</code> 数据表的实例：半径、轨道、自转、轴倾角、贴图类型，以及中英双语的说明文案。信息卡、底部胶囊按钮、射线拾取全部由这张表驱动——加一个天体就是加一行数据。公转周期按开普勒第三定律压缩（T ∝ a^1.5），水星飞快、海王星缓慢，比例关系是真的：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 开普勒第三定律的玩具版：轨道半径决定角速度</span></span><br><span class="line"><span class="keyword">const</span> a = (simT * <span class="variable constant_">KEPLER</span>) / <span class="title class_">Math</span>.<span class="title function_">pow</span>(body.<span class="property">orbit</span>, <span class="number">1.5</span>);</span><br><span class="line">sys.<span class="property">position</span>.<span class="title function_">set</span>(<span class="title class_">Math</span>.<span class="title function_">cos</span>(a) * body.<span class="property">orbit</span>, <span class="number">0</span>, <span class="title class_">Math</span>.<span class="title function_">sin</span>(a) * body.<span class="property">orbit</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>程序化贴图 + 真实贴图的混合</strong>。木星条纹、火星锈斑与极冠、水星陨石坑全部用 canvas 逐行生成（512×256 一次性生成，零外部资源）；只有地球和月球用 NASA 公有领域贴图。小朋友看到的土星不是「贴图球」，而是条纹 + 大红斑 + 冰环的组合。</p>
+<p><strong>自写轨道控制</strong>。拖拽旋转、滚轮缩放、双指捏合，加起来六十行——不引入 OrbitControls 附件，vendored 目录里只有一个 three 模块文件。聚焦某个天体时，相机会被摆到「太阳 → 天体」的延长线上（略抬高），保证看到的是被照亮的一面，地月同框时月球轨道环也一目了然。</p>
+<p><strong>面向 5 岁的视觉兜底</strong>。环境光调到 1.0，让行星暗面呈深蓝而不是纯黑；行星名用 sprite 标签（中文 + 英文）随场景旋转，可一键关闭；所有交互目标都是大按钮。</p>
+<h3 id="4-3-单文件打包：Import-Map-的另一种用法"><a href="#4-3-单文件打包：Import-Map-的另一种用法" class="headerlink" title="4.3 单文件打包：Import Map 的另一种用法"></a>4.3 单文件打包：Import Map 的另一种用法</h3><p>和游戏合集一样，这个页面也要有「双击就能玩、微信转发就能开」的版本。做法是把 three.js 整个模块文件变成 <strong>import map 里的 data URL</strong>：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">&quot;importmap&quot;</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">&#123; <span class="string">&quot;imports&quot;</span>: &#123; <span class="string">&quot;three&quot;</span>: <span class="string">&quot;data:text/javascript;base64,...&quot;</span> &#125; &#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"><span class="variable language_">window</span>.<span class="property">TEX_URLS</span> = &#123; <span class="attr">earth</span>: <span class="string">&#x27;data:image/jpeg;base64,...&#x27;</span>, <span class="attr">moon</span>: <span class="string">&#x27;...&#x27;</span> &#125;;</span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">&quot;module&quot;</span>&gt;</span><span class="language-javascript"><span class="comment">/* main.js 原样内联 */</span></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>main.js 里的 <code>import * as THREE from &#39;three&#39;</code> 一个字不用改，贴图路径在打包时替换为 data URL。最终 <code>dist/solar-system.html</code> 约 1.9MB，无任何网络依赖。</p>
+<h3 id="4-4-踩坑实录（保存时间最长的三条）"><a href="#4-4-踩坑实录（保存时间最长的三条）" class="headerlink" title="4.4 踩坑实录（保存时间最长的三条）"></a>4.4 踩坑实录（保存时间最长的三条）</h3><p><strong>坑一：白球事件——「赋值写在了错误的重构里」</strong>。上线后实测地球是纯白球体。排查链路：屏幕中心射线拾取确认「白球确实是 Earth 网格」→ 浏览器内采样贴图文件确认「文件和解码都正常（2048×1024，均值 RGB 84,92,105）」→ 材质探针确认 <code>map</code> 已绑定——最后发现是一次重构把 <code>earthMesh.material = realEarth</code> 这行赋值弄丢了：带贴图的材质创建出来了，但从未挂上网格，场景里一直渲染的是占位用的白球。教训：<strong>「材质已创建」和「材质已挂上网格」是两件事</strong>，肉眼断言不可靠，要用射线拾取+像素采样这种可复现的证据链。</p>
+<p><strong>坑二：three r155+ 的物理光照单位</strong>。<code>PointLight</code> 的 intensity 语义在 r155 之后变成物理单位，旧教程里的数值直接照抄会过曝——地球被冲成白球有一半功劳在它。最终方案：点光 1.15 + 环境光 1.0 + ACES 色调映射（exposure 0.9），过曝和死黑两头都压住。</p>
+<p><strong>坑三：无头测试里 rAF 是冻结的</strong>。自动化截图时 <code>requestAnimationFrame</code> 驱动的动画可能一帧都不跑。解法和官方测试套件思路一致：暴露一个手动推帧的钩子，测试里循环调它——这比在测试环境里折腾虚拟时间的 rAF 可靠得多。</p>
+<h2 id="五、结语"><a href="#五、结语" class="headerlink" title="五、结语"></a>五、结语</h2><p>回到开头的时间线：从插件时代的 Flash 到今天一个 5 岁小朋友可以在 iPad 上拖动旋转的太阳系，浏览器 3D 用十五年走完了「能力补齐 → 生态标准化 → 极限探索」的三段路。three.js 的 llms.txt 代表前两段的沉淀——把正确姿势文档化；Tidewater 代表第三段——在标准之上把实时渲染推到主机游戏的配置。</p>
+<p>对我们这种「给小朋友做一个页面」的项目来说，结论很简单：用 three.js + 本地 vendored + 数据驱动的架构，就在「正确姿势」的安全区里；而 Tidewater 们展示了这条路的天花板有多高。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="https://threejs.org/docs/llms.txt">three.js llms.txt（官方 LLM 文档索引）</a></li>
+<li><a href="https://llmstxt.org/">llms.txt 约定</a></li>
+<li><a href="https://dgreenheck.github.io/tidewater/">Tidewater 在线版</a> · <a href="https://github.com/dgreenheck/tidewater">GitHub 仓库</a>（MIT）</li>
+<li><a href="https://threejs.org/">three.js 官网</a> · <a href="https://www.w3.org/TR/webgpu/">WebGPU 规范</a></li>
+<li><a href="https://ruiqiliu.github.io/games/solar-system/">本项目太阳系页面</a> · <a href="https://ruiqiliu.github.io/games/children-games/reagan/arcade/">游戏合集</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://ruiqiliu.github.io/2026/10/07/threejs-solar-system/" data-id="cuid31Ar11yQto8ZZOgD4KUrP" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/3D/" rel="tag">3D</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/WebGL/" rel="tag">WebGL</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/WebGPU/" rel="tag">WebGPU</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/three-js/" rel="tag">three.js</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-postgre" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2020/08/01/postgre/" class="article-date">
@@ -1085,181 +1221,6 @@
 
 
   
-    <article id="post-Java-简史" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2018/05/13/Java-%E7%AE%80%E5%8F%B2/" class="article-date">
-  <time datetime="2018-05-13T00:14:13.000Z" itemprop="datePublished">2018-05-13</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/05/13/Java-%E7%AE%80%E5%8F%B2/">Java 简史</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="Java-8、9、10的新特性"><a href="#Java-8、9、10的新特性" class="headerlink" title="Java 8、9、10的新特性"></a>Java 8、9、10的新特性</h2><h3 id="Java-10"><a href="#Java-10" class="headerlink" title="Java 10"></a>Java 10</h3><p>JDK 10 发布于 2018年3月20日。主要更新是局部变量推断和垃圾回收及编译算法提高。 JDK 10是个短期的版本，将要于今天九月份发布的JDK 11是个LTS版本。</p>
-<p>主要特点：</p>
-<ul>
-<li>Local variable type inference： 使用初始化语句推段变量类型</li>
-<li>G1 支持并行化： 提高 worst-case 延迟</li>
-<li>优化 class-data sharing</li>
-<li>试验版just-in-time compier：Graal</li>
-<li>Docker awareness：在linux 平台，JVM可以知道 Container-specifi-information</li>
-<li>三个新的JVM参数，用户Docker可以控制系统内存</li>
-<li><code>jShell REPL tool</code> 启动优化</li>
-<li>不可变集合实例化：Set.copyof，Map.copyOf，Collectors类的新方法：toUnmodifiableList&#x2F;toUnmodifiableSet&#x2F;toUnmodifableMap</li>
-<li>GC 接口更新，用于更方便地增加新的collector</li>
-<li>G1并行化</li>
-<li>HotSpot支持把对象堆分配到指定的内存设备上</li>
-<li>Grall</li>
-<li>JDK 代码库整理</li>
-<li>application class-data sharing</li>
-<li>thread-local handshakes？</li>
-<li>默认官方根证书</li>
-</ul>
-<p>Oracle在下个版本中声明的特性：</p>
-<ul>
-<li>Amber Project： productivity-oriented language，enhaced enums，lambda leftovers</li>
-<li>Project Panama： native code和JVM的交互增强</li>
-<li>Valhalla： valued types and generic specialization</li>
-<li>Project Loom： 目的是减少编写并发程序的难度</li>
-<li>Reference: <a href="https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html">https://www.infoworld.com/article/3230507/java/java-jdk-10-what-new-features-to-expect-in-the-next-java.html</a></li>
-</ul>
-<h3 id="Java-9"><a href="#Java-9" class="headerlink" title="Java 9"></a>Java 9</h3><p>Java 9发布于2017年9月21日。最重要的更新是Java平台模块系统的引入<br><a href="https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-9/index.html">IBM Blog</a></p>
-<h4 id="Java平台模块系统"><a href="#Java平台模块系统" class="headerlink" title="Java平台模块系统"></a>Java平台模块系统</h4><ul>
-<li>Project Jigsaw把模块化开发实践引入到了Java平台</li>
-<li>通过jlink工具，创建出只包含所依赖的JDK模块的自定义运行时镜像</li>
-<li>模块的重要特征是其工件（artifact）的根目录中包含了一个描述模块的module-info.class 文件（由module-info.java编译），模块的内容包括：<ul>
-<li>模块导出的包</li>
-<li>模块的依赖关系 <code>requires</code> or <code>requires transitive</code></li>
-<li>服务的提供和使用 <code>ServiceLocator</code> or <code>uses</code> or <code>provides with</code></li>
-<li><code>getModule()</code></li>
-</ul>
-</li>
-<li>工件的格式是JAR文件或者JMOD文件</li>
-<li>JVM提供了相应的API和模块系统进行交互</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">module</span> com.mycompany.sample &#123; <span class="comment">//模块声明定义</span></span><br><span class="line">    <span class="keyword">exports</span> com.mycompany.sample; </span><br><span class="line">    <span class="keyword">requires</span> com.mycompany.common; </span><br><span class="line">    provides com.mycompany.common.DemoService with</span><br><span class="line">        com.mycompany.sample.DemoServiceImpl; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="Jshell"><a href="#Jshell" class="headerlink" title="Jshell"></a>Jshell</h4><p>Jshell提供的功能类似于NodeJS和Python中的Read-Evaluation-PrintLoop 功能。</p>
-<ul>
-<li>基本的表达式计算</li>
-<li>创建Java 类和方法</li>
-<li>执行代码片段</li>
-<li>详细介绍请执行 <code>jshell</code> &#x3D;&gt; <code>/help /list</code></li>
-</ul>
-<h4 id="集合、Stream、Optional、进程"><a href="#集合、Stream、Optional、进程" class="headerlink" title="集合、Stream、Optional、进程"></a>集合、Stream、Optional、进程</h4><ul>
-<li>List.of()\Set.of()\Map.of()\Map.ofEntries()等工厂方法返回不可变集合</li>
-<li>Stream新增API：filtering、flatMapping <a href="StreamAPI.md">todo</a></li>
-<li>Optional 类新增API： ifPresentOrElse、or、stream</li>
-<li>进程API：接口ProcessHandle可以对原生进程进行管理</li>
-<li>平台日志API：System.LoggerFinder 来管理日志记录器实现</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123; </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> System.<span class="type">Logger</span> <span class="variable">LOGGER</span> <span class="operator">=</span> System.getLogger(<span class="string">&quot;Main&quot;</span>); </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> &#123; </span><br><span class="line">        LOGGER.log(Level.INFO, <span class="string">&quot;Run!&quot;</span>);</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<ul>
-<li>Reactive Streams: <code>java.util.concurrent.Flow</code>, 核心接口：<ul>
-<li>Flow.Publisher</li>
-<li>Flow.Subscriber</li>
-<li>Flow.Subscription</li>
-<li>Flow.Processor</li>
-</ul>
-</li>
-<li>变量句柄： VariableHandler <code>java.lang.invoke.VarHandle</code></li>
-<li>改进方法句柄： <code>java.lang.MethodHandles</code></li>
-<li>CompletableFuture <code>orTimeout</code></li>
-<li>Java8引入的JS引擎Nashorn增强：实现了ES6的新特性</li>
-<li>IO： <code>readAllBytes</code>,<code>readNBytes</code>,<code>transferTo</code></li>
-<li>新增SHA-3 哈希算法，java.security.SecureRandom生成使用DRBG算法的强随机数</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.codec.binary.Hex; </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SHA3</span> &#123; </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">main</span><span class="params">(<span class="keyword">final</span> String[] args)</span> <span class="keyword">throws</span> NoSuchAlgorithmException &#123; </span><br><span class="line">        <span class="keyword">final</span> <span class="type">MessageDigest</span> <span class="variable">instance</span> <span class="operator">=</span> MessageDigest.getInstance(<span class="string">&quot;SHA3-224&quot;</span>); </span><br><span class="line">        <span class="keyword">final</span> <span class="type">byte</span>[] <span class="variable">digest</span> <span class="operator">=</span> instance.digest(<span class="string">&quot;&quot;</span>.getBytes()); </span><br><span class="line">        System.out.println(Hex.encodeHexString(digest)); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>统一JVM日志： <code>-Xlog</code>控制JVM日志输出的标签、级别、修饰符、输出目标</li>
-<li>新增jcmd调用的诊断命令</li>
-<li>接口支持私有方法</li>
-</ul>
-<h3 id="Java-8"><a href="#Java-8" class="headerlink" title="Java 8"></a>Java 8</h3><p>Java 8 发布于2014年3月18日。</p>
-<ul>
-<li>函数式接口： @FunctionalInterface</li>
-<li>Lambda表达式</li>
-<li>接口增强：<ul>
-<li>default 修饰的非抽象方法：可以在子类中直接使用</li>
-<li>增加静态方法，可以直接通过接口调用</li>
-</ul>
-</li>
-<li>Streaming API：实现集合的并行处理和函数式操作，根据操作返回结果的不同，流式操作分为中间操作和最终操作，前者返回流本身，后者返回一特定类型的结果，实现了集合的过滤、排序、映射等<ul>
-<li><p>stream.sequential() 返回串行流 </p>
-</li>
-<li><p><code> int count= (int) ((Stream) list.stream().sequential()).sorted().count();</code></p>
-</li>
-<li><p>stream.parallel() 返回并行流 </p>
-</li>
-<li><p><code>int count = (int)((Stream) list.stream().parallel()).sorted().count();</code></p>
-</li>
-<li><p>中间操作：<code>filter/sorted/map/distinct/subStream list.stream() .filter((s) -&gt; s.startsWith(&quot;s&quot;)) .forEach(System.out::println);</code></p>
-</li>
-<li><p>终止操作：forEach&#x2F;toArray&#x2F;findFirst&#x2F;anyMatch</p>
-</li>
-</ul>
-</li>
-<li>注解的更新：<ul>
-<li>增加了类型注解：ElementType.TYPE_USE&#x2F;ElementType.TPYE_PARAMETER</li>
-<li>使用Checker Framework等第三方工具在编译期检查出运行时错误</li>
-<li>支持重复注解：@Repeatable（XX.class）</li>
-</ul>
-</li>
-<li>安全增强：<ul>
-<li>基于AES的加密算法：<code>PEBWithSHA256AndAES_128</code></li>
-<li>客户端默认启动TLS1.2和TLS1.1、系统属性jdk.tls.client.protocols</li>
-<li>Keystore增强</li>
-<li>支持安全的随机数生成器：SecureRandom.getInstanceStrong</li>
-<li>JSSE服务端支持SNI</li>
-<li>默认禁用安全性差的加密算法：例如DES相关的Kerberos5</li>
-</ul>
-</li>
-<li>NIO改进：<ul>
-<li>改进了java.nio.charset.Charset实现</li>
-<li>优化了String.getBytes性能</li>
-<li>新增API：BufferedReader.line()&#x2F;File.lines(Path,Charset)&#x2F;File.list(Path)&#x2F;File.walk(Path,int,FileVisitOption)&#x2F;Find.find(…)</li>
-</ul>
-</li>
-<li>全球化功能：<ul>
-<li>支持新的Unicode 6.2.0标准</li>
-<li>新增日历和本地化API</li>
-<li>改进了日期时间的管理</li>
-</ul>
-</li>
-<li>IDE：<ul>
-<li>Eclipse Kepler 4.3.2 默认支持Java8</li>
-</ul>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://ruiqiliu.github.io/2018/05/13/Java-%E7%AE%80%E5%8F%B2/" data-id="cuid0NA2hTWiKJgjKlLSfIE97" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/" rel="tag">Java</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
 
 
   <nav id="page-nav">
@@ -1272,13 +1233,20 @@
           <aside id="sidebar">
   
     
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/%E5%89%8D%E7%AB%AF/">前端</a></li></ul>
+    </div>
+  </div>
+
 
   
     
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/" rel="tag">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/" rel="tag">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/" rel="tag">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/" rel="tag">spring</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/3D/" rel="tag">3D</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Build/" rel="tag">Build</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DB/" rel="tag">DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/" rel="tag">Tools</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/WebGL/" rel="tag">WebGL</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/WebGPU/" rel="tag">WebGPU</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/" rel="tag">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/three-js/" rel="tag">three.js</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a></li></ul>
     </div>
   </div>
 
@@ -1288,7 +1256,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 10px;">Architecture</a> <a href="/tags/Build/" style="font-size: 10px;">Build</a> <a href="/tags/DB/" style="font-size: 10px;">DB</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/tags/Java/" style="font-size: 20px;">Java</a> <a href="/tags/NIO/" style="font-size: 10px;">NIO</a> <a href="/tags/Spring/" style="font-size: 10px;">Spring</a> <a href="/tags/Tools/" style="font-size: 10px;">Tools</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/spring/" style="font-size: 10px;">spring</a>
+      <a href="/tags/3D/" style="font-size: 10px;">3D</a> <a href="/tags/Architecture/" style="font-size: 10px;">Architecture</a> <a href="/tags/Build/" style="font-size: 10px;">Build</a> <a href="/tags/DB/" style="font-size: 10px;">DB</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/tags/Java/" style="font-size: 20px;">Java</a> <a href="/tags/NIO/" style="font-size: 10px;">NIO</a> <a href="/tags/Spring/" style="font-size: 10px;">Spring</a> <a href="/tags/Tools/" style="font-size: 10px;">Tools</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/WebGL/" style="font-size: 10px;">WebGL</a> <a href="/tags/WebGPU/" style="font-size: 10px;">WebGPU</a> <a href="/tags/spring/" style="font-size: 10px;">spring</a> <a href="/tags/three-js/" style="font-size: 10px;">three.js</a> <a href="/tags/%E5%89%8D%E7%AB%AF/" style="font-size: 10px;">前端</a>
     </div>
   </div>
 
@@ -1297,7 +1265,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">July 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/06/">June 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/10/">October 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">July 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/06/">June 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">May 2018</a></li></ul>
     </div>
   </div>
 
@@ -1308,6 +1276,10 @@
     <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2026/10/07/threejs-solar-system/">从 WebGL 到 WebGPU：给小朋友写一个 three.js 太阳系</a>
+          </li>
         
           <li>
             <a href="/2020/08/01/postgre/">postgre</a>
@@ -1323,10 +1295,6 @@
         
           <li>
             <a href="/2018/06/19/maven/">maven</a>
-          </li>
-        
-          <li>
-            <a href="/2018/06/14/servlet/">Java Web</a>
           </li>
         
       </ul>
