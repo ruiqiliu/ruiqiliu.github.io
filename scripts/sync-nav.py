@@ -27,6 +27,7 @@ NAV_ITEMS = [
     ("/", "Home"),
     ("/archives", "Archives"),
     ("https://ruiqiliu.github.io/games/children-games/reagan/arcade/", "Reagan's games"),
+    ("https://ruiqiliu.github.io/games/solar-system/", "太阳系"),
 ]
 
 # 标记属性：写进 HTML，用来识别「这一段是本脚本插入的」。
