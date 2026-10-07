@@ -183,6 +183,8 @@ const SCRIPTS = {
       if (p === 700) g.action('gas', true);          // 油门按住
       if (p % 400 === 350) g.action('brake', true);  // 偶尔刹车
       if (p % 400 === 380) g.action('brake', false);
+      if (p % 200 === 0) g.action(p % 400 === 0 ? 'left' : 'right', true);   // 左右转向躲雪糕筒
+      if (p % 200 === 150) { g.action('left', false); g.action('right', false); }
       if (p === 45000) g.action('start', true);      // 第一圈终点后自动回车库，再出发
       if (p === 46000) g.action('gas', true);
     }

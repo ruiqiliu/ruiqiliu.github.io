@@ -7,6 +7,7 @@
    零件不只好看，还影响手感：越野轮抓地更快但颠簸、尾翼加极速。
    ===================================================================== */
 import { clamp } from '../../core/util.js';
+import { ROAD, WHEELS, LIGHTS, SPOILERS, COLORS } from './parts.js';
 import { createControls } from './controls.js';
 import { draw, hud as hudOf, makeBackground, PADS, HINT, PART_ROWS, START_BTN } from './view.js';
 
@@ -28,24 +29,12 @@ export const L = {
   BRAKE: 520,      // 刹车减速度
   DRAG: 60,        // 松油门的自然阻力
   VMAX_BASE: 320,
-  STAR_GAP: 260,   // 星星间距 px
+  STEER: 320,      // 左右转向速度 px/s
+  STAR_GAP: 500,   // 星星间距 px
   CONE_GAP: 2200,  // 雪糕筒间距 px
   MILE: 500,       // 每跑 500 米庆祝一次
-  GOAL: 200000     // 环形赛程一圈 20 公里（10px = 1 米）
+  GOAL: 100000     // 环形赛程一圈 10 公里（10px = 1 米）
 };
-
-export const WHEELS = [
-  { name: '小圆轮', r: 17, bob: 1.4, grip: 0 },
-  { name: '大花轮', r: 22, bob: 2.4, grip: 0.06 },
-  { name: '越野轮', r: 26, bob: 3.6, grip: 0.14 }
-];
-export const LIGHTS = ['圆圆灯', '方方灯', '星星灯'];
-export const SPOILERS = [
-  { name: '没有尾翼', boost: 0 },
-  { name: '小尾翼', boost: 45 },
-  { name: '大赛翼', boost: 90 }
-];
-export const COLORS = ['#ff8787', '#74c0fc', '#69db7c', '#ffd43b', '#b197fc', '#ffa94d'];
 
 export function create(env) {
   const { ctx, Snd, FX } = env;
@@ -59,6 +48,9 @@ export function create(env) {
     starCount: 0,
     gas: false,
     brake: false,
+    carX: L.W / 2,    // 车在路面上的横向位置
+    steer: 0,         // 键盘转向 -1/0/1
+    touchSteer: 0,    // 触屏转向
     wheelAngle: 0,
     puffT: 0,
     wobble: 0,        // 撞雪糕筒后的晃动（0~1）
@@ -90,6 +82,9 @@ export function create(env) {
     S.brake = false;
     S.wobble = 0;
     S.driveT = 0;
+    S.carX = L.W / 2;
+    S.steer = 0;
+    S.touchSteer = 0;
     S.coneHits = new Set();
     Snd.star();
     Snd.engine(true);
@@ -127,6 +122,12 @@ export function create(env) {
     S.dist += S.speed * dt;
     S.wheelAngle += S.speed * dt / WHEELS[S.part.wheel].r;
 
+    // 左右转向，出路面会被护栏挡回来
+    const steer = S.steer || S.touchSteer;
+    S.carX += steer * L.STEER * dt;
+    const c = ROAD.center(S.dist);
+    S.carX = clamp(S.carX, c - ROAD.width / 2 + 36, c + ROAD.width / 2 - 36);
+
     // 引擎音随速度（隐藏页会先被停掉，这里再拉起来）
     Snd.engine(true);
     Snd.engineRev(S.speed / vmax());
@@ -138,28 +139,34 @@ export function create(env) {
       FX.burst(L.CAR_X - 95, L.GROUND - 40, ['#cfcfcf', '#ececec'], 3, 0.7);
     }
 
-    // 捡星星：星星按世界坐标摆在路上，车开近就吸走
-    const i0 = Math.max(1, Math.floor((S.dist - 60) / L.STAR_GAP));
+    // 捡星星：星星带随机车道，开近了才吸走
+    const i0 = Math.max(1, Math.floor((S.dist - 80) / L.STAR_GAP));
     for (let i = i0; i <= i0 + 3; i++) {
       const wx = i * L.STAR_GAP;
-      if (S.got.has(wx) || Math.abs(wx - S.dist) > 46) continue;
+      if (S.got.has(wx) || Math.abs(wx - S.dist) > 50) continue;
+      const lane = (((i * 2246822519) >>> 0) % 3 - 1) * 115;
+      const sx = ROAD.center(wx) + lane;
+      if (Math.abs(sx - S.carX) > 58) continue;
       S.got.add(wx);
       S.starCount++;
-      FX.burst(L.CAR_X, L.GROUND - 120, ['#ffd43b', '#fff3bf', '#ffffff'], 14, 1);
-      FX.text(L.CAR_X, L.GROUND - 145, '+1', '#f08c00', 22);
+      FX.burst(S.carX, L.H - 150, ['#ffd43b', '#fff3bf', '#ffffff'], 14, 1);
+      FX.text(S.carX, L.H - 175, '+1', '#f08c00', 22);
       Snd.star();
     }
 
-    // 雪糕筒路障：撞上速度掉到四分之一，提前刹车能少掉速
-    const c0 = Math.max(0, Math.floor((S.dist - 80) / L.CONE_GAP));
+    // 雪糕筒路障（暴力摩托式）：撞上速度掉到三分之一，左右躲开就没事
+    const c0 = Math.max(0, Math.floor((S.dist - 90) / L.CONE_GAP));
     for (let i = c0; i <= c0 + 2; i++) {
       const wx = i * L.CONE_GAP + 900;
-      if (S.coneHits.has(wx) || Math.abs(wx - S.dist) > 34) continue;
+      if (S.coneHits.has(wx) || Math.abs(wx - S.dist) > 42) continue;
+      const lane = (((i * 2654435761) >>> 0) % 3 - 1) * 115;
+      const cx2 = ROAD.center(wx) + lane;
+      if (Math.abs(cx2 - S.carX) > 52) continue;
       S.coneHits.add(wx);
-      S.speed *= 0.25;
-      S.wobble = 0.8;
-      FX.burst(L.CAR_X + 40, L.GROUND - 26, ['#ff922b', '#ffd43b', '#ffffff'], 16, 1);
-      FX.text(L.CAR_X + 40, L.GROUND - 80, '哎哟！', '#e8590c', 22);
+      S.speed *= 0.3;
+      S.wobble = 0.9;
+      FX.burst(S.carX, L.H - 190, ['#ff922b', '#ffd43b', '#ffffff'], 16, 1);
+      FX.text(S.carX, L.H - 230, '哎哟！', '#e8590c', 22);
       Snd.bump();
     }
 
@@ -178,7 +185,7 @@ export function create(env) {
     const mile0 = Math.floor((S.dist - S.speed * dt) / L.MILE);
     const mile1 = Math.floor(S.dist / L.MILE);
     if (mile1 > mile0) {
-      FX.text(L.W / 2, 190, '开了 ' + mile1 * L.MILE + ' 米，好棒！', '#2f9e44', 26);
+      FX.text(L.W / 2, 190, '开了 ' + mile1 * L.MILE / 10 + ' 米，好棒！', '#2f9e44', 26);
       FX.burst(L.W / 2, 215, ['#69db7c', '#b2f2bb', '#ffffff'], 16, 1);
     }
   }
@@ -216,8 +223,16 @@ export function create(env) {
       if (name === 'cat2') { S.selCat = 1; cycle(1, 1); return; }
       if (name === 'cat3') { S.selCat = 2; cycle(2, 1); return; }
       if (name === 'cat4') { S.selCat = 3; cycle(3, 1); return; }
-      if (name === 'left') { if (S.phase === 'build') cycle(S.selCat, -1); return; }
-      if (name === 'right') { if (S.phase === 'build') cycle(S.selCat, 1); return; }
+      if (name === 'left') {
+        if (S.phase === 'build') cycle(S.selCat, -1);
+        else S.steer = -1;
+        return;
+      }
+      if (name === 'right') {
+        if (S.phase === 'build') cycle(S.selCat, 1);
+        else S.steer = 1;
+        return;
+      }
     },
 
     /* 控制层的指针入口 */
@@ -239,15 +254,17 @@ export function create(env) {
           if (p.x >= r.rightX && p.x <= r.rightX + r.arrowW) { cycle(i, 1); return; }
           if (p.x >= r.midX && p.x <= r.midX + r.midW) { cycle(i, 1); return; }
         }
-      } else {
-        // 开车时按住屏幕：右半边油门，左半边刹车
-        if (p.x > L.W / 2) S.gas = true;
-        else S.brake = true;
+      } else if (S.phase === 'drive') {
+        // 按住屏幕：左 1/3 左转，右 1/3 右转，中间油门
+        if (p.x < L.W / 3) S.touchSteer = -1;
+        else if (p.x > (L.W * 2) / 3) S.touchSteer = 1;
+        else S.gas = true;
       }
     },
     release() {
       S.gas = false;
       S.brake = false;
+      S.touchSteer = 0;
     },
 
     /* 供 selftest 使用 */

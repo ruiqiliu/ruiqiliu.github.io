@@ -19,3 +19,12 @@ export const SPOILERS = [
 ];
 
 export const COLORS = ['#ff8787', '#74c0fc', '#69db7c', '#ffd43b', '#b197fc', '#ffa94d'];
+
+/* 赛道几何：世界里程 p（px）对应的路中心横向位置。
+   弯道 = 两个正弦叠加，路宽 380px，赛车在路里左右躲。 */
+export const ROAD = {
+  width: 380,
+  center(p) {
+    return 400 + Math.sin(p / 700) * 120 + Math.sin(p / 413 + 1.7) * 55;
+  }
+};
