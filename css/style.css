@@ -621,10 +621,17 @@ a.article-title:hover {
   padding: 10px 0;
 }
 .article-entry blockquote {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.4em;
-  margin: 1.6em 20px;
-  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-size: 1em;
+  margin: 1.6em 0;
+  padding: 0.6em 1.2em;
+  border-left: 4px solid #ddd;
+  background: #f7f8fa;
+  text-align: left;
+}
+.article-entry blockquote p {
+  margin: 0.4em 0;
+  line-height: 1.6em;
 }
 .article-entry blockquote footer {
   font-size: 14px;
