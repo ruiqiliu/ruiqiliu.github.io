@@ -98,6 +98,16 @@
     backdrop-filter: blur(10px);
     line-height: 1.7;
   }
+  #info.hidden { display: none; }
+  #infoClose {
+    position: absolute; top: 8px; right: 8px;
+    width: 28px; height: 28px; line-height: 26px;
+    font: inherit; font-size: 15px; font-weight: 700;
+    color: var(--muted); background: rgba(255,255,255,.06);
+    border: 1px solid var(--line); border-radius: 50%;
+    cursor: pointer; padding: 0;
+  }
+  #infoClose:hover { color: var(--text); background: rgba(255,255,255,.14); }
   #info h2 { margin: 0 0 2px; font-size: 20px; }
   #info h2 small { color: var(--muted); font-size: 13px; margin-left: 8px; font-weight: 600; }
   #info .zh { margin: 6px 0 0; font-size: 13.5px; }
@@ -161,9 +171,9 @@
   <button class="btn" data-speed="20">20×</button>
 </div>
 
-<div id="hint">拖拽旋转 · 滚轮 / 双指缩放 · 点星球看介绍</div>
+<div id="hint">拖拽旋转 · 滚轮 / 双指缩放 · 点星球看介绍（卡片可关闭）</div>
 <div id="chips"></div>
-<div id="info"></div>
+<div id="info"><button id="infoClose" title="关闭介绍">✕</button></div>
 <div id="fallback">这个页面需要 WebGL 支持。<br>请换用较新的 Chrome / Safari / Edge 浏览器打开。</div>
 
 <script type="module" src="main.js"></script>

@@ -586,12 +586,20 @@ for (const b of BODIES) {
 function renderInfo(key) {
   const b = BODIES.find((x) => x.key === key);
   infoEl.innerHTML =
+    `<button id="infoClose" title="关闭介绍">✕</button>` +
     `<h2>${b.zh}<small>${b.en}</small></h2>` +
     b.info.rows.map((r) => `<div class="row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('') +
     `<p class="fun">${b.info.fun[0]}</p>` +
     b.info.rows.map((r) => `<div class="row"><span>${r[0].split(' ')[1] || r[0]}</span><span>${r[2]}</span></div>`).join('') +
     `<p class="fun en">${b.info.fun[1]}</p>`;
+  infoEl.classList.remove('hidden');
+  document.getElementById('infoClose').addEventListener('click', closeInfo);
   renderChips();
+}
+
+/** 关闭信息卡：画面全给 3D；点星球胶囊会重新打开 */
+function closeInfo() {
+  infoEl.classList.add('hidden');
 }
 renderInfo(selected);
 
