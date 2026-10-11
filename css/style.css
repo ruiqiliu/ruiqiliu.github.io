@@ -385,7 +385,8 @@ body {
   margin-left: -15px;
 }
 .nav-icon,
-.main-nav-link {
+.main-nav-link,
+.sub-nav-link {
   float: left;
   color: #fff;
   opacity: 0.6;
@@ -399,7 +400,8 @@ body {
   padding: 20px 15px;
 }
 .nav-icon:hover,
-.main-nav-link:hover {
+.main-nav-link:hover,
+.sub-nav-link:hover {
   opacity: 1;
 }
 .nav-icon {
@@ -435,6 +437,10 @@ body {
 #sub-nav {
   float: right;
   margin-right: -15px;
+}
+.sub-nav-link {
+  font-weight: 300;
+  letter-spacing: 1px;
 }
 #nav-rss-link:before {
   content: "\f09e";
