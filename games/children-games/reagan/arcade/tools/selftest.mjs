@@ -345,6 +345,8 @@ const BASE = [
   '--headless=new',
   '--disable-gpu',
   '--no-sandbox',
+  '--enable-unsafe-swiftshader',   // 3D 游戏的无头 WebGL 需要
+  '--use-angle=swiftshader',
   '--disable-dev-shm-usage',
   '--hide-scrollbars',
   '--no-first-run',

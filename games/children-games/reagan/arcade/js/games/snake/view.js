@@ -1,9 +1,9 @@
 /* =====================================================================
-   games/snake/view.js — 贪吃蛇 · UI 层
+   games/snake/view.js — 贪吃蛇 · UI 层（3D 版）
+   俯视 3D 棋盘：立体蛇身（带头和眼睛）、水果球、金色星星。
    ===================================================================== */
-import { TAU, rr, shade, FONT_UI, FONT_EMOJI, FONT_MONO } from '../../core/util.js';
-import { surface } from '../../core/surface.js';
-import { avatar } from '../../core/avatar.js';
+import { createStage, place } from '../../core/render3d.js';
+import { createFX3D } from '../../core/fx3d.js';
 
 export const PADS =
   '<div class="dpad">' +
@@ -25,154 +25,149 @@ export function hud(S) {
   ];
 }
 
-/** 预渲染棋盘：薄荷绿背景 + 白色圆角棋盘 + 浅格子 */
-export function makeBackground(L) {
-  const { canvas, ctx: g } = surface.offscreen(L.W, L.H);
+export function makeBackground() { return null; }
 
-  const grad = g.createLinearGradient(0, 0, L.W, L.H);
-  grad.addColorStop(0, '#eafff2');
-  grad.addColorStop(1, '#d8f6e6');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, L.W, L.H);
+/* ---------------- 3D 舞台与元素 ---------------- */
 
-  rr(g, L.PAD - 6, L.PAD - 6, L.N * L.CELL + 12, L.N * L.CELL + 12, 20);
-  g.fillStyle = '#ffffff';
-  g.fill();
-  g.strokeStyle = '#b7ebcb';
-  g.lineWidth = 4;
-  g.stroke();
+let st = null, fx = null;
+let segPool = [], eyeL = null, eyeR = null, headG = null;
+let foodMesh = null, foodSprite = null, tiles = [];
+let boardBuilt = false;
 
-  g.save();
-  rr(g, L.PAD, L.PAD, L.N * L.CELL, L.N * L.CELL, 14);
-  g.clip();
+const FRUIT_COLORS = { '🍎': 0xe03131, '🍌': 0xfab005, '🍇': 0x9b59b6, '🍓': 0xff6b81, '🍊': 0xff922b, '🍉': 0x51cf66, '🍒': 0xc2255c, '🥝': 0x94c94a };
+
+function ensureStage(L) {
+  st = createStage({
+    W: L.W, H: L.H,
+    fov: 46,
+    cam: [0, 560, 460], look: [0, -40, 0],
+    bg: 0x0e1a12
+  });
+  if (!st) return false;
+  fx = createFX3D(st, (x, y, z) => [x - L.W / 2, L.H / 2 - y, z || 0]);
+  const T = st.T;
+
+  // 棋盘格子（棋盘格双色）
   for (let y = 0; y < L.N; y++) {
     for (let x = 0; x < L.N; x++) {
-      if ((x + y) % 2 === 0) continue;
-      g.fillStyle = 'rgba(140,220,175,.16)';
-      g.fillRect(L.PAD + x * L.CELL, L.PAD + y * L.CELL, L.CELL, L.CELL);
+      const m = new T.Mesh(
+        new T.BoxGeometry(L.CELL - 4, 8, L.CELL - 4),
+        new T.MeshLambertMaterial({ color: (x + y) % 2 ? 0x8fd08a : 0x9edc98 })
+      );
+      place(st, m, L.PAD + x * L.CELL + L.CELL / 2, L.PAD + y * L.CELL + L.CELL / 2, -12);
+      st.world.add(m);
+      tiles.push(m);
     }
   }
-  g.restore();
+  // 边框
+  const frameMat = new T.MeshLambertMaterial({ color: 0x2f6b3a });
+  const side = L.N * L.CELL + 20;
+  for (const [w, h, x, y] of [
+    [side + 24, 20, L.W / 2, L.PAD - 12],
+    [side + 24, 20, L.W / 2, L.PAD + L.N * L.CELL + 12],
+    [20, side + 24, L.PAD - 12, L.W / 2],
+    [20, side + 24, L.PAD + L.N * L.CELL + 12, L.W / 2]
+  ]) {
+    const m = new T.Mesh(new T.BoxGeometry(w, 26, h), frameMat);
+    place(st, m, x, y, 0);
+    st.world.add(m);
+  }
 
-  return canvas;
+  // 蛇身池
+  for (let i = 0; i < 70; i++) {
+    const m = new T.Mesh(
+      new T.BoxGeometry(L.CELL - 10, 22, L.CELL - 10),
+      new T.MeshLambertMaterial({ color: 0x69db7c })
+    );
+    st.world.add(m);
+    segPool.push(m);
+  }
+
+  // 蛇头（带眼睛）
+  headG = new T.Group();
+  const head = new T.Mesh(new T.BoxGeometry(L.CELL - 6, 26, L.CELL - 6), new T.MeshLambertMaterial({ color: 0x2f9e44 }));
+  headG.add(head);
+  for (const ex of [-9, 9]) {
+    const e = new T.Mesh(new T.SphereGeometry(4.5, 10, 8), new T.MeshLambertMaterial({ color: 0xffffff }));
+    e.position.set(ex, 8, -10);
+    headG.add(e);
+    const p = new T.Mesh(new T.SphereGeometry(2.2, 8, 6), new T.MeshLambertMaterial({ color: 0x212529 }));
+    p.position.set(ex, 8, -13);
+    headG.add(p);
+  }
+  st.world.add(headG);
+
+  // 食物：水果球 + 表情牌
+  foodMesh = new T.Mesh(new T.SphereGeometry(15, 20, 16), new T.MeshLambertMaterial({ color: 0xe03131 }));
+  st.world.add(foodMesh);
+  const foodCv = document.createElement('canvas');
+  foodCv.width = foodCv.height = 64;
+  const fcx = foodCv.getContext('2d');
+  fcx.font = '48px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+  fcx.textAlign = 'center';
+  fcx.textBaseline = 'middle';
+  fcx.fillText('🍎', 32, 34);
+  const fTex = new T.CanvasTexture(foodCv);
+  fTex.colorSpace = T.SRGBColorSpace;
+  foodSprite = new T.Sprite(new T.SpriteMaterial({ map: fTex, transparent: true }));
+  foodSprite.scale.set(30, 30, 1);
+  st.world.add(foodSprite);
+
+  st.onFrame = (dt) => { if (fx) fx.update(dt); };
+  return true;
 }
+
+/* ---------------- 每帧绘制 ---------------- */
 
 export function draw(ctx, S, L) {
-  ctx.drawImage(S.tiles, 0, 0, L.W, L.H);
-  drawFood(ctx, S, L);
-  drawSnake(ctx, S, L);
-  drawGameOver(ctx, S, L);
-}
+  if (!st && !ensureStage(L)) return;
 
-/* ---------------------------------------------------------------- */
-
-function drawFood(ctx, S, L) {
-  const f = S.food;
-  if (!f) return;
-
-  const cx = L.PAD + f.x * L.CELL + L.CELL / 2;
-  const cy = L.PAD + f.y * L.CELL + L.CELL / 2;
-  const s = 1 + Math.sin(S.T * 5) * 0.09;
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(s, s);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '30px ' + FONT_EMOJI;
-  ctx.fillText(f.emo, 0, 2);
-  ctx.restore();
-
-  // 金色星星食物：加一圈会呼吸的光晕，让孩子一眼看出是「大奖」
-  if (f.star) {
-    ctx.save();
-    ctx.globalAlpha = 0.45 + Math.sin(S.T * 7) * 0.25;
-    ctx.beginPath();
-    ctx.arc(cx, cy, L.CELL * 0.46, 0, TAU);
-    ctx.fillStyle = 'rgba(255,212,59,.55)';
-    ctx.fill();
-    ctx.restore();
+  // 蛇身
+  for (let i = 0; i < segPool.length; i++) {
+    const m = segPool[i];
+    if (i < S.snake.length) {
+      const s = S.snake[i];
+      m.visible = true;
+      place(st, m, L.PAD + s.x * L.CELL + L.CELL / 2, L.PAD + s.y * L.CELL + L.CELL / 2, 8);
+      const k = i / Math.max(1, S.snake.length);
+      m.material.color.setHex(i === 0 ? 0x2f9e44 : (i % 2 ? 0x51cf66 : 0x69db7c));
+      m.scale.setScalar(1 - k * 0.25);
+    } else m.visible = false;
   }
-}
 
-function drawSnake(ctx, S, L) {
-  for (let i = S.snake.length - 1; i >= 0; i--) {
-    const s = S.snake[i];
-    const x = L.PAD + s.x * L.CELL;
-    const y = L.PAD + s.y * L.CELL;
-    const head = i === 0;
-    const t = 1 - i / Math.max(1, S.snake.length);
-    const col = head
-      ? '#2f9e44'
-      : i % 2
-        ? shade('#40c057', t * 0.35)
-        : shade('#37b24d', t * 0.35);
+  // 蛇头 + 眼睛朝向
+  const h = S.snake[0];
+  if (h) {
+    place(st, headG, L.PAD + h.x * L.CELL + L.CELL / 2, L.PAD + h.y * L.CELL + L.CELL / 2, 14);
+    headG.rotation.y = Math.atan2(-S.dir.x, -S.dir.y);
+  }
 
-    ctx.save();
-    if (head) {
-      ctx.shadowColor = 'rgba(47,158,68,.5)';
-      ctx.shadowBlur = 14;
+  // 食物
+  if (S.food && !S.over) {
+    const fx0 = L.PAD + S.food.x * L.CELL + L.CELL / 2;
+    const fy0 = L.PAD + S.food.y * L.CELL + L.CELL / 2;
+    const bob = Math.sin(S.food.t * 5) * 4;
+    if (S.food.star) {
+      foodMesh.visible = false;
+      foodSprite.visible = false;
+      // 金色星星：用八面体表示
+      place(st, foodMesh, fx0, fy0 + bob, 16);
+      foodMesh.material.color.setHex(0xffd43b);
+      foodMesh.visible = true;
+      foodMesh.scale.setScalar(1.2);
+      foodMesh.rotation.y += 0.06;
+    } else {
+      place(st, foodMesh, fx0, fy0 + bob, 16);
+      foodMesh.visible = true;
+      foodMesh.scale.setScalar(1);
+      foodMesh.rotation.y += 0.03;
+      foodMesh.material.color.setHex(FRUIT_COLORS[S.food.emo] || 0xe03131);
+      foodSprite.visible = false;
     }
-    rr(ctx, x + 2, y + 2, L.CELL - 4, L.CELL - 4, head ? 14 : 11);
-    ctx.fillStyle = col;
-    ctx.fill();
-    ctx.restore();
-
-    rr(ctx, x + 7, y + 6, L.CELL - 14, 7, 3);
-    ctx.fillStyle = 'rgba(255,255,255,.35)';
-    ctx.fill();
-
-    if (head) drawHeadFace(ctx, L, x, y, S.dir);
+  } else {
+    foodMesh.visible = false;
+    foodSprite.visible = false;
   }
-}
 
-/** 蛇头：真实头像 + 朝向移动方向的信子 */
-function drawHeadFace(ctx, L, x, y, dir) {
-  const cx = x + L.CELL / 2;
-  const cy = y + L.CELL / 2;
-
-  // 信子留在卡通形态：告诉小朋友蛇往哪边走，头转向了但信子方向更好懂
-  const ex = dir.x;
-  const ey = dir.y;
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(Math.atan2(ey, ex));
-  ctx.beginPath();
-  ctx.moveTo(L.CELL * 0.16, 0);
-  ctx.lineTo(L.CELL * 0.46, 0);
-  ctx.strokeStyle = '#ff6b81';
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  ctx.restore();
-
-  avatar.hero(ctx, cx, cy, L.CELL * 0.47, { ringW: 3 });
-}
-
-function drawGameOver(ctx, S, L) {
-  if (!S.over) return;
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,.82)';
-  ctx.fillRect(0, 0, L.W, L.H);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  ctx.font = '800 42px ' + FONT_UI;
-  ctx.fillStyle = '#2f9e44';
-  ctx.fillText('玩得真棒！', L.W / 2, L.H / 2 - 100);
-
-  avatar.hero(ctx, L.W / 2, L.H / 2 - 22, 34, { ring: '#ffffff', ringW: 4 });
-
-  ctx.font = '800 30px ' + FONT_MONO;
-  ctx.fillStyle = '#2b3550';
-  ctx.fillText('吃到 ' + S.score + ' 个水果', L.W / 2, L.H / 2 + 52);
-
-  ctx.font = '700 20px ' + FONT_UI;
-  ctx.fillStyle = '#7a849e';
-  ctx.fillText('最好成绩 ' + Math.max(S.best, S.score), L.W / 2, L.H / 2 + 92);
-
-  ctx.font = '800 22px ' + FONT_UI;
-  ctx.fillStyle = '#e8590c';
-  ctx.fillText('按 空格 或点击屏幕，再玩一次！', L.W / 2, L.H / 2 + 146);
-  ctx.restore();
+  st.render(1 / 60);
 }

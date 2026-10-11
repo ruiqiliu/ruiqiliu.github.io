@@ -143,9 +143,25 @@ html = html.replace(/<link rel="stylesheet" href="([^"]+)"\s*\/?>/g, (_, href) =
 if (!/<script type="module" src="[^"]+"><\/script>/.test(html)) {
   throw new Error('build: index.html 里找不到 <script type="module" src="...">');
 }
+// three.js 以 import map + data URL 内联（3D 游戏的 window.THREE 由 module 胶水提供）
+let threeSrc = '';
+const threeLib = path.join(ROOT, 'lib/three.module.min.js');
+if (fs.existsSync(threeLib)) {
+  threeSrc = fs.readFileSync(threeLib, 'utf8');
+}
+const threeBoot = threeSrc
+  ? '<script type="importmap">{ "imports": { "three": "data:text/javascript;base64,' +
+    Buffer.from(threeSrc).toString('base64') + '" } }</script>' +
+    '<script type="module">import * as THREE from "three"; window.THREE = THREE;</script>'
+  : '';
+// 移除源版的 import map + 胶水（它们指向 ./lib/ 相对路径，dist 里位置不同会 404）
+html = html.replace(
+  /<script type="importmap">[\s\S]*?<\/script>\s*<script type="module">\s*import \* as THREE[\s\S]*?<\/script>/,
+  ''
+);
 html = html.replace(
   /<script type="module" src="[^"]+"><\/script>/,
-  '<script>\n' + bundle() + '\n</script>'
+  threeBoot + '<script>\n' + bundle() + '\n</script>'
 );
 
 html = '<!-- 由 tools/build.mjs 自动生成，请勿直接修改。源码见 ../index.html 与 ../js/、../css/ -->\n' + html;

@@ -1,8 +1,11 @@
 /* =====================================================================
-   games/flappy/view.js — 小鸟飞飞 · UI 层
+   games/flappy/view.js — 小鸟飞飞 · UI 层（3D 版）
+   three.js 渲染：立体管子、带光影的小鸟（脸是小朋友的头像）、视差云。
+   逻辑层 game.js 与控制层 controls.js 不变。
    ===================================================================== */
-import { TAU, clamp, rr, FONT_UI, FONT_EMOJI } from '../../core/util.js';
-import { surface } from '../../core/surface.js';
+import { clamp } from '../../core/util.js';
+import { createStage, place } from '../../core/render3d.js';
+import { createFX3D } from '../../core/fx3d.js';
 import { avatar } from '../../core/avatar.js';
 
 export const PADS =
@@ -22,261 +25,131 @@ export function hud(S) {
   ];
 }
 
-/** 预渲染：天空 + 太阳 + 远山（地面和云是动的，每帧现画） */
-export function makeBackground(L) {
-  const { canvas, ctx: g } = surface.offscreen(L.W, L.H);
+export function makeBackground() { return null; }
 
-  const grad = g.createLinearGradient(0, 0, 0, L.GROUND_Y);
-  grad.addColorStop(0, '#6ec6ff');
-  grad.addColorStop(0.55, '#a8ddff');
-  grad.addColorStop(1, '#e8f7ff');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, L.W, L.GROUND_Y);
+/* ---------------- 3D 舞台与元素 ---------------- */
 
-  // 太阳
-  const sg = g.createRadialGradient(120, 84, 8, 120, 84, 92);
-  sg.addColorStop(0, 'rgba(255,246,190,1)');
-  sg.addColorStop(0.4, 'rgba(255,236,150,.5)');
-  sg.addColorStop(1, 'rgba(255,236,150,0)');
-  g.fillStyle = sg;
-  g.beginPath();
-  g.arc(120, 84, 92, 0, TAU);
-  g.fill();
+let st = null, fx = null;
+let birdG = null, wingL = null, wingR = null;
+let pipePool = [], starMesh = null, clouds = [];
 
-  // 远山
-  const hill = (x, w, h, col) => {
-    g.beginPath();
-    g.moveTo(x - w, L.GROUND_Y);
-    g.quadraticCurveTo(x - w * 0.3, L.GROUND_Y - h * 1.3, x, L.GROUND_Y - h);
-    g.quadraticCurveTo(x + w * 0.3, L.GROUND_Y - h * 1.3, x + w, L.GROUND_Y);
-    g.closePath();
-    g.fillStyle = col;
-    g.fill();
-  };
-  hill(180, 230, 120, '#a7e0b4');
-  hill(470, 300, 160, '#8fd6a2');
-  hill(760, 220, 100, '#b6e8c0');
-  hill(330, 170, 78, '#c3edd0');
+const PIPE_R = 47, RIM_R = 56;
 
-  return canvas;
+function ensureStage(L) {
+  st = createStage({
+    W: L.W, H: L.H,
+    fov: 50,
+    cam: [0, -120, 660], look: [0, -60, 0],
+    bg: 0x8fd3f4
+  });
+  if (!st) return false;
+  fx = createFX3D(st, (x, y, z) => [x - L.W / 2, L.H / 2 - y, z || 0]);
+
+  const T = st.T;
+
+  // 地面
+  const ground = new T.Mesh(new T.BoxGeometry(3200, 90, 420), new T.MeshLambertMaterial({ color: 0x8fd96a }));
+  ground.position.set(0, L.H / 2 - L.GROUND_Y - 45, 0);
+  st.scene.add(ground);
+
+  // 云（视差）
+  for (let i = 0; i < 6; i++) {
+    const c = new T.Mesh(new T.SphereGeometry(34 + (i % 3) * 14, 12, 10), new T.MeshLambertMaterial({ color: 0xffffff }));
+    c.position.set(-600 + i * 260, 60 + (i % 3) * 60, -420 - (i % 2) * 160);
+    c.scale.y = 0.55;
+    c.userData.base = c.position.x;
+    st.scene.add(c);
+    clouds.push(c);
+  }
+
+  // 管子池（8 组：上管 / 下管 / 两个管口圈）
+  const mat = new T.MeshLambertMaterial({ color: 0x4fae4f });
+  const rimMat = new T.MeshLambertMaterial({ color: 0x3c8c3c });
+  for (let i = 0; i < 8; i++) {
+    const g = new T.Group();
+    const top = new T.Mesh(new T.CylinderGeometry(PIPE_R, PIPE_R, 10, 18), mat);
+    const bot = new T.Mesh(new T.CylinderGeometry(PIPE_R, PIPE_R, 10, 18), mat);
+    const rimT = new T.Mesh(new T.CylinderGeometry(RIM_R, RIM_R, 18, 18), rimMat);
+    const rimB = new T.Mesh(new T.CylinderGeometry(RIM_R, RIM_R, 18, 18), rimMat);
+    g.add(top, bot, rimT, rimB);
+    g.userData = { top, bot, rimT, rimB };
+    st.world.add(g);
+    pipePool.push(g);
+  }
+
+  // 星星
+  starMesh = new T.Mesh(new T.OctahedronGeometry(16), new T.MeshLambertMaterial({ color: 0xffd43b, emissive: 0xaa8800 }));
+  st.world.add(starMesh);
+
+  // 小鸟：身体 + 翅膀 + 头像脸
+  birdG = new T.Group();
+  const body = new T.Mesh(new T.SphereGeometry(19, 24, 18), new T.MeshLambertMaterial({ color: 0xffd43b }));
+  birdG.add(body);
+  const wingMat = new T.MeshLambertMaterial({ color: 0xf59f00 });
+  wingL = new T.Mesh(new T.BoxGeometry(20, 5, 14), wingMat);
+  wingL.position.set(-2, 4, 16);
+  wingR = new T.Mesh(new T.BoxGeometry(20, 5, 14), wingMat);
+  wingR.position.set(-2, 4, -16);
+  birdG.add(wingL, wingR);
+  // 头像脸（billboard 贴片）
+  const img = new Image();
+  img.src = avatar.heroURL();
+  const tex = new T.Texture(img);
+  tex.colorSpace = T.SRGBColorSpace;
+  const face = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true }));
+  face.scale.set(26, 26, 1);
+  face.position.set(8, 2, 17);
+  birdG.add(face);
+  img.onload = () => { tex.needsUpdate = true; };
+  st.world.add(birdG);
+
+  st.onFrame = (dt) => { if (fx) fx.update(dt); };
+  return true;
 }
+
+/* ---------------- 每帧绘制 ---------------- */
 
 export function draw(ctx, S, L) {
-  ctx.drawImage(S.bg, 0, 0, L.W, L.H);
+  if (!st && !ensureStage(L)) return;
 
-  drawClouds(ctx, S, L);
-  drawPipes(ctx, S, L);
-  drawCoins(ctx, S, L);
-  drawGround(ctx, S, L);
-  drawBird(ctx, S, L);
-  drawOverlay(ctx, S, L);
-}
-
-/* ---------------------------------------------------------------- */
-
-function drawClouds(ctx, S, L) {
-  const clouds = [
-    { x: 120, y: 96, s: 1.0, a: 0.9 },
-    { x: 430, y: 60, s: 0.7, a: 0.75 },
-    { x: 660, y: 140, s: 0.85, a: 0.8 },
-    { x: 900, y: 80, s: 0.6, a: 0.6 }
-  ];
-  const span = L.W + 320;
-
+  // 云的视差
   for (const c of clouds) {
-    let x = c.x - ((S.pos * 0.22) % span);
-    if (x < -160) x += span;
-
-    ctx.save();
-    ctx.globalAlpha = c.a;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(x, c.y, 34 * c.s, 0, TAU);
-    ctx.arc(x + 40 * c.s, c.y + 6 * c.s, 26 * c.s, 0, TAU);
-    ctx.arc(x - 40 * c.s, c.y + 8 * c.s, 24 * c.s, 0, TAU);
-    ctx.arc(x + 8 * c.s, c.y - 20 * c.s, 26 * c.s, 0, TAU);
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-/** 一根管子（含管口那圈加厚的边缘） */
-function drawPipe(ctx, x, y, w, h) {
-  if (h <= 0) return;
-  const g = ctx.createLinearGradient(x, 0, x + w, 0);
-  g.addColorStop(0, '#4fae4f');
-  g.addColorStop(0.26, '#a5eb9f');
-  g.addColorStop(0.55, '#54bd54');
-  g.addColorStop(1, '#2c7a31');
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(30,80,30,.28)';
-  ctx.shadowBlur = 10;
-  rr(ctx, x, y, w, h, 12);
-  ctx.fillStyle = g;
-  ctx.fill();
-  ctx.restore();
-
-  ctx.strokeStyle = 'rgba(20,60,25,.18)';
-  ctx.lineWidth = 2.5;
-  rr(ctx, x, y, w, h, 12);
-  ctx.stroke();
-}
-
-function drawPipes(ctx, S, L) {
-  for (const p of S.pipes) {
-    if (p.x > L.W || p.x + L.PIPE_W < 0) continue;
-
-    const capH = 26;
-    const capOver = 7;
-
-    // 上管
-    drawPipe(ctx, p.x, 0, L.PIPE_W, p.gapY - capH);
-    drawPipe(ctx, p.x - capOver, p.gapY - capH, L.PIPE_W + capOver * 2, capH);
-
-    // 下管
-    const below = L.GROUND_Y - (p.gapY + p.gap);
-    drawPipe(ctx, p.x, p.gapY + p.gap, L.PIPE_W, below - capH);
-    drawPipe(ctx, p.x - capOver, p.gapY + p.gap, L.PIPE_W + capOver * 2, capH);
-  }
-}
-
-function drawCoins(ctx, S, L) {
-  for (const p of S.pipes) {
-    if (!p.hasCoin || p.coinTaken) continue;
-    const x = p.x + L.PIPE_W / 2;
-    const y = p.gapY + p.gap / 2 + Math.sin(S.T * 4 + p.x * 0.01) * 8;
-
-    ctx.save();
-    ctx.globalAlpha = 0.5 + Math.sin(S.T * 6) * 0.25;
-    ctx.beginPath();
-    ctx.arc(x, y, 24, 0, TAU);
-    ctx.fillStyle = 'rgba(255,212,59,.55)';
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = '30px ' + FONT_EMOJI;
-    ctx.fillText('⭐', x, y + 2);
-    ctx.restore();
-  }
-}
-
-function drawGround(ctx, S, L) {
-  const y = L.GROUND_Y;
-
-  const g = ctx.createLinearGradient(0, y, 0, L.H);
-  g.addColorStop(0, '#8fd96a');
-  g.addColorStop(0.22, '#75c94f');
-  g.addColorStop(1, '#5aab3c');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, y, L.W, L.H - y);
-
-  // 草叶：跟着 world 滚动
-  ctx.save();
-  ctx.globalAlpha = 0.55;
-  ctx.fillStyle = '#a7e77f';
-  const off = S.pos % 44;
-  for (let x = -44; x < L.W + 44; x += 44) {
-    ctx.beginPath();
-    ctx.moveTo(x - off, y + 6);
-    ctx.lineTo(x - off + 8, y - 8);
-    ctx.lineTo(x - off + 16, y + 6);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.restore();
-
-  // 泥土上的一点斑纹
-  ctx.save();
-  ctx.globalAlpha = 0.12;
-  ctx.fillStyle = '#2f5c1f';
-  const off2 = S.pos % 60;
-  for (let x = -60; x < L.W + 60; x += 60) {
-    ctx.beginPath();
-    ctx.ellipse(x - off2 + 20, y + 52, 15, 5, 0, 0, TAU);
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawBird(ctx, S, L) {
-  const b = S.bird;
-
-  // 无敌时间闪烁（看不见的时候也不完全消失，避免小朋友找不到人）
-  if (S.invul > 0 && Math.floor(S.invul * 12) % 2 === 0) ctx.globalAlpha = 0.35;
-
-  ctx.save();
-  ctx.translate(L.BIRD_X, b.y);
-  ctx.rotate(clamp(b.vy / 900, -0.55, 1.0));
-
-  // 身体：真实头像替代原来的黄色卡通小鸟。
-  // 画得比碰撞半径（BIRD_R=19）略大一点：既让脸看得清，
-  // 又等于「擦边不算撞」，对小朋友更宽容。
-  avatar.hero(ctx, 0, 0, L.BIRD_R * 1.45, { ringW: 3 });
-
-  // 翅膀：刚拍完时抬得最高（保留卡通翅膀，头像不会动，靠这个表达拍翅）
-  const wingT = 1 - clamp(b.wing / 0.25, 0, 1);
-  ctx.save();
-  ctx.translate(-L.BIRD_R * 0.42, L.BIRD_R * 0.5);
-  ctx.rotate(-0.9 + wingT * 1.7);
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 15, 8, 0, 0, TAU);
-  ctx.fillStyle = '#ffb703';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(180,90,0,.35)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.restore();
-  ctx.globalAlpha = 1;
-}
-
-function drawOverlay(ctx, S, L) {
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  if (S.phase === 'ready') {
-    ctx.globalAlpha = 0.75 + Math.sin(S.T * 4) * 0.25;
-    ctx.fillStyle = 'rgba(255,255,255,.72)';
-    rr(ctx, L.W / 2 - 210, L.GROUND_Y / 2 - 96, 420, 88, 22);
-    ctx.fill();
-
-    ctx.font = '800 30px ' + FONT_UI;
-    ctx.fillStyle = '#1b6ea8';
-    ctx.fillText('点一下 / 按空格 起飞', L.W / 2, L.GROUND_Y / 2 - 64);
-
-    ctx.font = '700 17px ' + FONT_UI;
-    ctx.fillStyle = '#3d6b8a';
-    ctx.fillText('穿过管子得分，撞到只掉一颗爱心', L.W / 2, L.GROUND_Y / 2 - 26);
+    let x = ((c.userData.base - S.pos * 0.22) % 1600 + 1600) % 1600 - 700;
+    c.position.x = x;
   }
 
-  if (S.phase === 'over') {
-    ctx.fillStyle = 'rgba(255,255,255,.86)';
-    ctx.fillRect(0, 0, L.W, L.H);
-
-    ctx.font = '800 46px ' + FONT_UI;
-    ctx.fillStyle = '#f08c00';
-    ctx.fillText('飞得真棒！', L.W / 2, L.H / 2 - 96);
-
-    avatar.hero(ctx, L.W / 2, L.H / 2 - 18, 34, { ring: '#ffffff', ringW: 4 });
-
-    ctx.font = '800 30px ' + FONT_UI;
-    ctx.fillStyle = '#2b3550';
-    ctx.fillText('穿过 ' + S.score + ' 根管子', L.W / 2, L.H / 2 + 56);
-
-    ctx.font = '700 20px ' + FONT_UI;
-    ctx.fillStyle = '#7a849e';
-    ctx.fillText('最好成绩 ' + S.best, L.W / 2, L.H / 2 + 96);
-
-    ctx.font = '800 22px ' + FONT_UI;
-    ctx.fillStyle = '#e8590c';
-    ctx.fillText('按 空格 或点击屏幕，再飞一次！', L.W / 2, L.H / 2 + 150);
+  // 管子
+  for (let i = 0; i < pipePool.length; i++) {
+    const g = pipePool[i], p = S.pipes[i];
+    if (!p || p.x > L.W + 80 || p.x + 200 < -80) { g.visible = false; continue; }
+    g.visible = true;
+    g.position.set(p.x - L.W / 2 + L.PIPE_W / 2, 0, 0);
+    const hT = p.gapY + 40;
+    g.userData.top.scale.y = hT / 10;
+    g.userData.top.position.y = L.H / 2 - hT / 2 + 20;
+    g.userData.rimT.position.y = L.H / 2 - p.gapY + 9;
+    const hB = L.GROUND_Y - (p.gapY + p.gap);
+    g.userData.bot.scale.y = hB / 10;
+    g.userData.bot.position.y = L.H / 2 - p.gapY - p.gap - hB / 2;
+    g.userData.rimB.position.y = L.H / 2 - p.gapY - p.gap - 9;
   }
 
-  ctx.restore();
+  // 星星
+  const coinPipe = S.pipes.find((p) => p.hasCoin && !p.coinTaken && p.x < L.W + 60 && p.x > -60);
+  if (coinPipe) {
+    starMesh.visible = true;
+    place(st, starMesh, coinPipe.x + L.PIPE_W / 2, coinPipe.gapY + coinPipe.gap / 2 + Math.sin(S.T * 4) * 6, 30);
+    starMesh.rotation.y += 0.04;
+    starMesh.rotation.x = 0.5;
+  } else starMesh.visible = false;
+
+  // 小鸟
+  birdG.visible = !(S.invul > 0 && Math.floor(S.invul * 12) % 2 === 0);
+  place(st, birdG, L.BIRD_X, S.bird.y, 80);
+  birdG.rotation.z = clamp(-S.bird.vy / 900, -0.9, 0.45);
+  const flapK = S.bird.wing / 0.25;
+  wingL.rotation.x = -flapK * 1.1;
+  wingR.rotation.x = flapK * 1.1;
+
+  st.render(1 / 60);
 }

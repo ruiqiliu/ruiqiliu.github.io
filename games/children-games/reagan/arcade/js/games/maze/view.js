@@ -1,10 +1,11 @@
 /* =====================================================================
-   games/maze/view.js — 迷宫探险 · UI 层
-   墙体用「把所有存在的边连成一条路径，再描两遍」的办法画：
-   粗一点的一遍当描边，细一点的一遍当墙身，拐角天然是圆的。
+   games/maze/view.js — 迷宫探险 · UI 层（3D 版）
+   迷宫以「浮雕地图」呈现：墙体立体凸出、头像小人 + 终点旗都在版面上，
+   相机正对版面，整个迷宫一览无余（与贪吃蛇同一套已验证的映射）。
    ===================================================================== */
-import { TAU, rr, lerp, FONT_UI, FONT_EMOJI } from '../../core/util.js';
-import { surface } from '../../core/surface.js';
+import { clamp, lerp } from '../../core/util.js';
+import { createStage, place } from '../../core/render3d.js';
+import { createFX3D } from '../../core/fx3d.js';
 import { avatar } from '../../core/avatar.js';
 
 export const PADS =
@@ -28,196 +29,158 @@ export function hud(S) {
   ];
 }
 
-const cellCX = (maze, x) => maze.ox + (x + 0.5) * maze.cell;
-const cellCY = (maze, y) => maze.oy + (y + 0.5) * maze.cell;
+export function makeBackground() { return null; }
 
-/* ================================================================
-   预渲染：地板 + 墙体
-   ================================================================ */
-export function makeBackground(maze, L) {
-  const { canvas, ctx: g } = surface.offscreen(L.W, L.H);
-  const { cols, rows, cell, ox, oy, cells } = maze;
-  const w = cols * cell;
-  const h = rows * cell;
+/* ---------------- 3D 舞台 ---------------- */
 
-  const grad = g.createLinearGradient(0, 0, 0, L.H);
-  grad.addColorStop(0, '#f3f9ff');
-  grad.addColorStop(1, '#e4eeff');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, L.W, L.H);
+let st = null, fx = null;
+let levelGroup = null, builtMaze = null;
+let starMeshes = [], exitFlag = null, playerSp = null, pathDots = [];
 
-  // 迷宫底板
-  rr(g, ox - 10, oy - 10, w + 20, h + 20, 20);
-  g.fillStyle = '#ffffff';
-  g.fill();
-  g.strokeStyle = '#dbe7ff';
-  g.lineWidth = 3;
-  g.stroke();
-
-  // 交替格子，让空间层次更清楚
-  g.save();
-  rr(g, ox, oy, w, h, 12);
-  g.clip();
-  for (const c of cells) {
-    if ((c.x + c.y) % 2) continue;
-    g.fillStyle = 'rgba(120,170,255,.07)';
-    g.fillRect(ox + c.x * cell, oy + c.y * cell, cell, cell);
-  }
-  g.restore();
-
-  // 墙体
-  g.beginPath();
-  for (const c of cells) {
-    const x0 = ox + c.x * cell;
-    const y0 = oy + c.y * cell;
-    const x1 = x0 + cell;
-    const y1 = y0 + cell;
-
-    if (c.n) { g.moveTo(x0, y0); g.lineTo(x1, y0); }
-    if (c.w) { g.moveTo(x0, y0); g.lineTo(x0, y1); }
-    if (c.y === rows - 1 && c.s) { g.moveTo(x0, y1); g.lineTo(x1, y1); }
-    if (c.x === cols - 1 && c.e) { g.moveTo(x1, y0); g.lineTo(x1, y1); }
-  }
-  g.lineCap = 'round';
-  g.lineJoin = 'round';
-
-  const wallW = Math.max(4, Math.min(L.WALL, cell * 0.16));
-
-  g.lineWidth = wallW + 3;
-  g.strokeStyle = '#a9c2f2';
-  g.stroke();
-
-  g.lineWidth = wallW;
-  g.strokeStyle = '#4f74c9';
-  g.stroke();
-
-  return canvas;
+function cellCenter(maze, x, y) {
+  return [maze.ox + (x + 0.5) * maze.cell, maze.oy + (y + 0.5) * maze.cell];
 }
 
-/* ================================================================
-   每帧绘制
-   ================================================================ */
-export function draw(ctx, S, L) {
-  const maze = S.maze;
-  ctx.drawImage(S.bg, 0, 0, L.W, L.H);
-
-  drawWalked(ctx, S, maze);
-  drawHint(ctx, S, maze);
-  drawCoins(ctx, S, maze);
-  drawStartAndGoal(ctx, maze);
-  drawPlayer(ctx, S, maze);
-
-  if (S.phase === 'win') drawWin(ctx, S, L);
-}
-
-/** 走过的格子染成淡蓝色，小朋友不会一直在原地绕圈 */
-function drawWalked(ctx, S, maze) {
-  const pad = maze.cell * 0.18;
-  ctx.fillStyle = 'rgba(91,157,255,.20)';
-  for (const c of maze.cells) {
-    if (!c.walked) continue;
-    rr(ctx, maze.ox + c.x * maze.cell + pad, maze.oy + c.y * maze.cell + pad,
-       maze.cell - pad * 2, maze.cell - pad * 2, maze.cell * 0.22);
-    ctx.fill();
-  }
-}
-
-function drawHint(ctx, S, maze) {
-  if (S.hintT <= 0) return;
-
-  ctx.save();
-  ctx.globalAlpha = Math.min(1, S.hintT) * 0.9;
-  ctx.strokeStyle = '#ff9f43';
-  ctx.lineWidth = Math.max(4, maze.cell * 0.16);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.setLineDash([maze.cell * 0.24, maze.cell * 0.22]);
-
-  ctx.beginPath();
-  S.maze.path.forEach((c, i) => {
-    const x = cellCX(maze, c.x);
-    const y = cellCY(maze, c.y);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+function ensureStage(L) {
+  st = createStage({
+    W: L.W, H: L.H,
+    fov: 46,
+    cam: [0, 0, 640], look: [0, 0, 0],
+    bg: 0x101828
   });
-  ctx.stroke();
-  ctx.restore();
+  if (!st) return false;
+  fx = createFX3D(st, (x, y, z) => [x - L.W / 2, L.H / 2 - y, z || 0]);
+  const T = st.T;
+
+  // 玩家：头像 billboard
+  const img = new Image();
+  img.src = avatar.heroURL();
+  const tex = new T.Texture(img);
+  tex.colorSpace = T.SRGBColorSpace;
+  playerSp = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true }));
+  playerSp.scale.set(52, 52, 1);
+  st.world.add(playerSp);
+  img.onload = () => { tex.needsUpdate = true; };
+
+  // 终点旗（版面内，杆沿版面竖直方向）
+  exitFlag = new T.Group();
+  const pole = new T.Mesh(new T.BoxGeometry(5, 66, 5), new T.MeshBasicMaterial({ color: 0xe9ecef }));
+  pole.position.y = -40;
+  exitFlag.add(pole);
+  const flag = new T.Mesh(new T.BoxGeometry(34, 20, 4), new T.MeshBasicMaterial({ color: 0xff6b6b }));
+  flag.position.set(17, -58, 0);
+  exitFlag.add(flag);
+  st.world.add(exitFlag);
+
+  st.onFrame = (dt) => { if (fx) fx.update(dt); };
+  return true;
 }
 
-function drawCoins(ctx, S, maze) {
-  for (const k of S.coins) {
-    if (k.taken) continue;
-    const x = cellCX(maze, k.x);
-    const y = cellCY(maze, k.y) + Math.sin(S.T * 4 + k.x) * maze.cell * 0.06;
-
-    ctx.save();
-    ctx.globalAlpha = 0.45 + Math.sin(S.T * 6) * 0.2;
-    ctx.beginPath();
-    ctx.arc(x, y, maze.cell * 0.32, 0, TAU);
-    ctx.fillStyle = 'rgba(255,212,59,.6)';
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = Math.round(maze.cell * 0.5) + 'px ' + FONT_EMOJI;
-    ctx.fillText('⭐', x, y + 1);
-    ctx.restore();
+/** 每一关重建墙体与物件 */
+function rebuildLevel(S, L) {
+  if (levelGroup) {
+    st.world.remove(levelGroup);
+    levelGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    levelGroup = null;
   }
+  const maze = S.maze;
+  if (!maze) return;
+
+  const T = st.T;
+  levelGroup = new T.Group();
+  builtMaze = maze;
+
+  // 底板（浮雕的背板）
+  const floor = new T.Mesh(
+    new T.BoxGeometry(maze.cols * maze.cell + 30, maze.rows * maze.cell + 30, 12),
+    new T.MeshBasicMaterial({ color: 0x24304d })
+  );
+  place(st, floor, L.W / 2, L.H / 2, -16);
+  levelGroup.add(floor);
+
+  // 墙：只画每格的 n / w 两面 + 最后一行 / 列的外沿
+  const wallMat = new T.MeshBasicMaterial({ color: 0xffd98a });
+  const WT = 14, DEPTH = 34;
+  const addWall = (x1, y1, x2, y2) => {
+    const cxm = (x1 + x2) / 2, cym = (y1 + y2) / 2;
+    const horiz = Math.abs(x2 - x1) > Math.abs(y2 - y1);
+    const m = new T.Mesh(
+      new T.BoxGeometry(horiz ? maze.cell + WT : WT, DEPTH, horiz ? WT : maze.cell + WT),
+      wallMat
+    );
+    place(st, m, cxm, cym, DEPTH / 2);
+    levelGroup.add(m);
+  };
+
+  for (let y = 0; y < maze.rows; y++) {
+    for (let x = 0; x < maze.cols; x++) {
+      const c = maze.cells[y * maze.cols + x];
+      const x0 = maze.ox + x * maze.cell, y0 = maze.oy + y * maze.cell;
+      if (c.n) addWall(x0, y0, x0 + maze.cell, y0);
+      if (c.w) addWall(x0, y0, x0, y0 + maze.cell);
+      if (y === maze.rows - 1 && c.s) addWall(x0, y0 + maze.cell, x0 + maze.cell, y0 + maze.cell);
+      if (x === maze.cols - 1 && c.e) addWall(x0 + maze.cell, y0, x0 + maze.cell, y0 + maze.cell);
+    }
+  }
+
+  // 星星
+  starMeshes = [];
+  for (const coin of S.coins) {
+    const m = new T.Mesh(new T.OctahedronGeometry(maze.cell * 0.22), new T.MeshBasicMaterial({ color: 0xffd43b }));
+    const [cxm, cym] = cellCenter(maze, coin.x, coin.y);
+    place(st, m, cxm, cym, 26);
+    levelGroup.add(m);
+    starMeshes.push({ mesh: m, coin });
+  }
+
+  // 提示路线圆点
+  pathDots = [];
+  const dotGeo = new T.SphereGeometry(maze.cell * 0.09, 8, 6);
+  const dotMat = new T.MeshBasicMaterial({ color: 0x74c0fc });
+  for (const c of maze.path) {
+    const [cxm, cym] = cellCenter(maze, c.x, c.y);
+    const d = new T.Mesh(dotGeo, dotMat);
+    place(st, d, cxm, cym, 24);
+    levelGroup.add(d);
+    pathDots.push(d);
+  }
+
+  // 终点旗位置
+  const [ex, ey] = cellCenter(maze, maze.cols - 1, maze.rows - 1);
+  place(st, exitFlag, ex, ey, 20);
+
+  st.world.add(levelGroup);
 }
 
-function drawStartAndGoal(ctx, maze) {
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+/* ---------------- 每帧绘制 ---------------- */
 
-  ctx.globalAlpha = 0.42;
-  ctx.font = Math.round(maze.cell * 0.46) + 'px ' + FONT_EMOJI;
-  ctx.fillText('🏠', cellCX(maze, 0), cellCY(maze, 0));
+export function draw(ctx, S, L) {
+  if (!st && !ensureStage(L)) return;
+  if (builtMaze !== S.maze) rebuildLevel(S, L);
 
-  ctx.globalAlpha = 1;
-  ctx.font = Math.round(maze.cell * 0.62) + 'px ' + FONT_EMOJI;
-  ctx.fillText('🏁', cellCX(maze, maze.cols - 1), cellCY(maze, maze.rows - 1) + 1);
-  ctx.restore();
-}
+  const maze = S.maze;
+  const t = clamp(S.prog, 0, 1);
 
-function drawPlayer(ctx, S, maze) {
-  // 两格之间做一段平滑位移，不是瞬移
-  const e = 1 - (1 - S.prog) * (1 - S.prog);
-  const x = lerp(cellCX(maze, S.from.x), cellCX(maze, S.player.x), e);
-  const y = lerp(cellCY(maze, S.from.y), cellCY(maze, S.player.y), e);
+  // 玩家位置：from → player 之间平滑插值
+  const px = lerp(S.from.x, S.player.x, t);
+  const py = lerp(S.from.y, S.player.y, t);
+  const [wx, wy] = cellCenter(maze, px, py);
+  place(st, playerSp, wx, wy, 42);
+  playerSp.material.rotation = Math.sin(S.T * 6) * 0.08;
 
-  ctx.save();
-  ctx.globalAlpha = 0.18;
-  ctx.beginPath();
-  ctx.ellipse(x, y + maze.cell * 0.24, maze.cell * 0.3, maze.cell * 0.12, 0, 0, TAU);
-  ctx.fillStyle = '#22315a';
-  ctx.fill();
-  ctx.restore();
+  // 星星旋转 / 收集后隐藏
+  for (const s of starMeshes) {
+    s.mesh.visible = !s.coin.taken;
+    s.mesh.rotation.y += 0.05;
+    s.mesh.rotation.x = 0.4;
+  }
 
-  // 走路的小朋友：真实头像替代 🐱
-  avatar.hero(ctx, x, y, maze.cell * 0.4, { ringW: 3 });
-}
+  // 提示路线闪烁
+  const showPath = S.hintT > 0;
+  for (const d of pathDots) d.visible = showPath;
 
-function drawWin(ctx, S, L) {
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,.78)';
-  ctx.fillRect(0, 0, L.W, L.H);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  // 终点旗轻微浮动
+  exitFlag.position.z = 20 + Math.sin(S.T * 3) * 3;
 
-  ctx.font = '800 50px ' + FONT_UI;
-  ctx.fillStyle = '#5b9dff';
-  ctx.fillText('走出迷宫啦！', L.W / 2, L.H / 2 - 70);
-
-  avatar.hero(ctx, L.W / 2 - 52, L.H / 2 + 6, 28, { ring: '#ffffff', ringW: 4 });
-  ctx.font = '46px ' + FONT_EMOJI;
-  ctx.fillText('🎉', L.W / 2, L.H / 2);
-  avatar.hero(ctx, L.W / 2 + 52, L.H / 2 + 6, 28, { ring: '#ffffff', ringW: 4 });
-
-  ctx.font = '800 26px ' + FONT_UI;
-  ctx.fillStyle = '#2b3550';
-  ctx.fillText('第 ' + (S.level + 1) + ' 关，迷宫更大哦', L.W / 2, L.H / 2 + 78);
-  ctx.restore();
+  st.render(1 / 60);
 }

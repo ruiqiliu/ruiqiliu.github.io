@@ -1,9 +1,9 @@
 /* =====================================================================
-   games/tetris/view.js — 俄罗斯方块 · UI 层
-   棋盘、落点虚影、右侧「下一个 / 最好成绩」面板、结束遮罩。
+   games/tetris/view.js — 俄罗斯方块 · UI 层（3D 版）
+   立体井：带光影的方块、落点虚影、消行闪烁、右侧 3D 预览。
    ===================================================================== */
-import { rr, shade, FONT_UI, FONT_MONO } from '../../core/util.js';
-import { avatar } from '../../core/avatar.js';
+import { createStage, place } from '../../core/render3d.js';
+import { createFX3D } from '../../core/fx3d.js';
 
 export const PADS =
   '<div class="row">' +
@@ -22,208 +22,167 @@ export function hud(S) {
   return [['得分', S.score], ['等级', S.level], ['消行', S.lines]];
 }
 
+/* ---------------- 3D 舞台 ---------------- */
+
+let st = null, fx = null;
+let gridPool = [], curPool = [], ghostPool = [], nextPool = [];
+let backWall = null;
+
+const CX = 240;   // 逻辑坐标里井的中心（井 20..500）
+
+function ensureStage(L) {
+  st = createStage({
+    W: L.W, H: L.H,
+    fov: 46,
+    cam: [0, -150, 720], look: [0, -60, 0],
+    bg: 0x0d1120
+  });
+  if (!st) return false;
+  fx = createFX3D(st, (x, y, z) => [x - L.W / 2, L.H / 2 - y, z || 0]);
+  const T = st.T;
+
+  // 井的背板与边框
+  backWall = new T.Mesh(new T.BoxGeometry(L.BW + 16, L.BH + 16, 14), new T.MeshLambertMaterial({ color: 0x151b30 }));
+  place(st, backWall, CX, L.BY + L.BH / 2, -30);
+  st.scene.add(backWall);
+  const frameMat = new T.MeshLambertMaterial({ color: 0x2b3a66 });
+  for (const [w, h, x, y] of [
+    [14, L.BH + 26, L.BX - 7, L.BY + L.BH / 2],
+    [14, L.BH + 26, L.BX + L.BW + 7, L.BY + L.BH / 2],
+    [L.BW + 28, 14, CX, L.BY - 7]
+  ]) {
+    const m = new T.Mesh(new T.BoxGeometry(w, h, 30), frameMat);
+    place(st, m, x, y, 6);
+    st.scene.add(m);
+  }
+
+  // 已固定格子池
+  for (let i = 0; i < L.COLS * L.ROWS; i++) {
+    const m = new T.Mesh(
+      new T.BoxGeometry(L.CELL - 3, L.CELL - 3, L.CELL - 3),
+      new T.MeshLambertMaterial({ color: 0x888888 })
+    );
+    st.world.add(m);
+    gridPool.push(m);
+  }
+  // 当前块 4 格
+  for (let i = 0; i < 4; i++) {
+    const m = new T.Mesh(
+      new T.BoxGeometry(L.CELL - 3, L.CELL - 3, L.CELL - 3),
+      new T.MeshLambertMaterial({ color: 0xffffff })
+    );
+    st.world.add(m);
+    curPool.push(m);
+  }
+  // 虚影 4 格
+  for (let i = 0; i < 4; i++) {
+    const m = new T.Mesh(
+      new T.BoxGeometry(L.CELL - 12, L.CELL - 12, L.CELL - 12),
+      new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14 })
+    );
+    st.world.add(m);
+    ghostPool.push(m);
+  }
+  // 预览 4 格
+  for (let i = 0; i < 4; i++) {
+    const m = new T.Mesh(
+      new T.BoxGeometry(L.CELL - 6, L.CELL - 6, L.CELL - 6),
+      new T.MeshLambertMaterial({ color: 0xffffff })
+    );
+    st.world.add(m);
+    nextPool.push(m);
+  }
+
+  st.onFrame = (dt) => { if (fx) fx.update(dt); };
+  return true;
+}
+
+/* ---------------- 坐标 ---------------- */
+
+function gridXY(L, col, row) {
+  // 井左上角在逻辑 (BX, BY)；世界 x 相对 CX 居中
+  return [L.BX + col * L.CELL + L.CELL / 2, L.BY + row * L.CELL + L.CELL / 2];
+}
+
+/* ---------------- 每帧绘制 ---------------- */
+
 export function draw(ctx, S, L) {
-  drawBoard(ctx, S, L);
-  drawFixedBlocks(ctx, S, L);
-  drawCurrentPiece(ctx, S, L);
-  drawSidePanel(ctx, S, L);
-  drawGameOver(ctx, S, L);
-}
+  if (!st && !ensureStage(L)) return;
+  const T = st.T;
 
-/* ---------------------------------------------------------------- */
-
-/** 一个方块：渐变填充 + 高光；ghost = true 时画成虚线描边（落点提示） */
-function drawBlock(g, x, y, size, color, alpha, ghost) {
-  g.save();
-  if (alpha != null) g.globalAlpha = alpha;
-
-  rr(g, x + 1.5, y + 1.5, size - 3, size - 3, size * 0.24);
-  if (ghost) {
-    g.strokeStyle = color;
-    g.lineWidth = 2.5;
-    g.setLineDash([5, 4]);
-    g.stroke();
-  } else {
-    const grd = g.createLinearGradient(x, y, x, y + size);
-    grd.addColorStop(0, shade(color, 0.45));
-    grd.addColorStop(0.5, color);
-    grd.addColorStop(1, shade(color, -0.2));
-    g.fillStyle = grd;
-    g.fill();
-
-    rr(g, x + size * 0.22, y + size * 0.16, size * 0.56, size * 0.18, size * 0.1);
-    g.fillStyle = 'rgba(255,255,255,.5)';
-    g.fill();
-  }
-  g.restore();
-}
-
-function drawBoard(ctx, S, L) {
-  ctx.clearRect(0, 0, L.W, L.H);
-
-  rr(ctx, L.BX - 3, L.BY - 3, L.BW + 6, L.BH + 6, 18);
-  ctx.fillStyle = '#2b3350';
-  ctx.fill();
-
-  rr(ctx, L.BX, L.BY, L.BW, L.BH, 15);
-  ctx.fillStyle = '#242b45';
-  ctx.fill();
-
-  // 淡淡的网格线
-  ctx.save();
-  rr(ctx, L.BX, L.BY, L.BW, L.BH, 15);
-  ctx.clip();
-  ctx.strokeStyle = 'rgba(255,255,255,.06)';
-  ctx.lineWidth = 1;
-  for (let x = 1; x < L.COLS; x++) {
-    ctx.beginPath();
-    ctx.moveTo(L.BX + x * L.CELL, L.BY);
-    ctx.lineTo(L.BX + x * L.CELL, L.BY + L.BH);
-    ctx.stroke();
-  }
-  for (let y = 1; y < L.ROWS; y++) {
-    ctx.beginPath();
-    ctx.moveTo(L.BX, L.BY + y * L.CELL);
-    ctx.lineTo(L.BX + L.BW, L.BY + y * L.CELL);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawFixedBlocks(ctx, S, L) {
+  // 已固定的格子
+  let k = 0;
   for (let y = 0; y < L.ROWS; y++) {
     for (let x = 0; x < L.COLS; x++) {
-      const color = S.grid[y][x];
-      if (!color) continue;
-      const flashing = S.clearRows.indexOf(y) >= 0;
-      drawBlock(
-        ctx,
-        L.BX + x * L.CELL,
-        L.BY + y * L.CELL,
-        L.CELL,
-        flashing ? '#ffffff' : color,
-        flashing ? 0.5 + Math.abs(Math.sin(S.T * 26)) * 0.5 : 1,
-        false
-      );
-    }
-  }
-}
-
-function drawCurrentPiece(ctx, S, L) {
-  const cur = S.cur;
-  if (!cur || S.clearRows.length) return;
-
-  // 落点竖线：让小朋友一眼看出会掉到哪一列
-  ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,.18)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 7]);
-  for (let x = 0; x < cur.m[0].length; x++) {
-    let hasBlock = false;
-    for (let y = 0; y < cur.m.length; y++) if (cur.m[y][x]) hasBlock = true;
-    if (!hasBlock) continue;
-    const lx = L.BX + (cur.x + x) * L.CELL + L.CELL / 2;
-    ctx.beginPath();
-    ctx.moveTo(lx, L.BY);
-    ctx.lineTo(lx, L.BY + L.BH);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // 落点虚影
-  for (let y = 0; y < cur.m.length; y++) {
-    for (let x = 0; x < cur.m[y].length; x++) {
-      if (!cur.m[y][x]) continue;
-      drawBlock(ctx, L.BX + (cur.x + x) * L.CELL, L.BY + (S.ghost + y) * L.CELL, L.CELL, cur.c, 1, true);
+      const m = gridPool[k++];
+      const c = S.grid[y] && S.grid[y][x];
+      if (!c) { m.visible = false; continue; }
+      m.visible = true;
+      const [gx, gy] = gridXY(L, x, y);
+      place(st, m, gx, gy, 0);
+      m.material.color.set(c);
+      // 消行闪烁
+      if (S.clearRows.includes(y)) {
+        const p = 1 + Math.sin(S.clearT * 40) * 0.18;
+        m.scale.setScalar(p);
+        m.material.color.set(0xffffff);
+      } else m.scale.setScalar(1);
     }
   }
 
   // 当前方块
-  for (let y = 0; y < cur.m.length; y++) {
-    for (let x = 0; x < cur.m[y].length; x++) {
-      if (!cur.m[y][x]) continue;
-      drawBlock(ctx, L.BX + (cur.x + x) * L.CELL, L.BY + (cur.y + y) * L.CELL, L.CELL, cur.c, 1, false);
-    }
-  }
-}
-
-function drawSidePanel(ctx, S, L) {
-  const PX = L.BX + L.BW + 18;
-  const PW = L.W - PX - L.BY;
-
-  // 「下一个」
-  rr(ctx, PX, L.BY, PW, 130, 16);
-  ctx.fillStyle = '#eef3ff';
-  ctx.fill();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '700 13px ' + FONT_UI;
-  ctx.fillStyle = '#7a849e';
-  ctx.fillText('下一个', PX + PW / 2, L.BY + 20);
-
-  const next = S.next;
-  if (next) {
-    const m = next.m;
-    const cs = 19;
-    let minX = 99, maxX = -1, minY = 99, maxY = -1;
-    for (let y = 0; y < m.length; y++) {
-      for (let x = 0; x < m[y].length; x++) {
-        if (!m[y][x]) continue;
-        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
-      }
-    }
-    const w = (maxX - minX + 1) * cs;
-    const h = (maxY - minY + 1) * cs;
-    const ox = PX + (PW - w) / 2;
-    const oy = L.BY + 62 + (46 - h) / 2;
-    for (let y = minY; y <= maxY; y++) {
-      for (let x = minX; x <= maxX; x++) {
-        if (m[y][x]) drawBlock(ctx, ox + (x - minX) * cs, oy + (y - minY) * cs, cs, next.c, 1, false);
-      }
-    }
+  const showCur = S.cur && !S.clearRows.length;
+  for (const m of curPool) m.visible = false;
+  if (showCur) {
+    const cells = [];
+    for (let y = 0; y < S.cur.m.length; y++)
+      for (let x = 0; x < S.cur.m[y].length; x++)
+        if (S.cur.m[y][x]) cells.push([S.cur.x + x, S.cur.y + y]);
+    cells.forEach(([gx, gy], i) => {
+      const m = curPool[i];
+      m.visible = true;
+      const [px, py] = gridXY(L, gx, gy);
+      place(st, m, px, py, 26);
+      m.material.color.set(S.cur.c);
+    });
+    for (let i = cells.length; i < 4; i++) curPool[i].visible = false;
   }
 
-  // 「最好成绩」
-  rr(ctx, PX, L.BY + 144, PW, 72, 16);
-  ctx.fillStyle = '#fff7e6';
-  ctx.fill();
-  ctx.font = '700 12.5px ' + FONT_UI;
-  ctx.fillStyle = '#a07835';
-  ctx.fillText('最好成绩', PX + PW / 2, L.BY + 166);
-  ctx.font = '800 24px ' + FONT_MONO;
-  ctx.fillStyle = '#e8590c';
-  ctx.fillText(String(Math.max(S.best, S.score)), PX + PW / 2, L.BY + 194);
-}
+  // 落点虚影
+  const showGhost = showCur && S.ghost > S.cur.y;
+  if (showGhost) {
+    const cells = [];
+    for (let y = 0; y < S.cur.m.length; y++)
+      for (let x = 0; x < S.cur.m[y].length; x++)
+        if (S.cur.m[y][x]) cells.push([S.cur.x + x, S.ghost + y]);
+    cells.forEach(([gx, gy], i) => {
+      const m = ghostPool[i];
+      m.visible = true;
+      const [px, py] = gridXY(L, gx, gy);
+      place(st, m, px, py, -12);
+      m.material.color.set(S.cur.c);
+    });
+    for (let i = cells.length; i < 4; i++) ghostPool[i].visible = false;
+  } else for (const m of ghostPool) m.visible = false;
 
-function drawGameOver(ctx, S, L) {
-  if (!S.over) return;
-  ctx.save();
-  ctx.fillStyle = 'rgba(36,43,69,.88)';
-  rr(ctx, L.BX, L.BY, L.BW, L.BH, 15);
-  ctx.fill();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  // 下一块预览（井右侧）
+  const pn = S.next;
+  if (pn) {
+    const cells = [];
+    for (let y = 0; y < pn.m.length; y++)
+      for (let x = 0; x < pn.m[y].length; x++)
+        if (pn.m[y][x]) cells.push([x, y]);
+    const ox = L.BX + L.BW + 90 - (pn.m.length * L.CELL) / 2 + L.CELL / 2;
+    const oy = L.BY + 90;
+    cells.forEach(([gx, gy], i) => {
+      const m = nextPool[i];
+      m.visible = true;
+      place(st, m, ox + gx * L.CELL, oy + gy * L.CELL, 0);
+      m.material.color.set(pn.c);
+      m.rotation.y = Math.sin(S.T * 2 + i) * 0.25;
+    });
+    for (let i = cells.length; i < 4; i++) nextPool[i].visible = false;
+  } else for (const m of nextPool) m.visible = false;
 
-  const cx = L.BX + L.BW / 2;
-  const cy = L.BY + L.BH / 2;
-
-  ctx.font = '800 34px ' + FONT_UI;
-  ctx.fillStyle = '#ffd43b';
-  ctx.fillText('好厉害！', cx, cy - 96);
-
-  avatar.hero(ctx, cx, cy - 24, 34, { ring: '#ffffff', ringW: 4 });
-
-  ctx.font = '800 26px ' + FONT_MONO;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText('得分 ' + S.score, cx, cy + 40);
-
-  ctx.font = '700 17px ' + FONT_UI;
-  ctx.fillStyle = '#a9b4d0';
-  ctx.fillText('消除 ' + S.lines + ' 行', cx, cy + 76);
-
-  ctx.font = '800 19px ' + FONT_UI;
-  ctx.fillStyle = '#69db7c';
-  ctx.fillText('按 空格 或点击屏幕再来一次', cx, cy + 124);
-  ctx.restore();
+  st.render(1 / 60);
 }

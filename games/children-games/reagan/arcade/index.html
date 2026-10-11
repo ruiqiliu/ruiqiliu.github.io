@@ -28,6 +28,7 @@
       <button class="icon-btn" id="btnBack">← 返回</button>
       <div class="title"><span class="ico" id="tIco">🎮</span><span id="tName">游戏</span></div>
       <button class="icon-btn" id="btnRestart">↻ 重来</button>
+      <button class="icon-btn" id="btnFS" title="全屏">⛶</button>
       <button class="icon-btn" id="btnSound">🔊</button>
     </div>
 
@@ -41,6 +42,13 @@
 
 </div>
 
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.min.js" } }
+</script>
+<script type="module">
+  import * as THREE from 'three';
+  window.THREE = THREE;
+</script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -1,198 +1,106 @@
 /* =====================================================================
-   games/breaker/view.js — 打砖块 · UI 层
-   只做两件事：把静态背景预渲染成离屏画布；把状态 S 画到 canvas 上。
-   没有任何状态、不修改 S、不读输入。
+   games/breaker/view.js — 打砖块 · UI 层（3D 版）
+   立体竞技场：彩色 3D 砖块、发光球拖尾、低机位透视。
    ===================================================================== */
-import { TAU, rr, rgba, shade, FONT_UI, FONT_EMOJI } from '../../core/util.js';
-import { surface } from '../../core/surface.js';
-import { avatar } from '../../core/avatar.js';
+import { clamp, shade } from '../../core/util.js';
+import { createStage, place, shake as stageShake } from '../../core/render3d.js';
+import { createFX3D } from '../../core/fx3d.js';
 
-
-/** 触屏按键（桌面端玩家用键盘，这里给手机留空） */
 export const PADS = '';
 
 export const HINT =
   '<kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 移动彩虹板 · ' +
   '也可以直接用鼠标／手指拖动 · 球不会掉，放心打';
 
-/** 预渲染：天空 + 太阳 + 云 + 底部弹力地板。每帧只 drawImage，省掉大量渐变计算 */
-export function makeBackground(L) {
-  const { canvas, ctx: g } = surface.offscreen(L.W, L.H);
-
-  const grad = g.createLinearGradient(0, 0, 0, L.H);
-  grad.addColorStop(0, '#bfe3ff');
-  grad.addColorStop(0.5, '#e6f3ff');
-  grad.addColorStop(1, '#ffe9f3');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, L.W, L.H);
-
-  // 太阳
-  const sx = L.W - 92;
-  const sy = 78;
-  const sg = g.createRadialGradient(sx, sy, 10, sx, sy, 96);
-  sg.addColorStop(0, 'rgba(255,236,150,.95)');
-  sg.addColorStop(0.45, 'rgba(255,236,150,.30)');
-  sg.addColorStop(1, 'rgba(255,236,150,0)');
-  g.fillStyle = sg;
-  g.beginPath();
-  g.arc(sx, sy, 96, 0, TAU);
-  g.fill();
-
-  // 云
-  const cloud = (x, y, s, a, col) => {
-    g.save();
-    g.globalAlpha = a;
-    g.fillStyle = col || '#ffffff';
-    g.beginPath();
-    g.arc(x, y, 34 * s, 0, TAU);
-    g.arc(x + 40 * s, y + 6 * s, 26 * s, 0, TAU);
-    g.arc(x - 40 * s, y + 8 * s, 24 * s, 0, TAU);
-    g.arc(x + 8 * s, y - 20 * s, 26 * s, 0, TAU);
-    g.fill();
-    g.restore();
-  };
-  cloud(150, 116, 1.15, 0.92);
-  cloud(590, 168, 0.85, 0.8);
-  cloud(370, 74, 0.62, 0.7);
-  cloud(730, 300, 0.7, 0.55);
-  cloud(70, 300, 0.6, 0.5);
-
-  // 底部弹力地板（球掉下来会被弹回去）
-  g.fillStyle = '#ffe0ef';
-  g.fillRect(0, L.H - 26, L.W, 26);
-  g.fillStyle = '#ffd0e4';
-  for (let x = -20; x < L.W + 40; x += 46) {
-    g.beginPath();
-    g.arc(x + 23, L.H - 26, 22, Math.PI, TAU);
-    g.fill();
-  }
-  const fg = g.createLinearGradient(0, L.H - 40, 0, L.H);
-  fg.addColorStop(0, 'rgba(255,255,255,0)');
-  fg.addColorStop(1, 'rgba(255,180,215,.35)');
-  g.fillStyle = fg;
-  g.fillRect(0, L.H - 40, L.W, 40);
-
-  return canvas;
-}
-
 export function hud(S) {
   return [['得分', S.score], ['关卡', S.level], ['星星', '⭐' + S.stars]];
 }
 
-export function draw(ctx, S, L) {
-  ctx.drawImage(S.bg, 0, 0, L.W, L.H);
+export function makeBackground() { return null; }
 
-  drawBricks(ctx, S);
-  drawTrail(ctx, S, L);
-  drawBall(ctx, S, L);
-  drawPaddle(ctx, S, L);
-  drawServeHint(ctx, S, L);
-  drawClearOverlay(ctx, S, L);
-}
+/* ---------------- 3D 舞台与元素 ---------------- */
 
-/* ---------------------------------------------------------------- */
+let st = null, fx = null;
+let brickPool = [], paddleMesh = null, ballMesh = null, trailPool = [];
+let lastBrickCount = -1;
 
-function drawBricks(ctx, S) {
-  for (const b of S.bricks) {
-    if (!b.alive) continue;
-    const g = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
-    g.addColorStop(0, shade(b.c, 0.55));
-    g.addColorStop(0.55, b.c);
-    g.addColorStop(1, shade(b.c, -0.22));
-
-    ctx.save();
-    ctx.shadowColor = rgba(b.c, 0.45);
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 3;
-    rr(ctx, b.x, b.y, b.w, b.h, 10);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.restore();
-
-    rr(ctx, b.x + 7, b.y + 5, b.w - 14, 7, 4);
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.fill();
-  }
-}
-
-function drawTrail(ctx, S, L) {
-  const trail = S.ball.trail;
-  for (let i = 0; i < trail.length; i++) {
-    const t = trail[i];
-    const a = (i + 1) / trail.length;
-    avatar.hero(ctx, t.x, t.y, L.BR * a * 0.9, { alpha: 0.5, ring: null });
-  }
-}
-
-function drawBall(ctx, S, L) {
-  const b = S.ball;
-  ctx.save();
-  ctx.shadowColor = 'rgba(255,120,180,.9)';
-  ctx.shadowBlur = 22;
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, L.BR, 0, TAU);
-  ctx.fillStyle = '#ffd9e8';
-  ctx.fill();
-  ctx.restore();
-
-  avatar.hero(ctx, b.x, b.y, L.BR * 1.25, { ringW: 2.5 });
-}
-
-function drawPaddle(ctx, S, L) {
-  const px = S.paddle.x - L.PADW / 2;
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(120,160,255,.55)';
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetY = 4;
-  const pg = ctx.createLinearGradient(0, L.PADY, 0, L.PADY + L.PADH);
-  pg.addColorStop(0, '#a8d5ff');
-  pg.addColorStop(0.45, '#6fb1ff');
-  pg.addColorStop(1, '#3f83e8');
-  rr(ctx, px, L.PADY, L.PADW, L.PADH, 11);
-  ctx.fillStyle = pg;
-  ctx.fill();
-  ctx.restore();
-
-  rr(ctx, px + 10, L.PADY + 4, L.PADW - 20, 6, 3);
-  ctx.fillStyle = 'rgba(255,255,255,.65)';
-  ctx.fill();
-
-  // 挡板上的脸：真实头像（卡通的一对眼睛已经换掉）
-  avatar.hero(ctx, S.paddle.x, L.PADY + L.PADH / 2, L.PADH * 0.92, {
-    ring: '#ffffff',
-    ringW: 3
+function ensureStage(L) {
+  st = createStage({
+    W: L.W, H: L.H,
+    fov: 50,
+    cam: [0, -170, 700], look: [0, -40, 0],
+    bg: 0x1b2440
   });
+  if (!st) return false;
+  fx = createFX3D(st, (x, y, z) => [x - L.W / 2, L.H / 2 - y, z || 0]);
+  const T = st.T;
+
+  // 竞技场：左右墙 / 顶墙 / 弹力地板
+  const wallMat = new T.MeshLambertMaterial({ color: 0x3b4a78 });
+  const mk = (w, h, x, y) => {
+    const m = new T.Mesh(new T.BoxGeometry(w, h, 170), wallMat);
+    m.position.set(x - L.W / 2, L.H / 2 - y, 0);
+    st.scene.add(m);
+    return m;
+  };
+  mk(L.WALL + 20, L.H + 120, L.WALL / 2, L.H / 2);
+  mk(L.WALL + 20, L.H + 120, L.W - L.WALL / 2, L.H / 2);
+  mk(L.W, L.TOP + 20, L.W / 2, L.TOP / 2);
+  const floor = mk(L.W, 18, L.W / 2, L.FLOOR + 9);
+  floor.material = new T.MeshLambertMaterial({ color: 0xffd6e8 });
+
+  // 砖块池
+  for (let i = 0; i < L.ROWS * L.COLS; i++) {
+    const m = new T.Mesh(new T.BoxGeometry(L.BW, L.BH, 34), new T.MeshLambertMaterial({ color: 0xffffff }));
+    st.world.add(m);
+    brickPool.push(m);
+  }
+
+  // 挡板 + 球 + 拖尾
+  paddleMesh = new T.Mesh(new T.BoxGeometry(L.PADW, L.PADH, 36), new T.MeshLambertMaterial({ color: 0xf1f3f5 }));
+  st.world.add(paddleMesh);
+  ballMesh = new T.Mesh(new T.SphereGeometry(L.BR, 24, 18), new T.MeshLambertMaterial({ color: 0xffffff, emissive: 0x554466 }));
+  st.world.add(ballMesh);
+  for (let i = 0; i < 8; i++) {
+    const t = new T.Mesh(
+      new T.SphereGeometry(L.BR * (1 - i * 0.09), 10, 8),
+      new T.MeshBasicMaterial({ color: 0xffd6e8, transparent: true, opacity: 0.55 - i * 0.06 })
+    );
+    st.world.add(t);
+    trailPool.push(t);
+  }
+
+  st.onFrame = (dt) => { if (fx) fx.update(dt); };
+  return true;
 }
 
-function drawServeHint(ctx, S, L) {
-  if (S.served || S.phase !== 'play') return;
-  ctx.save();
-  ctx.globalAlpha = 0.55 + Math.sin(S.T * 6) * 0.35;
-  ctx.textAlign = 'center';
-  ctx.font = '700 20px ' + FONT_UI;
-  ctx.fillStyle = '#e0508f';
-  ctx.fillText('准备……', L.W / 2, L.PADY - 64);
-  ctx.restore();
-}
+/* ---------------- 每帧绘制 ---------------- */
 
-function drawClearOverlay(ctx, S, L) {
-  if (S.phase !== 'clear') return;
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(255,255,255,.72)';
-  ctx.fillRect(0, 0, L.W, L.H);
+export function draw(ctx, S, L) {
+  if (!st && !ensureStage(L)) return;
 
-  ctx.font = '800 56px ' + FONT_UI;
-  ctx.fillStyle = '#ff7aa8';
-  ctx.fillText('太棒了！', L.W / 2, L.H / 2 - 46);
+  // 砖块：按存活顺序复用池里的网格
+  const alive = S.bricks.filter((b) => b.alive);
+  for (let i = 0; i < brickPool.length; i++) {
+    const m = brickPool[i];
+    if (i < alive.length) {
+      const b = alive[i];
+      m.visible = true;
+      place(st, m, b.x + b.w / 2, b.y + b.h / 2, 0);
+      m.material.color.set(b.c);
+    } else m.visible = false;
+  }
+  lastBrickCount = alive.length;
 
-  ctx.font = '60px ' + FONT_EMOJI;
-  ctx.fillText('🌟 🎉 🌟', L.W / 2, L.H / 2 + 34);
+  // 挡板 / 球 / 拖尾
+  place(st, paddleMesh, S.paddle.x, L.PADY + L.PADH / 2, 80);
+  place(st, ballMesh, S.ball.x, S.ball.y, 80);
+  ballMesh.rotation.y += 0.08;
+  for (let i = 0; i < trailPool.length; i++) {
+    const t = trailPool[i], p = S.ball.trail[i];
+    if (p && S.served) { t.visible = true; place(st, t, p.x, p.y, 80 - (i + 1) * 3); }
+    else t.visible = false;
+  }
 
-  ctx.font = '700 22px ' + FONT_UI;
-  ctx.fillStyle = '#4a5578';
-  ctx.fillText('第 ' + (S.level + 1) + ' 关来啦', L.W / 2, L.H / 2 + 104);
-  ctx.restore();
+  st.render(1 / 60);
 }

@@ -24,6 +24,7 @@ import { FX } from './core/fx.js';
 import { Snd } from './core/audio.js';
 import { avatar } from './core/avatar.js';
 import { findById, games } from './games/registry.js';
+import { removeStage } from './core/render3d.js';
 
 export function createShell({ homeView, playView, homeTitle }) {
   let active = null;
@@ -31,6 +32,7 @@ export function createShell({ homeView, playView, homeTitle }) {
   function open(id) {
     const mod = findById(id);
     if (!mod) return;
+    removeStage();                     // 任何切换都先拆 3D 舞台（3D 游戏的视图会自建）
 
     if (active && active.destroy) active.destroy();
     FX.clear();
@@ -60,6 +62,7 @@ export function createShell({ homeView, playView, homeTitle }) {
 
   function goHome() {
     if (active && active.destroy) active.destroy();
+    removeStage();
     active = null;
     FX.clear();
     playView.setPads('');

@@ -48,6 +48,19 @@ installInput({
 
 /* ---------------- 顶栏按钮 ---------------- */
 document.getElementById('btnBack').addEventListener('click', () => shell.goHome());
+
+// 全屏切换（手机横屏 + 桌面都可用；不支持的浏览器静默忽略）
+document.getElementById('btnFS').addEventListener('click', () => {
+  const el = document.getElementById('stage');
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (!fsEl) {
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req) req.call(el);
+  } else {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (exit) exit.call(document);
+  }
+});
 document.getElementById('btnRestart').addEventListener('click', () => shell.restart());
 
 const btnSound = document.getElementById('btnSound');
