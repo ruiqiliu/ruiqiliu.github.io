@@ -1,6 +1,7 @@
 /* =====================================================================
    games/tetris/view.js — 俄罗斯方块 · UI 层（3D 版）
-   立体井：带光影的方块、落点虚影、消行闪烁、右侧 3D 预览。
+   正交相机正对棋盘（判定零畸变），3D 只负责质感与远景：
+   立体砖块、落点虚影、锁定弹跳、消行闪烁、右侧 3D 预览。
    ===================================================================== */
 import { createStage, place } from '../../core/render3d.js';
 import { createFX3D } from '../../core/fx3d.js';
@@ -26,20 +27,35 @@ export function hud(S) {
 
 let st = null, fx = null;
 let gridPool = [], curPool = [], ghostPool = [], nextPool = [];
-let backWall = null;
+let backWall = null, bgBlocks = [];
+let prevFilled = null;        // 上一帧已固定格子的集合，用来检测「刚锁定」
+let bounceCells = [], bounceT = 0;
 
 const CX = 240;   // 逻辑坐标里井的中心（井 20..500）
 
 function ensureStage(L) {
   st = createStage({
     W: L.W, H: L.H,
-    fov: 46,
-    cam: [0, -150, 720], look: [0, -60, 0],
+    ortho: { w: L.W, h: L.H },
+    cam: [0, 0, 620], look: [0, 0, 0],
     bg: 0x0d1120
   });
   if (!st) return false;
   fx = createFX3D(st, (x, y, z) => [x - L.W / 2, L.H / 2 - y, z || 0]);
   const T = st.T;
+
+  // 远景：几块大积木慢慢漂，给画面纵深感（不参与任何判定）
+  for (let i = 0; i < 7; i++) {
+    const m = new T.Mesh(
+      new T.BoxGeometry(70 + (i % 3) * 46, 70 + (i % 4) * 30, 40),
+      new T.MeshLambertMaterial({ color: [0x1d2742, 0x223052, 0x1a2340][i % 3] })
+    );
+    m.position.set(-420 + i * 140, -220 + (i % 3) * 190, -520 - (i % 2) * 130);
+    m.rotation.set((i % 3) * 0.5, i * 0.8, (i % 2) * 0.4);
+    m.userData.spin = 0.1 + (i % 3) * 0.06;
+    st.scene.add(m);
+    bgBlocks.push(m);
+  }
 
   // 井的背板与边框
   backWall = new T.Mesh(new T.BoxGeometry(L.BW + 16, L.BH + 16, 14), new T.MeshLambertMaterial({ color: 0x151b30 }));
@@ -93,7 +109,11 @@ function ensureStage(L) {
     nextPool.push(m);
   }
 
-  st.onFrame = (dt) => { if (fx) fx.update(dt); };
+  st.onFrame = (dt) => {
+    if (fx) fx.update(dt);
+    bounceT = Math.max(0, bounceT - dt);
+    for (const b of bgBlocks) b.rotation.y += b.userData.spin * dt;
+  };
   return true;
 }
 
@@ -109,6 +129,18 @@ function gridXY(L, col, row) {
 export function draw(ctx, S, L) {
   if (!st && !ensureStage(L)) return;
   const T = st.T;
+
+  // 检测「刚锁定」：本帧新出现的固定格 → 记下来做弹跳动画
+  const nowFilled = new Set();
+  for (let y = 0; y < L.ROWS; y++)
+    for (let x = 0; x < L.COLS; x++)
+      if (S.grid[y] && S.grid[y][x]) nowFilled.add(x + ',' + y);
+  if (prevFilled) {
+    let added = 0;
+    for (const k of nowFilled) if (!prevFilled.has(k)) added++;
+    if (added > 0 && !S.clearRows.length) { bounceCells = [...nowFilled]; bounceT = 0.26; }
+  }
+  prevFilled = nowFilled;
 
   // 已固定的格子
   let k = 0;
@@ -126,7 +158,14 @@ export function draw(ctx, S, L) {
         const p = 1 + Math.sin(S.clearT * 40) * 0.18;
         m.scale.setScalar(p);
         m.material.color.set(0xffffff);
-      } else m.scale.setScalar(1);
+      } else {
+        // 锁定弹跳：刚固定的那批格子按时间衰减鼓一下
+        let p = 1;
+        if (bounceT > 0 && bounceCells.includes(x + ',' + y)) {
+          p = 1 + Math.sin((1 - bounceT / 0.26) * Math.PI) * 0.22;
+        }
+        m.scale.setScalar(p);
+      }
     }
   }
 

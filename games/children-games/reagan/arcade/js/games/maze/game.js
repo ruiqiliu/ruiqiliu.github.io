@@ -5,7 +5,7 @@
    ===================================================================== */
 import { pick, rand } from '../../core/util.js';
 import { createControls } from './controls.js';
-import { draw, hud as hudOf, makeBackground, PADS, HINT } from './view.js';
+import { draw, hud as hudOf, makeBackground, boardAction, rotate90, PADS, HINT } from './view.js';
 
 export const meta = {
   id: 'maze',
@@ -321,7 +321,13 @@ export function create(env) {
         return;
       }
 
-      const dir = DIRS[name];
+      // 转视角不占用步数；转完之后方向键跟着「眼前的方向」走
+      if (name === 'turn') {
+        if (down) rotate90();
+        return;
+      }
+
+      const dir = DIRS[boardAction(name)];
       if (!dir) return;
 
       if (down) {

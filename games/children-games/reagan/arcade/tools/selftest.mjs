@@ -203,6 +203,19 @@ const SCRIPTS = {
       if (i === 120000) g.action('m4', true);   // 十字（9 格，容易踩救援）
       if (i === 160000) g.action('m5', true);   // 小方阵 3×3
     }
+  },
+
+  brick: {
+    logic: 40000,    // 纯逻辑快进：光标乱走 + 乱放乱拆 + 反复出发，覆盖搭桥 / 验收 / 过关
+    frames: 2500,
+    press: function (i, g) {
+      const dirs = ['up', 'down', 'left', 'right'];
+      g.action(dirs[rnd(i) & 3], true);
+      if (i % 37 === 5) g.action('place', true);
+      if (i % 53 === 11) g.action('remove', true);
+      if (i % 211 === 100) g.action('test', true);
+      if (i % 907 === 300) g.action('love', true);
+    }
   }
 };
 

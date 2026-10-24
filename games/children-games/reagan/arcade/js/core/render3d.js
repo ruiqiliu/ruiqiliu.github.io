@@ -19,7 +19,10 @@ export function getTHREE() {
   return window.THREE || null;
 }
 
-/** 创建（或重建）3D 舞台。opts: { fov, cam:[x,y,z], look:[x,y,z], bg } */
+/** 创建（或重建）3D 舞台。
+    opts: { fov, cam:[x,y,z], look:[x,y,z], bg, ortho:{w,h,margin} }
+    ortho 存在时用正交相机：格盘类游戏的判定平面零畸变（可读性优先）。
+    w/h 是「必须完整装进画面的内容尺寸」，宽高比不足的一边自动放大留白。 */
 export function createStage(opts = {}) {
   const T = getTHREE();
   if (!T) return null;
@@ -48,9 +51,24 @@ export function createStage(opts = {}) {
     else scene.background = opts.bg;                // 已建好的纹理 / 渐变画布
   }
 
-  const camera = new T.PerspectiveCamera(opts.fov || 50, w / h, 0.5, 9000);
+  const camera = opts.ortho
+    ? new T.OrthographicCamera(-1, 1, 1, -1, -4000, 8000)
+    : new T.PerspectiveCamera(opts.fov || 50, w / h, 0.5, 9000);
   camera.position.set(...(opts.cam || [0, -140, 640]));
   camera.lookAt(...(opts.look || [0, 0, 0]));
+  /** 把 ortho 的 fit 尺寸换算成当前视口的左右上下边界 */
+  const fitFrustum = (aspect) => {
+    const f = opts.ortho;
+    const margin = f.margin == null ? 1.06 : f.margin;
+    const halfH = Math.max((f.h * margin) / 2, (f.w * margin) / (2 * aspect));
+    const halfW = halfH * aspect;
+    camera.left = -halfW; camera.right = halfW;
+    camera.top = halfH; camera.bottom = -halfH;
+  };
+  if (opts.ortho) {
+    fitFrustum(w / h);
+    camera.updateProjectionMatrix();   // 改完 frustum 必须刷新投影矩阵，否则首帧还是 ±1 的极端放大
+  }
 
   scene.add(new T.AmbientLight(0xffffff, opts.ambient ?? 0.85));
   const dl = new T.DirectionalLight(0xfff6e8, opts.dir ?? 0.95);
@@ -83,6 +101,7 @@ export function createStage(opts = {}) {
     const sh = stageEl.clientHeight || h;
     renderer.setSize(sw, sh, false);
     camera.aspect = sw / sh;
+    if (opts.ortho) fitFrustum(sw / sh);
     camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', onResize);

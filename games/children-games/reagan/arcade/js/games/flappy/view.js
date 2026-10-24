@@ -1,6 +1,7 @@
 /* =====================================================================
    games/flappy/view.js — 小鸟飞飞 · UI 层（3D 版）
-   three.js 渲染：立体管子、带光影的小鸟（脸是小朋友的头像）、视差云。
+   正交侧视（判定平面零畸变），3D 用在多层视差：
+   太阳 / 远山 / 近丘 / 云 / 地面草丛各按不同速度卷动，管子照样立体。
    逻辑层 game.js 与控制层 controls.js 不变。
    ===================================================================== */
 import { clamp } from '../../core/util.js';
@@ -32,14 +33,21 @@ export function makeBackground() { return null; }
 let st = null, fx = null;
 let birdG = null, wingL = null, wingR = null;
 let pipePool = [], starMesh = null, clouds = [];
+let hills = [], bushes = [];
 
 const PIPE_R = 47, RIM_R = 56;
+const SCROLL_RANGE = 1600;
+
+/** 视差卷动：把 base 按 pos·speed 卷动并循环回画面范围 */
+function scrollX(base, pos, speed) {
+  return (((base - pos * speed) % SCROLL_RANGE) + SCROLL_RANGE) % SCROLL_RANGE - (SCROLL_RANGE / 2 - 100);
+}
 
 function ensureStage(L) {
   st = createStage({
     W: L.W, H: L.H,
-    fov: 50,
-    cam: [0, -120, 660], look: [0, -60, 0],
+    ortho: { w: L.W, h: L.H },
+    cam: [0, 0, 700], look: [0, 0, 0],
     bg: 0x8fd3f4
   });
   if (!st) return false;
@@ -47,19 +55,56 @@ function ensureStage(L) {
 
   const T = st.T;
 
+  // 太阳（最远的静止层）
+  const sun = new T.Mesh(new T.CircleGeometry(64, 32), new T.MeshBasicMaterial({ color: 0xfff3b0 }));
+  sun.position.set(260, 170, -1600);
+  st.scene.add(sun);
+
   // 地面
   const ground = new T.Mesh(new T.BoxGeometry(3200, 90, 420), new T.MeshLambertMaterial({ color: 0x8fd96a }));
   ground.position.set(0, L.H / 2 - L.GROUND_Y - 45, 0);
   st.scene.add(ground);
 
-  // 云（视差）
+  // 近丘（半圆包，速度中等）
+  {
+    const groundTop = L.H / 2 - L.GROUND_Y;
+    for (let i = 0; i < 6; i++) {
+      const m = new T.Mesh(
+        new T.SphereGeometry(90 + (i % 3) * 36, 16, 12),
+        new T.MeshLambertMaterial({ color: 0x6fc26f })
+      );
+      m.scale.y = 0.45;
+      m.userData.base = i * 290 + 130;
+      m.position.set(m.userData.base, groundTop - 8, -320 - (i % 2) * 160);
+      st.scene.add(m);
+      hills.push(m);
+    }
+  }
+
+  // 云（视差，比近丘快一点；加自发光避免背光面发灰）
   for (let i = 0; i < 6; i++) {
-    const c = new T.Mesh(new T.SphereGeometry(34 + (i % 3) * 14, 12, 10), new T.MeshLambertMaterial({ color: 0xffffff }));
-    c.position.set(-600 + i * 260, 60 + (i % 3) * 60, -420 - (i % 2) * 160);
+    const c = new T.Mesh(
+      new T.SphereGeometry(34 + (i % 3) * 14, 12, 10),
+      new T.MeshLambertMaterial({ color: 0xffffff, emissive: 0x8a8a8a })
+    );
+    c.userData.base = -600 + i * 260;
+    c.position.set(c.userData.base, 60 + (i % 3) * 60, -420 - (i % 2) * 160);
     c.scale.y = 0.55;
-    c.userData.base = c.position.x;
     st.scene.add(c);
     clouds.push(c);
+  }
+
+  // 地面草丛（速度 = 管子速度，贴地滚动的最前层）
+  for (let i = 0; i < 7; i++) {
+    const b = new T.Mesh(
+      new T.SphereGeometry(22 + (i % 3) * 8, 10, 8),
+      new T.MeshLambertMaterial({ color: 0x5fb84f })
+    );
+    b.scale.y = 0.6;
+    b.userData.base = i * 240 + 40;
+    b.position.set(b.userData.base, L.H / 2 - L.GROUND_Y - 6, 150 + (i % 2) * 60);
+    st.scene.add(b);
+    bushes.push(b);
   }
 
   // 管子池（8 组：上管 / 下管 / 两个管口圈）
@@ -112,11 +157,10 @@ function ensureStage(L) {
 export function draw(ctx, S, L) {
   if (!st && !ensureStage(L)) return;
 
-  // 云的视差
-  for (const c of clouds) {
-    let x = ((c.userData.base - S.pos * 0.22) % 1600 + 1600) % 1600 - 700;
-    c.position.x = x;
-  }
+  // 多层视差：云 → 近丘 → 草丛（草丛和管子同速，贴着地面跑）
+  for (const h of hills) h.position.x = scrollX(h.userData.base, S.pos, 0.3);
+  for (const c of clouds) c.position.x = scrollX(c.userData.base, S.pos, 0.22);
+  for (const b of bushes) b.position.x = scrollX(b.userData.base, S.pos, 1.0);
 
   // 管子
   for (let i = 0; i < pipePool.length; i++) {

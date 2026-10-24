@@ -61,6 +61,13 @@ export const Snd = {
   step() { this.tone(360, 0.04, 'sine', 0.025); },
   hint() { this.tone(1040, 0.1, 'sine', 0.04, 1400); },
 
+  /* --- 积木救救队：放砖「咔哒」两连音，拆砖往下滑音 --- */
+  brickPut() {
+    this.tone(760, 0.05, 'triangle', 0.05);
+    setTimeout(() => this.tone(1020, 0.06, 'triangle', 0.045), 45);
+  },
+  brickTake() { this.tone(560, 0.09, 'triangle', 0.045, 380); },
+
   /* --- 车库大师：持续引擎音，音调随速度 --- */
   _eng: null,
   engine(on) {

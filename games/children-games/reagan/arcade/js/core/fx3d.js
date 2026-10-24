@@ -32,12 +32,14 @@ export function createFX3D(stage, toWorld) {
 
   fx = {
     group,
-    /** 与 fx.js 同签名 */
-    burst(x, y, colors, n = 12, s = 1) {
+    /** 与 fx.js 同签名；kind='stud' 时粒子用小圆柱（乐高金粒的样子） */
+    burst(x, y, colors, n = 12, s = 1, kind) {
       if (parts.length > 160) return;
       const cols = Array.isArray(colors) ? colors : [colors];
       for (let i = 0; i < n; i++) {
-        const geo = new T.BoxGeometry(7 * s, 7 * s, 7 * s);
+        const geo = kind === 'stud'
+          ? new T.CylinderGeometry(5 * s, 5 * s, 8 * s, 10)
+          : new T.BoxGeometry(7 * s, 7 * s, 7 * s);
         const mat = new T.MeshBasicMaterial({
           color: cols[(Math.random() * cols.length) | 0], transparent: true
         });

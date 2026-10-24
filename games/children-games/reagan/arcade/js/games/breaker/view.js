@@ -1,6 +1,7 @@
 /* =====================================================================
    games/breaker/view.js — 打砖块 · UI 层（3D 版）
-   立体竞技场：彩色 3D 砖块、发光球拖尾、低机位透视。
+   正交相机正对场地（球与挡板的对位零畸变），3D 负责 juice：
+   砖块被打碎时爆成小方块雨、挡板受击 squash、球拖尾。
    ===================================================================== */
 import { clamp, shade } from '../../core/util.js';
 import { createStage, place, shake as stageShake } from '../../core/render3d.js';
@@ -23,12 +24,14 @@ export function makeBackground() { return null; }
 let st = null, fx = null;
 let brickPool = [], paddleMesh = null, ballMesh = null, trailPool = [];
 let lastBrickCount = -1;
+let prevAliveSet = null;     // 上一帧存活的砖，用来找出「刚被打碎」的那块
+let squashT = 0, prevBallDy = 0;
 
 function ensureStage(L) {
   st = createStage({
     W: L.W, H: L.H,
-    fov: 50,
-    cam: [0, -170, 700], look: [0, -40, 0],
+    ortho: { w: L.W, h: L.H },
+    cam: [0, 0, 700], look: [0, 0, 0],
     bg: 0x1b2440
   });
   if (!st) return false;
@@ -70,7 +73,10 @@ function ensureStage(L) {
     trailPool.push(t);
   }
 
-  st.onFrame = (dt) => { if (fx) fx.update(dt); };
+  st.onFrame = (dt) => {
+    if (fx) fx.update(dt);
+    squashT = Math.max(0, squashT - dt);
+  };
   return true;
 }
 
@@ -81,6 +87,24 @@ export function draw(ctx, S, L) {
 
   // 砖块：按存活顺序复用池里的网格
   const alive = S.bricks.filter((b) => b.alive);
+
+  // 找出「刚被打碎」的砖 → 在原地爆一撮碎块。
+  // 重开 / 进下一关会整批换砖对象，消失数一大就视为换局，不做碎裂特效
+  const nowSet = new Set(alive);
+  if (prevAliveSet) {
+    let gone = 0;
+    for (const b of prevAliveSet) if (!nowSet.has(b)) gone++;
+    if (gone > 0 && gone <= 3) {
+      for (const b of prevAliveSet) {
+        if (!nowSet.has(b)) {
+          fx.burst(b.x + b.w / 2, b.y + b.h / 2, [b.c, '#ffffff', '#ffd6e8'], 14, 0.9);
+          stageShake(st, 0.25);
+        }
+      }
+    }
+  }
+  prevAliveSet = nowSet;
+
   for (let i = 0; i < brickPool.length; i++) {
     const m = brickPool[i];
     if (i < alive.length) {
@@ -91,6 +115,12 @@ export function draw(ctx, S, L) {
     } else m.visible = false;
   }
   lastBrickCount = alive.length;
+
+  // 球从下往上弹（撞到挡板）→ 挡板 squash 一下
+  if (prevBallDy > 0 && S.ball.dy < 0 && S.ball.y > L.H * 0.7) squashT = 0.18;
+  prevBallDy = S.ball.dy;
+  const sq = squashT > 0 ? 1 - Math.sin((1 - squashT / 0.18) * Math.PI) * 0.35 : 1;
+  paddleMesh.scale.set(2 - sq, sq, 1);
 
   // 挡板 / 球 / 拖尾
   place(st, paddleMesh, S.paddle.x, L.PADY + L.PADH / 2, 80);
