@@ -48,18 +48,19 @@ function ensureStage(L) {
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H, margin: 1.34 },   // 斜俯视纵向有压缩，多留边
     cam: [0, 700, 430], look: [0, 0, 0],
-    bg: 0x0e1a12
+    bg: 0xfbeed3                               // 奶油底：明亮暖色，绿蛇一眼就跳出来
   });
   if (!st) return false;
   fx = createFX3D(st, (x, y, z) => [x - L.W / 2, L.H / 2 - y, z || 0]);
   const T = st.T;
 
-  // 棋盘格子（棋盘格双色，平躺在板面上）
+  // 棋盘格（暖沙色棋盘格）：不受灯光影响的 Unlit 材质，
+  // 颜色所见即所得，怎么照都是明亮护眼的底子
   for (let y = 0; y < L.N; y++) {
     for (let x = 0; x < L.N; x++) {
       const m = new T.Mesh(
         new T.BoxGeometry(L.CELL - 1, 8, L.CELL - 1),
-        new T.MeshLambertMaterial({ color: (x + y) % 2 ? 0x86ca80 : 0x9edc98 })
+        new T.MeshBasicMaterial({ color: (x + y) % 2 ? 0xf7ecd4 : 0xefe1bc })
       );
       const [wx, , wz] = flat(L, L.PAD + x * L.CELL + L.CELL / 2, L.PAD + y * L.CELL + L.CELL / 2);
       m.position.set(wx, -4, wz);
@@ -67,8 +68,8 @@ function ensureStage(L) {
       tiles.push(m);
     }
   }
-  // 边框：立在地上的四条矮沿
-  const frameMat = new T.MeshLambertMaterial({ color: 0x2f6b3a });
+  // 边框：立在地上的四条蜂蜜木色矮沿
+  const frameMat = new T.MeshBasicMaterial({ color: 0xd9a05b });
   const side = L.N * L.CELL + 20;
   const mid = L.PAD + (L.N * L.CELL) / 2;
   for (const [w, d, x, y] of [
@@ -164,7 +165,7 @@ export function draw(ctx, S, L) {
       const [wx, , wz] = flat(L, px, py);
       m.position.set(wx, 11, wz);
       const k = i / Math.max(1, S.snake.length);
-      m.material.color.setHex(i === 0 ? 0x2f9e44 : (i % 2 ? 0x51cf66 : 0x69db7c));
+      m.material.color.setHex(i === 0 ? 0x2b8a3e : (i % 2 ? 0x51cf66 : 0x69db7c));
       m.scale.setScalar(1 - k * 0.25);
     } else m.visible = false;
   }
@@ -190,16 +191,18 @@ export function draw(ctx, S, L) {
     const bob = Math.sin(S.food.t * 5) * 4;
     foodMesh.position.set(fx0 - L.W / 2, 18 + bob, fy0 - L.H / 2);
     if (S.food.star) {
-      // 金色星星：用放大的八面体表示
+      // 金色星星：放大的八面体，加自发光在浅底上也醒目
       foodMesh.material.color.setHex(0xffd43b);
+      foodMesh.material.emissive.setHex(0x8a6200);
       foodMesh.visible = true;
-      foodMesh.scale.setScalar(1.2);
+      foodMesh.scale.setScalar(1.25);
       foodMesh.rotation.y += 0.06;
     } else {
       foodMesh.visible = true;
       foodMesh.scale.setScalar(1);
       foodMesh.rotation.y += 0.03;
       foodMesh.material.color.setHex(FRUIT_COLORS[S.food.emo] || 0xe03131);
+      foodMesh.material.emissive.setHex(0x000000);
     }
     foodSprite.visible = false;
   } else {
