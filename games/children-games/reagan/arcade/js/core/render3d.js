@@ -79,6 +79,7 @@ export function createStage(opts = {}) {
 
   stage = {
     T, renderer, scene, camera, cv, stageEl, two,
+    dl,                                             // 需要开阴影的游戏用
     world: new T.Group(),                           // 游戏物体的公共父节点
     W: opts.W || 800, H: opts.H || 560,
     shakeAmt: 0, shakeT: 0,

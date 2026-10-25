@@ -206,13 +206,14 @@ const SCRIPTS = {
   },
 
   brick: {
-    logic: 40000,    // 纯逻辑快进：光标乱走 + 乱放乱拆 + 反复出发，覆盖搭桥 / 验收 / 过关
+    logic: 40000,    // 纯逻辑快进：光标乱走 + 乱放乱拆换砖型 + 反复出发，覆盖长板/深水/星星/过关
     frames: 2500,
     press: function (i, g) {
       const dirs = ['up', 'down', 'left', 'right'];
       g.action(dirs[rnd(i) & 3], true);
       if (i % 37 === 5) g.action('place', true);
       if (i % 53 === 11) g.action('remove', true);
+      if (i % 71 === 23) g.action('flip', true);
       if (i % 211 === 100) g.action('test', true);
       if (i % 907 === 300) g.action('love', true);
     }

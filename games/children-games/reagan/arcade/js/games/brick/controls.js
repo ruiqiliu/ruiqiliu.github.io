@@ -14,6 +14,7 @@ export function createControls() {
       arrowright: 'right', d: 'right',
       ' ': 'place',
       x: 'remove',
+      f: 'flip',
       enter: 'test',
       l: 'love'
     },

@@ -1738,6 +1738,7 @@ function createStage(opts = {}) {
 
   stage = {
     T, renderer, scene, camera, cv, stageEl, two,
+    dl,                                             // 需要开阴影的游戏用
     world: new T.Group(),                           // 游戏物体的公共父节点
     W: opts.W || 800, H: opts.H || 560,
     shakeAmt: 0, shakeT: 0,
@@ -8432,15 +8433,26 @@ Object.assign(exports, { PADS, HINT, hud, PART_ROWS, START_BTN, makeBackground, 
 };
 __factories["js/games/brick/game.js"] = function (exports) {
 /* =====================================================================
-   games/brick/game.js — 积木救救队 · 逻辑层
-   在网格上放/拆积木，帮小人走到小旗子。孩子搭好路之后按「出发」，
-   小人自动走一遍验收：到了就金粒雨庆祝，没路就摇头提示，绝不惩罚。
+   games/brick/game.js — 积木救救队 · 逻辑层（8 岁版）
+   在网格上放/拆积木，帮小人收齐星星、走到小旗子。按「出发」小人
+   BFS 寻路自动验收：星星没收齐不算过关（停在旗上提示，可以继续搭），
+   没路也只是摇头提示，绝不惩罚。
 
-   世界模型（刻意保持极简，不需要物理引擎）：
-   - 每格 ground：-1 是水面，≥0 是地面高度（高台 / 高墙）；
-   - 每格 stacks：叠上去的积木（只能放在该格当前表面高度，天然有支撑）；
-   - 水面上放砖 = 浮桥（小朋友语义里的「船板」，不较真浮力）；
-   - 走路规则：上一格最多爬 1（Δ≤1），往下跳多高都行（小人会跳下来）。
+   面向 8 岁的挑战点（比上一版深一层）：
+   - 星星收集：每关若干颗，全收齐才算过关 → 出发前要先规划路线；
+   - 长板砖（1×2）：可以横放/竖放，能一头悬空（悬挑），跨越深水沟——
+     深水（-2）连砖都放不了，普通砖一次只能填一格，跨不过去；
+   - 地形：浅水（-1，可放砖当浮桥）、深水（-2，只能长板跨）、
+     高台（爬台阶 ≤1）、悬崖边悬挑跳板；
+   - 砖块预算收紧，倒逼用长板和悬挑。
+
+   世界模型（无物理引擎）：
+   - ground[z][x]：-2 深水 / -1 浅水 / ≥0 地面高度；
+   - stacks[z][x]：叠上去的积木对象（{c:颜色, l:1|2, ox,oz,x2,z2}），
+     长板同一对象存两格，拆时成对 pop；
+   - 表面 surface：深水不可走；浅水没砖=-1、有砖=砖顶；地面=高度+砖数；
+   - 走路：向上最多爬 1（Δ≤1），向下随便跳；
+   - 长板放置：两端落面高度相等 + 至少一端有真支撑（地面或砖）。
    ===================================================================== */
 const { clamp } = __req("js/core/util.js");
 const { loadNumber, saveNumber } = __req("js/core/storage.js");
@@ -8452,62 +8464,96 @@ const meta = {
   name: '积木救救队',
   icon: '🧱',
   accent: '#ffd8a8',
-  desc: ['搭积木帮小人过河', '按出发，小人自己走']
+  desc: ['搭积木收星星', '长板跨深水，送小人回家']
 };
 
 const BEST_LEVEL_KEY = 'hpy-brick-level';
 const STARS_KEY = 'hpy-brick-stars';
 
-const L = { W: 560, H: 440, CELL: 52, BRICK_H: 26, MAX_STACK: 6, STEP_TIME: 0.22 };
+const L = { W: 560, H: 440, CELL: 52, BRICK_H: 30, MAX_STACK: 6, STEP_TIME: 0.2 };
 
-/* ---------------- 关卡表 ---------------- */
+/* ---------------- 关卡表 ----------------
+   ground(x,z) 返回：-2 深水 / -1 浅水 / ≥0 地面高度
+   stars: [[x,z],...] 全收齐才过关；goal null = 沙盒 */
 
 const LEVELS = [
   {
-    name: '搭桥过河', tip: '在水上放一块积木，小人就能走过去', bricks: 6,
+    name: '搭桥过河', tip: '在水上放积木搭桥，顺路捡星星', bricks: 4,
     ground: (x) => (x === 4 ? -1 : 0),
-    start: [1, 3], goal: [7, 3]
+    start: [1, 3], goal: [7, 3],
+    stars: [[4, 3], [6, 3]]
   },
   {
-    name: '桥加台阶', tip: '先过小河，再搭一级台阶爬上高台', bricks: 8,
-    ground: (x) => (x === 2 ? -1 : (x >= 5 ? 2 : 0)),
-    start: [1, 3], goal: [6, 3]
+    name: '规划路线', tip: '星星要全收齐！有的在死胡同里，想好再出发', bricks: 5,
+    ground: (x) => (x === 4 ? -1 : 0),
+    start: [1, 3], goal: [7, 3],
+    stars: [[1, 1], [6, 1], [6, 5]]
   },
   {
-    name: '宽河与高台', tip: '宽河要两块积木，对岸的台子高一格', bricks: 8,
-    ground: (x) => (x === 4 || x === 5 ? -1 : (x >= 6 ? 1 : 0)),
-    start: [1, 3], goal: [7, 3]
+    name: '长板跨深水', tip: '深水放不了砖！按 F 换长板，一下跨两格', bricks: 5,
+    ground: (x) => (x === 4 || x === 5 ? -2 : 0),
+    start: [1, 3], goal: [7, 3],
+    stars: [[4, 3], [5, 3], [7, 5]]
   },
   {
-    name: '翻过大墙', tip: '墙太高爬不上，叠两层积木再爬', bricks: 8,
-    ground: (x) => (x === 5 ? 3 : 0),
-    start: [1, 3], goal: [7, 3]
+    name: '悬挑跳板', tip: '长板一头搭住就行！上高台要叠台阶', bricks: 6,
+    ground: (x) => (x === 4 ? -2 : (x >= 6 ? 2 : 0)),
+    start: [1, 3], goal: [7, 5],
+    stars: [[4, 3], [5, 3], [7, 3]]
   },
   {
-    name: '自由搭建', tip: '砖块管够！搭一个你自己的世界吧', bricks: 999,
+    name: '小岛中转', tip: '河中央有个小岛，分两段搭桥，岛上也有星星', bricks: 6,
+    ground: (x) => (x === 4 || x === 6 ? -1 : (x === 5 ? 0 : (x >= 7 ? 1 : 0))),
+    start: [1, 3], goal: [7, 3],
+    stars: [[4, 3], [5, 3], [6, 3]]
+  },
+  {
+    name: '大工程', tip: '深水加高台，全部星星一颗都不能少', bricks: 8,
+    ground: (x) => (x === 4 || x === 5 ? -2 : (x >= 7 ? 2 : 0)),
+    start: [1, 3], goal: [7, 3],
+    stars: [[2, 5], [4, 2], [6, 4], [7, 1]]
+  },
+  {
+    name: '自由搭建', tip: '砖块管够！长板也能用，搭一个你自己的世界', bricks: 999,
     ground: () => 0,
-    start: [2, 3], goal: null
+    start: [2, 3], goal: null,
+    stars: []
   }
 ];
 
 /* ---------------- 世界工具 ---------------- */
 
-/** 格子表面高度（小人脚踩的高度）。水面没有砖 = -1 不可走 */
-function surface(w, x, z) {
-  if (x < 0 || z < 0 || x >= w.W || z >= w.D) return -1;
-  const g = w.ground[z][x];
-  const n = w.stacks[z][x].length;
-  return g < 0 ? (n ? n : -1) : g + n;
-}
-
 function inWorld(w, x, z) {
   return x >= 0 && z >= 0 && x < w.W && z < w.D;
 }
 
-/** BFS：小人能不能从 走到（向上最多爬 1 格，向下随便跳） */
+/** 格子表面高度（小人脚踩的高度）。
+    深水=-2 不可走；浅水没砖=-1；地面=地面高度+砖数 */
+function surface(w, x, z) {
+  if (!inWorld(w, x, z)) return -2;
+  const g = w.ground[z][x];
+  const n = w.stacks[z][x].length;
+  if (g === -2) return -2;
+  return (g < 0 ? 0 : g) + n;
+}
+
+/** 长板落面的基底高度（深水 = null 不可落） */
+function baseOf(w, x, z) {
+  if (!inWorld(w, x, z)) return null;
+  const g = w.ground[z][x];
+  if (g === -2) return null;
+  return (g < 0 ? 0 : g) + w.stacks[z][x].length;
+}
+
+/** 格子是不是「真支撑」（地面或已有砖）——长板至少一端要搭住 */
+function isSolid(w, x, z) {
+  const g = w.ground[z][x];
+  return g >= 0 || w.stacks[z][x].length > 0;
+}
+
+/** BFS：从 走到（向上最多爬 1 格，向下随便跳） */
 function findPath(w, sx, sz, tx, tz) {
-  if (surface(w, sx, sz) < 0) return null;
-  if (surface(w, tx, tz) < 0) return null;
+  if (surface(w, sx, sz) < 0 || surface(w, tx, tz) < 0) return null;
   const prev = new Map();
   const seen = new Set([sx + ',' + sz]);
   const queue = [[sx, sz]];
@@ -8554,8 +8600,12 @@ function create(env) {
     fig: { x: 1, z: 3 },   // 小人所在的格
     from: { x: 1, z: 3 },
     prog: 1,
-    path: [],              // 待走的路（test 之后逐格走）
+    path: [],
+    stepIdx: 0,
+    brickLen: 1,           // 当前砖型：1 单砖 / 2 长板
+    brickDir: 0,           // 长板方向：0 横(沿x) / 1 竖(沿z)
     colorSeq: 0,
+    ghostOk: true,         // 光标处能不能放（幽灵砖变红用）
     T: 0
   };
 
@@ -8563,7 +8613,7 @@ function create(env) {
 
   function buildLevel() {
     const def = LEVELS[S.level - 1];
-    const w = { W: 9, D: 7, ground: [], stacks: [] };
+    const w = { W: 9, D: 7, ground: [], stacks: [], stars: [], goal: def.goal ? { x: def.goal[0], z: def.goal[1] } : null };
     for (let z = 0; z < w.D; z++) {
       w.ground.push([]);
       w.stacks.push([]);
@@ -8572,6 +8622,8 @@ function create(env) {
         w.stacks[z].push([]);
       }
     }
+    for (const [sx, sz] of def.stars || []) w.stars.push({ x: sx, z: sz, taken: false });
+
     S.world = w;
     S.bricksLeft = def.bricks;
     S.cursor = { x: def.start[0] + 1, z: def.start[1] };
@@ -8581,6 +8633,37 @@ function create(env) {
     S.path = [];
     S.phase = 'build';
     S.winT = 0;
+    updateGhost();
+  }
+
+  /** 逻辑格中心 → 2D 逻辑坐标（给 FX 飘字 / 粒子用） */
+  function logicCenter(x, z) {
+    const ox = (L.W - S.world.W * L.CELL) / 2;
+    const oz = (L.H - S.world.D * L.CELL) / 2;
+    return [ox + x * L.CELL + L.CELL / 2, oz + z * L.CELL + L.CELL / 2];
+  }
+
+  /* ---------------- 放置规则 ---------------- */
+
+  /** 当前光标 + 砖型能不能放。单砖：非深水且没超限；
+      长板：两格基底相等 + 至少一端真支撑 + 没超限 */
+  function canPlaceAt(x, z, len, dir) {
+    const w = S.world;
+    if (!inWorld(w, x, z)) return false;
+    if (surface(w, x, z) === -2) return false;
+
+    if (len === 1) return surface(w, x, z) < L.MAX_STACK;
+
+    const dx = dir === 0 ? 1 : 0, dz = dir === 0 ? 0 : 1;
+    const x2 = x + dx, z2 = z + dz;
+    const b1 = baseOf(w, x, z), b2 = baseOf(w, x2, z2);
+    if (b1 === null || b2 === null || b1 !== b2) return false;
+    if (b1 >= L.MAX_STACK) return false;
+    return isSolid(w, x, z) || isSolid(w, x2, z2);
+  }
+
+  function updateGhost() {
+    S.ghostOk = canPlaceAt(S.cursor.x, S.cursor.z, S.brickLen, S.brickDir);
   }
 
   /* ---------------- 搭与拆 ---------------- */
@@ -8589,17 +8672,30 @@ function create(env) {
     if (S.phase !== 'build') return;
     const w = S.world;
     const { x, z } = S.cursor;
-    if (!inWorld(w, x, z)) return;
-    if (surface(w, x, z) >= L.MAX_STACK) return;
+    if (!canPlaceAt(x, z, S.brickLen, S.brickDir)) {
+      FX.text(...logicCenter(x, z), S.brickLen === 2 ? '两头要一样高，一头要搭住' : '这里放不了', '#ff8787', 16);
+      Snd.soft();
+      return;
+    }
     if (S.bricksLeft <= 0) {
       FX.text(...logicCenter(x, z), '砖不够啦，按 ❤️', '#ff8787', 18);
       Snd.soft();
       return;
     }
-    w.stacks[z][x].push(S.colorSeq++);
     S.bricksLeft--;
+    const brick = { c: S.colorSeq++, l: S.brickLen };
+    if (S.brickLen === 2) {
+      const dx = S.brickDir === 0 ? 1 : 0, dz = S.brickDir === 0 ? 0 : 1;
+      brick.ox = x; brick.oz = z;
+      brick.x2 = x + dx; brick.z2 = z + dz;
+      w.stacks[z][x].push(brick);
+      w.stacks[brick.z2][brick.x2].push(brick);   // 同一对象存两格，拆时成对 pop
+    } else {
+      w.stacks[z][x].push(brick);
+    }
     Snd.brickPut();
     FX.burst(...logicCenter(x, z), ['#ffd8a8', '#ffffff'], 5, 0.55);
+    updateGhost();
   }
 
   function removeBrick() {
@@ -8607,9 +8703,15 @@ function create(env) {
     const w = S.world;
     const { x, z } = S.cursor;
     if (!inWorld(w, x, z) || !w.stacks[z][x].length) return;
+    const top = w.stacks[z][x][w.stacks[z][x].length - 1];
+    if (top.l === 2) {
+      const peer = w.stacks[top.z2][top.x2];
+      if (peer[peer.length - 1] === top) peer.pop();   // 长板成对拆
+    }
     w.stacks[z][x].pop();
     S.bricksLeft++;
     Snd.brickTake();
+    updateGhost();
   }
 
   /** 爱心救场：砖块不够就送一撮（街机的老约定） */
@@ -8620,15 +8722,21 @@ function create(env) {
     FX.text(...logicCenter(S.cursor.x, S.cursor.z), '❤️ +10', '#ff6b81', 20);
   }
 
-  /** 逻辑格中心 → 2D 逻辑坐标（给 FX 飘字 / 粒子用） */
-  function logicCenter(x, z) {
-    const ox = (L.W - w_pxs()) / 2, oz = (L.H - w_pzs()) / 2;
-    return [ox + x * L.CELL + L.CELL / 2, oz + z * L.CELL + L.CELL / 2];
+  /** 切换砖型（单砖 ↔ 长板）与长板方向 */
+  function flipBrick() {
+    if (S.phase !== 'build') return;
+    if (S.brickLen === 1) S.brickLen = 2;
+    else if (S.brickDir === 0) S.brickDir = 1;
+    else { S.brickLen = 1; S.brickDir = 0; }
+    Snd.pop(5);
+    updateGhost();
   }
-  const w_pxs = () => S.world.W * L.CELL;
-  const w_pzs = () => S.world.D * L.CELL;
 
   /* ---------------- 出发验收 ---------------- */
+
+  function starsLeft() {
+    return S.world.stars.filter((s) => !s.taken).length;
+  }
 
   function startWalk() {
     if (S.phase !== 'build') return;
@@ -8652,9 +8760,18 @@ function create(env) {
   }
 
   function arriveGoal() {
+    const left = starsLeft();
+    if (left > 0) {
+      // 到了旗子但星星没收齐：不算过关，停在原地继续搭
+      FX.text(...logicCenter(S.fig.x, S.fig.z), `还有 ${left} 颗星星！`, '#f08c00', 20);
+      Snd.soft();
+      S.phase = 'build';
+      S.path = [];
+      return;
+    }
     S.phase = 'win';
     S.winT = 2.4;
-    S.stars++;
+    S.stars += 2;   // 全星过关记 2 分
     saveNumber(STARS_KEY, S.stars);
     if (S.level < LEVELS.length) saveNumber(BEST_LEVEL_KEY, Math.max(loadNumber(BEST_LEVEL_KEY, 1), S.level + 1));
     Snd.win();
@@ -8663,6 +8780,20 @@ function create(env) {
       setTimeout(() => FX.burst(fx0 + (i - 1.5) * 34, fy0, ['#ffd43b', '#fff3bf', '#f1f3f5'], 14, 1.1, 'stud'), i * 130);
     }
     FX.text(fx0, fy0 - 26, '太棒了！', '#ffd43b', 26);
+  }
+
+  /** 走到一格：捡星星 */
+  function arriveCell() {
+    const w = S.world;
+    for (const s of w.stars) {
+      if (!s.taken && s.x === S.fig.x && s.z === S.fig.z) {
+        s.taken = true;
+        const [fx0, fy0] = logicCenter(S.fig.x, S.fig.z);
+        FX.burst(fx0, fy0, ['#ffd43b', '#fff3bf'], 12, 0.9, 'stud');
+        FX.text(fx0, fy0 - 22, '★', '#f08c00', 24);
+        Snd.eat();
+      }
+    }
   }
 
   /* ---------------- 每帧推进 ---------------- */
@@ -8682,7 +8813,6 @@ function create(env) {
     if (S.phase === 'walk') {
       if (S.prog >= 1) {
         if (S.stepIdx >= S.path.length - 1) {
-          // 走到了终点：关卡里有旗子就庆祝，沙盒里走到光标处就收工
           const def = LEVELS[S.level - 1];
           if (def.goal && S.fig.x === def.goal[0] && S.fig.z === def.goal[1]) arriveGoal();
           else { S.phase = 'build'; S.path = []; }
@@ -8693,6 +8823,7 @@ function create(env) {
         S.fig = { x: S.path[S.stepIdx].x, z: S.path[S.stepIdx].z };
         S.prog = 0;
         Snd.step();
+        arriveCell();
       }
       S.prog = Math.min(1, S.prog + dt / L.STEP_TIME);
     }
@@ -8729,6 +8860,7 @@ function create(env) {
           S.cursor.x += dx;
           S.cursor.z += dz;
           Snd.pop(3);
+          updateGhost();
         }
         return;
       }
@@ -8736,6 +8868,7 @@ function create(env) {
       if (name === 'remove') return removeBrick();
       if (name === 'test') return startWalk();
       if (name === 'love') return love();
+      if (name === 'flip') return flipBrick();
     },
 
     /** 视图层把画布点击翻译成格子（controls 里做射线拾取后回调） */
@@ -8743,8 +8876,15 @@ function create(env) {
       if (S.phase !== 'build') return;
       if (!inWorld(S.world, x, z)) return;
       if (x === S.cursor.x && z === S.cursor.z) placeBrick();
-      else { S.cursor.x = x; S.cursor.z = z; Snd.pop(3); }
+      else { S.cursor.x = x; S.cursor.z = z; Snd.pop(3); updateGhost(); }
     },
+
+    /** 长板砖占的第二格（幽灵预览用） */
+    ghostPeer() {
+      if (S.brickLen !== 2) return null;
+      const dx = S.brickDir === 0 ? 1 : 0, dz = S.brickDir === 0 ? 0 : 1;
+      return { x: S.cursor.x + dx, z: S.cursor.z + dz };
+    }
   };
 
   api.controls = createControls();
@@ -8771,6 +8911,7 @@ function createControls() {
       arrowright: 'right', d: 'right',
       ' ': 'place',
       x: 'remove',
+      f: 'flip',
       enter: 'test',
       l: 'love'
     },
@@ -8788,10 +8929,10 @@ Object.assign(exports, { createControls });
 };
 __factories["js/games/brick/view.js"] = function (exports) {
 /* =====================================================================
-   games/brick/view.js — 积木救救队 · UI 层（3D 版）
-   斜俯正交相机看一块乐高底板：水面凹下去、高台立起来、
-   每块积木顶上有一颗小圆柱 stud。光标是一块半透明的「幽灵砖」，
-   小人 = 圆柱身体 + 小朋友头像的头。
+   games/brick/view.js — 积木救救队 · UI 层（3D 版 · 8 岁版）
+   42° 斜俯正交相机 + 真实阴影（shadowMap）：砖块的影子落在板面和
+   水面上，悬挑结构一眼可见。长板（1×2）带两颗 stud，深水是深蓝色
+   的沟。幽灵光标按能否放置变白/红，星星是会转的金色乐高粒。
    ===================================================================== */
 const { lerp } = __req("js/core/util.js");
 const { createStage, stageAlive } = __req("js/core/render3d.js");
@@ -8806,7 +8947,7 @@ const PADS =
     '<button class="pad" data-act="right">▶</button>' +
   '</div>' +
   '<div class="row">' +
-    '<button class="pad" data-act="place">▣ 放一块</button>' +
+    '<button class="pad" data-act="flip">▤ 砖型/方向</button>' +
     '<button class="pad" data-act="remove">▢ 拆一块</button>' +
     '<button class="pad" data-act="test">🚩 出发</button>' +
     '<button class="pad" data-act="love">❤️ +10</button>' +
@@ -8814,28 +8955,25 @@ const PADS =
 
 const HINT =
   '<kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> 移动光标 · <kbd>空格</kbd> 放积木 · ' +
-  '<kbd>X</kbd> 拆积木 · <kbd>回车</kbd> 出发让小人走 · 也可以直接点画面试试';
+  '<kbd>F</kbd> 换砖型/方向（长板能一头悬空跨深水）· <kbd>X</kbd> 拆 · <kbd>回车</kbd> 出发 · ' +
+  '也可以直接点画面：点新格子移光标，再点一下放砖';
 
 function hud(S) {
-  const lvName = ['搭桥过河', '桥加台阶', '宽河与高台', '翻过大墙', '自由搭建'][S.level - 1] || '';
+  const lvName = ['搭桥过河', '规划路线', '长板跨深水', '悬挑跳板', '小岛中转', '大工程', '自由搭建'][S.level - 1] || '';
+  const total = S.world ? S.world.stars.length : 0;
+  const got = S.world ? S.world.stars.filter((s) => s.taken).length : 0;
   return [
     ['关卡', lvName],
     ['砖块', S.bricksLeft > 900 ? '管够' : S.bricksLeft],
-    ['星星', '⭐' + S.stars]
+    ['星星', total ? `⭐${got}/${total}` : '⭐' + S.stars]
   ];
 }
 
 function makeBackground() { return null; }
 
-/* ---------------- 3D 舞台 ---------------- */
-
-let st = null, fx = null;
-let cellGroup = null, brickPool = [], brickUsed = 0;
-let ghost = null, figG = null, goalFlag = null, waterTiles = [];
-let builtKey = '';
+/* ---------------- 常量与工具 ---------------- */
 
 const PALETTE = [0xe03131, 0xffd43b, 0x4dabf7, 0x51cf66, 0xff922b, 0xf1f3f5, 0x9b7bff, 0xff8fb1];
-
 const GRID_COLS = 9, GRID_ROWS = 7;   // 与 game.js 的世界尺寸对应（避免循环引用不 import）
 
 /** 逻辑格 → 3D 世界（板面平躺，逻辑 y → z；网格在画布里居中） */
@@ -8845,20 +8983,38 @@ function cellWorld(L, x, z) {
   return [ox + x * L.CELL - L.W / 2 + L.CELL / 2, oz + z * L.CELL - L.H / 2 + L.CELL / 2];
 }
 
+/* ---------------- 3D 舞台 ---------------- */
+
+let st = null, fx = null;
+let cellGroup = null, brickPool = [], brickUsed = 0;
+let ghostA = null, ghostB = null, figG = null, goalFlag = null, waterTiles = [], starCoins = [];
+let builtKey = '';
+
 function ensureStage(L) {
   // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
-  brickPool = []; brickUsed = 0; builtKey = ''; waterTiles = [];
+  brickPool = []; brickUsed = 0; builtKey = ''; waterTiles = []; starCoins = [];
 
   st = createStage({
     W: L.W, H: L.H,
-    ortho: { w: L.W, h: L.H, margin: 1.32 },
-    cam: [0, 860, 560], look: [0, 0, 0],
+    ortho: { w: L.W, h: L.H, margin: 1.12 },
+    cam: [0, 700, 780], look: [0, 0, 0],       // 42° 斜俯：砖块的侧面和影子都看得见
     bg: 0x87ceeb
   });
   if (!st) return false;
   st.cellSize = L.CELL;   // pickCell 射线拾取要用
-  fx = createFX3D(st, (x, y, z) => [x - L.W / 2, z || 24, y - L.H / 2]);
+
+  // 真阴影：立体感的最大来源
   const T = st.T;
+  st.renderer.shadowMap.enabled = true;
+  st.renderer.shadowMap.type = T.PCFSoftShadowMap;
+  st.dl.castShadow = true;
+  st.dl.shadow.mapSize.set(2048, 2048);
+  const sc = st.dl.shadow.camera;
+  sc.left = -700; sc.right = 700; sc.top = 700; sc.bottom = -700;
+  sc.near = 100; sc.far = 2600;
+  st.dl.shadow.bias = -0.0004;
+
+  fx = createFX3D(st, (x, y, z) => [x - L.W / 2, z || 24, y - L.H / 2]);
 
   // 底板（乐高底板的绿色厚板）
   const plate = new T.Mesh(
@@ -8866,13 +9022,14 @@ function ensureStage(L) {
     new T.MeshLambertMaterial({ color: 0x6fbf5f })
   );
   plate.position.y = -9;
+  plate.receiveShadow = true;
   st.scene.add(plate);
 
   // 底板 stud：绿色小圆柱阵列（真·乐高底板的样子）
   const studGeo = new T.CylinderGeometry(7, 7, 5, 10);
   const studMat = new T.MeshLambertMaterial({ color: 0x7fce6f });
-  for (let z = 0; z < 7; z++) {
-    for (let x = 0; x < 9; x++) {
+  for (let z = 0; z < GRID_ROWS; z++) {
+    for (let x = 0; x < GRID_COLS; x++) {
       const s = new T.Mesh(studGeo, studMat);
       const [wx, wz] = cellWorld(L, x, z);
       s.position.set(wx, 2.5, wz);
@@ -8880,29 +9037,37 @@ function ensureStage(L) {
     }
   }
 
-  // 单元格内容（水面 / 高台）每关重建
+  // 单元格内容（水 / 深水 / 高台）每关重建
   cellGroup = new T.Group();
   st.scene.add(cellGroup);
 
-  // 幽灵光标砖
-  ghost = new T.Group();
-  const gb = new T.Mesh(
-    new T.BoxGeometry(L.CELL * 0.9, L.BRICK_H, L.CELL * 0.9),
-    new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.38 })
-  );
-  ghost.add(gb);
-  const gring = new T.Mesh(
-    new T.BoxGeometry(L.CELL * 1.02, 3, L.CELL * 1.02),
-    new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
-  );
-  gring.position.y = -L.BRICK_H / 2 - 1;
-  ghost.add(gring);
-  st.scene.add(ghost);
+  // 幽灵光标：主格 + 长板的第二格；能不能放用白/红区分
+  const mkGhost = (op) => {
+    const g = new T.Group();
+    const gb = new T.Mesh(
+      new T.BoxGeometry(L.CELL * 0.94, L.BRICK_H, L.CELL * 0.94),
+      new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: op })
+    );
+    gb.position.y = L.BRICK_H / 2;
+    g.add(gb);
+    const gring = new T.Mesh(
+      new T.BoxGeometry(L.CELL * 1.04, 3, L.CELL * 1.04),
+      new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: op + 0.2 })
+    );
+    gring.position.y = -L.BRICK_H / 2 - 1;
+    g.add(gring);
+    g.userData = { body: gb, ring: gring };
+    st.scene.add(g);
+    return g;
+  };
+  ghostA = mkGhost(0.38);
+  ghostB = mkGhost(0.3);
 
   // 终点小旗
   goalFlag = new T.Group();
   const pole = new T.Mesh(new T.BoxGeometry(5, 64, 5), new T.MeshBasicMaterial({ color: 0xe9ecef }));
   pole.position.y = 32;
+  pole.castShadow = true;
   goalFlag.add(pole);
   const flag = new T.Mesh(new T.BoxGeometry(32, 19, 4), new T.MeshBasicMaterial({ color: 0xff6b6b }));
   flag.position.set(16, 54, 0);
@@ -8915,10 +9080,12 @@ function ensureStage(L) {
   for (const lx of [-8, 8]) {
     const leg = new T.Mesh(new T.BoxGeometry(11, 20, 11), legMat);
     leg.position.set(lx, 10, 0);
+    leg.castShadow = true;
     figG.add(leg);
   }
   const torso = new T.Mesh(new T.BoxGeometry(30, 26, 16), new T.MeshLambertMaterial({ color: 0xff6b6b }));
   torso.position.y = 33;
+  torso.castShadow = true;
   figG.add(torso);
   for (const hx of [-19, 19]) {
     const hand = new T.Mesh(new T.CylinderGeometry(5, 5, 14, 10), new T.MeshLambertMaterial({ color: 0xffd43b }));
@@ -8931,6 +9098,7 @@ function ensureStage(L) {
   tex.colorSpace = T.SRGBColorSpace;
   const head = new T.Mesh(new T.CylinderGeometry(13, 13, 18, 16), new T.MeshLambertMaterial({ color: 0xffe066 }));
   head.position.y = 55;
+  head.castShadow = true;
   figG.add(head);
   const face = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true }));
   face.scale.set(24, 24, 1);
@@ -8943,36 +9111,61 @@ function ensureStage(L) {
   return true;
 }
 
-/** 一块积木 = 圆角感的盒子 + 顶面 stud，从池子里取 */
-function takeBrick(L, colorHex) {
+/** 一块积木 = 盒子 + 顶面 stud（长板两格两颗），从池子里取 */
+function takeBrick(L, colorHex, len) {
   const T = st.T;
   let g = brickPool[brickUsed];
   if (!g) {
     g = new T.Group();
     const body = new T.Mesh(
-      new T.BoxGeometry(L.CELL * 0.9, L.BRICK_H, L.CELL * 0.9),
+      new T.BoxGeometry(1, L.BRICK_H, 1),
       new T.MeshLambertMaterial({ color: 0xffffff })
     );
     body.position.y = L.BRICK_H / 2;
+    body.castShadow = true;
+    body.receiveShadow = true;
     g.add(body);
-    const stud = new T.Mesh(
-      new T.CylinderGeometry(L.CELL * 0.18, L.CELL * 0.18, 7, 12),
-      new T.MeshLambertMaterial({ color: 0xffffff })
-    );
-    stud.position.y = L.BRICK_H + 3.5;
-    g.add(stud);
-    g.userData = { body, stud };
+    const studs = [];
+    for (let i = 0; i < 2; i++) {
+      const stud = new T.Mesh(
+        new T.CylinderGeometry(L.CELL * 0.2, L.CELL * 0.2, 8, 12),
+        new T.MeshLambertMaterial({ color: 0xffffff })
+      );
+      stud.position.y = L.BRICK_H + 4;
+      stud.castShadow = true;
+      g.add(stud);
+      studs.push(stud);
+    }
+    g.userData = { body, studs };
     st.scene.add(g);
     brickPool.push(g);
   }
   g.visible = true;
-  g.userData.body.material.color.setHex(colorHex);
-  g.userData.stud.material.color.setHex(colorHex);
+  const b = g.userData.body;
+  b.scale.set(len === 2 ? L.CELL * 1.88 : L.CELL * 0.94, 1, L.CELL * 0.94);
+  b.material.color.setHex(colorHex);
+  // 单砖只留中间一颗 stud，长板两颗
+  g.userData.studs[0].visible = true;
+  g.userData.studs[0].scale.set(1, 1, 1);
+  g.userData.studs[1].visible = len === 2;
+  if (len === 2) {
+    g.userData.studs[0].position.x = -L.CELL / 2;
+    g.userData.studs[1].position.x = L.CELL / 2;
+  } else {
+    g.userData.studs[0].position.x = 0;
+  }
   brickUsed++;
   return g;
 }
 
-/** 每关 / 每次搭拆后重建整个板面（格子数少，重建比 diff 简单可靠） */
+/** 格子表面离板面的高度（渲染用） */
+function topY(w, x, z, L) {
+  const g = w.ground[z][x];
+  const n = w.stacks[z][x].length;
+  return (g < 0 ? 0 : g * L.BRICK_H) + n * L.BRICK_H;
+}
+
+/** 每关 / 每次搭拆后重建整个板面（格子少，重建比 diff 简单可靠） */
 function rebuild(S, L) {
   const T = st.T;
   const w = S.world;
@@ -8981,6 +9174,7 @@ function rebuild(S, L) {
   cellGroup = new T.Group();
   st.scene.add(cellGroup);
   waterTiles = [];
+  starCoins = [];
   brickUsed = 0;
 
   for (let z = 0; z < w.D; z++) {
@@ -8988,62 +9182,162 @@ function rebuild(S, L) {
       const g = w.ground[z][x];
       const [wx, wz] = cellWorld(L, x, z);
 
-      // 水面：蓝色半透明小板，凹在底板下面
+      // 水：浅水亮蓝、深水又暗又凹（长板才能跨）
       if (g < 0) {
+        const deep = g === -2;
         const water = new T.Mesh(
           new T.BoxGeometry(L.CELL - 2, 8, L.CELL - 2),
-          new T.MeshLambertMaterial({ color: 0x4dabf7, transparent: true, opacity: 0.85 })
+          new T.MeshLambertMaterial({ color: deep ? 0x1864ab : 0x4dabf7, transparent: true, opacity: 0.9 })
         );
-        water.position.set(wx, -4, wz);
+        water.position.set(wx, deep ? -8 : -4, wz);
+        water.receiveShadow = true;
         cellGroup.add(water);
         waterTiles.push(water);
         continue;
       }
-      // 高台 / 高墙：从底板立起来的柱子
+      // 高台：从底板立起来的柱子
       if (g > 0) {
         const col = new T.Mesh(
           new T.BoxGeometry(L.CELL - 2, g * L.BRICK_H, L.CELL - 2),
           new T.MeshLambertMaterial({ color: 0x8fce7f })
         );
         col.position.set(wx, (g * L.BRICK_H) / 2, wz);
+        col.castShadow = true;
+        col.receiveShadow = true;
         cellGroup.add(col);
       }
-      // 该格叠着的积木
+      // 该格叠着的积木（长板在原点格渲染一次）
       const stack = w.stacks[z][x];
-      for (let i = 0; i < stack.length; i++) {
-        const m = takeBrick(L, PALETTE[stack[i] % PALETTE.length]);
-        m.position.set(wx, (g < 0 ? 0 : g * L.BRICK_H) + i * L.BRICK_H, wz);
+      for (const brick of stack) {
+        if (brick.l === 2 && (x !== brick.ox || z !== brick.oz)) continue;
+        const m = takeBrick(L, PALETTE[brick.c % PALETTE.length], brick.l);
+        if (brick.l === 2) {
+          const [ax, az] = cellWorld(L, brick.ox, brick.oz);
+          const [bx, bz] = cellWorld(L, brick.x2, brick.z2);
+          const horiz = brick.x2 !== brick.ox;
+          m.position.set((ax + bx) / 2, (g < 0 ? 0 : g * L.BRICK_H) + stack.indexOf(brick) * L.BRICK_H, (az + bz) / 2);
+          m.rotation.y = horiz ? 0 : Math.PI / 2;
+          // 长板的两颗 stud 也要跟着转向
+          m.userData.studs.forEach((s) => { s.rotation.y = 0; });
+        } else {
+          m.position.set(wx, (g < 0 ? 0 : g * L.BRICK_H) + stack.indexOf(brick) * L.BRICK_H, wz);
+          m.rotation.y = 0;
+        }
       }
     }
   }
 
-  // 终点旗
-  if (S.level <= LEVELS_GOAL.length) {
-    const gl = LEVELS_GOAL[S.level - 1];
-    if (gl) {
-      const [gx, gz] = cellWorld(L, gl[0], gl[1]);
-      goalFlag.visible = true;
-      goalFlag.position.set(gx, surfaceTop(S, L, gl[0], gl[1]), gz);
-    } else goalFlag.visible = false;
+  // 星星：金色乐高粒，浮在格子上方
+  for (const s of w.stars) {
+    const coin = new T.Mesh(
+      new T.CylinderGeometry(L.CELL * 0.2, L.CELL * 0.2, 10, 14),
+      new T.MeshLambertMaterial({ color: 0xffd43b, emissive: 0x6b4c00 })
+    );
+    const [sx, sz] = cellWorld(L, s.x, s.z);
+    coin.position.set(sx, topY(w, s.x, s.z, L) + 26, sz);
+    coin.castShadow = true;
+    coin.visible = !s.taken;
+    cellGroup.add(coin);
+    starCoins.push({ mesh: coin, star: s });
   }
+
+  // 终点旗
+  if (w.goal) {
+    const [gx, gz] = cellWorld(L, w.goal.x, w.goal.z);
+    goalFlag.visible = true;
+    goalFlag.position.set(gx, topY(w, w.goal.x, w.goal.z, L), gz);
+  } else goalFlag.visible = false;
   builtKey = levelKey(S);
 }
-
-function surfaceTop(S, L, x, z) {
-  const w = S.world;
-  const g = w.ground[z][x];
-  const n = w.stacks[z][x].length;
-  return (g < 0 ? 0 : g * L.BRICK_H) + n * L.BRICK_H;
-}
-
-/** 关卡目标表（跟 game.js 的 LEVELS 对应，只取 goal 坐标画旗子） */
-const LEVELS_GOAL = [[7, 3], [6, 3], [7, 3], [7, 3], null];
 
 function levelKey(S) {
   return S.level + ':' + S.world.stacks.map((r) => r.map((c) => c.length).join('')).join('|');
 }
 
 /* ---------------- 每帧绘制 ---------------- */
+
+function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
+  if (!st && !ensureStage(L)) return;
+  if (!S.world) return;
+  if (builtKey !== levelKey(S)) rebuild(S, L);
+
+  const w = S.world;
+
+  // 幽灵光标：主格 + 长板第二格；可放白、不可放红
+  {
+    const { x, z } = S.cursor;
+    const [wx, wz] = cellWorld(L, x, z);
+    const ok = S.ghostOk;
+    const col = ok ? 0xffffff : 0xff6b6b;
+    const show = S.phase === 'build';
+
+    ghostA.visible = show;
+    ghostA.position.set(wx, topY(w, x, z, L) + L.BRICK_H / 2, wz);
+    ghostA.userData.body.material.color.setHex(col);
+    ghostA.userData.ring.material.color.setHex(col);
+    ghostA.userData.body.material.opacity = 0.28 + Math.sin(S.T * 5) * 0.1;
+
+    const peer = S.brickLen === 2 ? peerOf(S) : null;
+    ghostB.visible = show && !!peer;
+    if (peer && show) {
+      const [px, pz] = cellWorld(L, peer.x, peer.z);
+      ghostB.position.set(px, topY(w, peer.x, peer.z, L) + L.BRICK_H / 2, pz);
+      ghostB.userData.body.material.color.setHex(col);
+      ghostB.userData.ring.material.color.setHex(col);
+    }
+  }
+
+  // 水面轻微起伏
+  for (let i = 0; i < waterTiles.length; i++) {
+    waterTiles[i].position.y = (waterTiles[i].position.y > -6 ? -4 : -8) + Math.sin(S.T * 2.4 + i) * 1.2;
+  }
+
+  // 星星旋转 / 收集后隐藏
+  for (const s of starCoins) {
+    s.mesh.visible = !s.star.taken;
+    s.mesh.rotation.y += 0.04;
+    s.mesh.rotation.z = Math.sin(S.T * 2) * 0.18;
+  }
+
+  // 小人：格子间插值 + 走路小跳 + 面朝前进方向
+  {
+    const t = Math.min(1, S.prog);
+    const fx0 = lerp(S.from.x, S.fig.x, t);
+    const fz0 = lerp(S.from.z, S.fig.z, t);
+    const gA = w.ground[S.from.z] ? w.ground[S.from.z][S.from.x] : 0;
+    const gB = w.ground[S.fig.z] ? w.ground[S.fig.z][S.fig.x] : 0;
+    const nA = w.stacks[S.from.z][S.from.x].length;
+    const nB = w.stacks[S.fig.z][S.fig.x].length;
+    const yA = (gA < 0 ? 0 : gA * L.BRICK_H) + nA * L.BRICK_H;
+    const yB = (gB < 0 ? 0 : gB * L.BRICK_H) + nB * L.BRICK_H;
+    const y = lerp(yA, yB, t) + Math.abs(Math.sin(t * Math.PI)) * (S.phase === 'walk' ? 9 : 0);
+    const [wx, wz] = cellWorld(L, fx0, fz0);
+    figG.position.set(wx, y, wz);
+    if (S.phase === 'walk') {
+      const dx = S.fig.x - S.from.x, dz = S.fig.z - S.from.z;
+      if (dx || dz) figG.rotation.y = Math.atan2(dx, dz);
+      figG.rotation.z = Math.sin(S.T * 18) * 0.06;
+    } else {
+      figG.rotation.z = Math.sin(S.T * 2) * 0.03;
+    }
+  }
+
+  // 终点旗飘动
+  if (goalFlag.visible) goalFlag.rotation.y = Math.sin(S.T * 2.6) * 0.14;
+
+  st.render(1 / 60);
+}
+
+/** 长板砖占的第二格（跟 game.js 的 ghostPeer 一样的算法，只读一份） */
+function peerOf(S) {
+  const dx = S.brickDir === 0 ? 1 : 0, dz = S.brickDir === 0 ? 0 : 1;
+  const x = S.cursor.x + dx, z = S.cursor.z + dz;
+  if (x < 0 || z < 0 || x >= GRID_COLS || z >= GRID_ROWS) return null;
+  return { x, z };
+}
+
+/* ---------------- 射线拾取 ---------------- */
 
 /** 画布点击 → 板面格子：把 2D 画布上的点还原成 3D 射线，与板面 y=0 求交 */
 function pickCell(p, LW, LH) {
@@ -9073,61 +9367,8 @@ function pickCell(p, LW, LH) {
   return { x, z };
 }
 
-function draw(ctx, S, L) {
-  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
-  if (!st && !ensureStage(L)) return;
-  if (!S.world) return;
-  if (builtKey !== levelKey(S)) rebuild(S, L);
 
-  // 光标幽灵砖：悬在落点高度上，呼吸闪烁
-  {
-    const w = S.world;
-    const { x, z } = S.cursor;
-    const [wx, wz] = cellWorld(L, x, z);
-    const g = w.ground[z][x];
-    const h = (g < 0 ? 0 : g * L.BRICK_H) + w.stacks[z][x].length * L.BRICK_H;
-    ghost.visible = S.phase === 'build';
-    ghost.position.set(wx, h + L.BRICK_H / 2, wz);
-    ghost.children[0].material.opacity = 0.3 + Math.sin(S.T * 5) * 0.1;
-  }
-
-  // 水面轻微起伏
-  for (let i = 0; i < waterTiles.length; i++) {
-    waterTiles[i].position.y = -4 + Math.sin(S.T * 2.4 + i) * 1.2;
-  }
-
-  // 小人：格子间插值 + 走路小跳 + 面朝前进方向
-  {
-    const t = Math.min(1, S.prog);
-    const fx0 = lerp(S.from.x, S.fig.x, t);
-    const fz0 = lerp(S.from.z, S.fig.z, t);
-    const w = S.world;
-    const gA = w.ground[S.from.z] ? w.ground[S.from.z][S.from.x] : 0;
-    const gB = w.ground[S.fig.z] ? w.ground[S.fig.z][S.fig.x] : 0;
-    const nA = w.stacks[S.from.z][S.from.x].length;
-    const nB = w.stacks[S.fig.z][S.fig.x].length;
-    const yA = (gA < 0 ? 0 : gA * L.BRICK_H) + nA * L.BRICK_H;
-    const yB = (gB < 0 ? 0 : gB * L.BRICK_H) + nB * L.BRICK_H;
-    const y = lerp(yA, yB, t) + Math.abs(Math.sin(t * Math.PI)) * (S.phase === 'walk' ? 8 : 0);
-    const [wx, wz] = cellWorld(L, fx0, fz0);
-    figG.position.set(wx, y, wz);
-    if (S.phase === 'walk') {
-      const dx = S.fig.x - S.from.x, dz = S.fig.z - S.from.z;
-      if (dx || dz) figG.rotation.y = Math.atan2(dx, dz);
-      figG.rotation.z = Math.sin(S.T * 18) * 0.06;
-    } else {
-      figG.rotation.z = Math.sin(S.T * 2) * 0.03;
-    }
-  }
-
-  // 终点旗飘动
-  if (goalFlag.visible) goalFlag.rotation.y = Math.sin(S.T * 2.6) * 0.14;
-
-  st.render(1 / 60);
-}
-
-
-Object.assign(exports, { PADS, HINT, hud, makeBackground, pickCell, draw });
+Object.assign(exports, { PADS, HINT, hud, makeBackground, draw, pickCell });
 };
 __factories["js/ui/home.js"] = function (exports) {
 /* =====================================================================

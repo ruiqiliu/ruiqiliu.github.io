@@ -1,13 +1,24 @@
 /* =====================================================================
-   games/brick/game.js — 积木救救队 · 逻辑层
-   在网格上放/拆积木，帮小人走到小旗子。孩子搭好路之后按「出发」，
-   小人自动走一遍验收：到了就金粒雨庆祝，没路就摇头提示，绝不惩罚。
+   games/brick/game.js — 积木救救队 · 逻辑层（8 岁版）
+   在网格上放/拆积木，帮小人收齐星星、走到小旗子。按「出发」小人
+   BFS 寻路自动验收：星星没收齐不算过关（停在旗上提示，可以继续搭），
+   没路也只是摇头提示，绝不惩罚。
 
-   世界模型（刻意保持极简，不需要物理引擎）：
-   - 每格 ground：-1 是水面，≥0 是地面高度（高台 / 高墙）；
-   - 每格 stacks：叠上去的积木（只能放在该格当前表面高度，天然有支撑）；
-   - 水面上放砖 = 浮桥（小朋友语义里的「船板」，不较真浮力）；
-   - 走路规则：上一格最多爬 1（Δ≤1），往下跳多高都行（小人会跳下来）。
+   面向 8 岁的挑战点（比上一版深一层）：
+   - 星星收集：每关若干颗，全收齐才算过关 → 出发前要先规划路线；
+   - 长板砖（1×2）：可以横放/竖放，能一头悬空（悬挑），跨越深水沟——
+     深水（-2）连砖都放不了，普通砖一次只能填一格，跨不过去；
+   - 地形：浅水（-1，可放砖当浮桥）、深水（-2，只能长板跨）、
+     高台（爬台阶 ≤1）、悬崖边悬挑跳板；
+   - 砖块预算收紧，倒逼用长板和悬挑。
+
+   世界模型（无物理引擎）：
+   - ground[z][x]：-2 深水 / -1 浅水 / ≥0 地面高度；
+   - stacks[z][x]：叠上去的积木对象（{c:颜色, l:1|2, ox,oz,x2,z2}），
+     长板同一对象存两格，拆时成对 pop；
+   - 表面 surface：深水不可走；浅水没砖=-1、有砖=砖顶；地面=高度+砖数；
+   - 走路：向上最多爬 1（Δ≤1），向下随便跳；
+   - 长板放置：两端落面高度相等 + 至少一端有真支撑（地面或砖）。
    ===================================================================== */
 import { clamp } from '../../core/util.js';
 import { loadNumber, saveNumber } from '../../core/storage.js';
@@ -19,62 +30,96 @@ export const meta = {
   name: '积木救救队',
   icon: '🧱',
   accent: '#ffd8a8',
-  desc: ['搭积木帮小人过河', '按出发，小人自己走']
+  desc: ['搭积木收星星', '长板跨深水，送小人回家']
 };
 
 const BEST_LEVEL_KEY = 'hpy-brick-level';
 const STARS_KEY = 'hpy-brick-stars';
 
-export const L = { W: 560, H: 440, CELL: 52, BRICK_H: 26, MAX_STACK: 6, STEP_TIME: 0.22 };
+export const L = { W: 560, H: 440, CELL: 52, BRICK_H: 30, MAX_STACK: 6, STEP_TIME: 0.2 };
 
-/* ---------------- 关卡表 ---------------- */
+/* ---------------- 关卡表 ----------------
+   ground(x,z) 返回：-2 深水 / -1 浅水 / ≥0 地面高度
+   stars: [[x,z],...] 全收齐才过关；goal null = 沙盒 */
 
 const LEVELS = [
   {
-    name: '搭桥过河', tip: '在水上放一块积木，小人就能走过去', bricks: 6,
+    name: '搭桥过河', tip: '在水上放积木搭桥，顺路捡星星', bricks: 4,
     ground: (x) => (x === 4 ? -1 : 0),
-    start: [1, 3], goal: [7, 3]
+    start: [1, 3], goal: [7, 3],
+    stars: [[4, 3], [6, 3]]
   },
   {
-    name: '桥加台阶', tip: '先过小河，再搭一级台阶爬上高台', bricks: 8,
-    ground: (x) => (x === 2 ? -1 : (x >= 5 ? 2 : 0)),
-    start: [1, 3], goal: [6, 3]
+    name: '规划路线', tip: '星星要全收齐！有的在死胡同里，想好再出发', bricks: 5,
+    ground: (x) => (x === 4 ? -1 : 0),
+    start: [1, 3], goal: [7, 3],
+    stars: [[1, 1], [6, 1], [6, 5]]
   },
   {
-    name: '宽河与高台', tip: '宽河要两块积木，对岸的台子高一格', bricks: 8,
-    ground: (x) => (x === 4 || x === 5 ? -1 : (x >= 6 ? 1 : 0)),
-    start: [1, 3], goal: [7, 3]
+    name: '长板跨深水', tip: '深水放不了砖！按 F 换长板，一下跨两格', bricks: 5,
+    ground: (x) => (x === 4 || x === 5 ? -2 : 0),
+    start: [1, 3], goal: [7, 3],
+    stars: [[4, 3], [5, 3], [7, 5]]
   },
   {
-    name: '翻过大墙', tip: '墙太高爬不上，叠两层积木再爬', bricks: 8,
-    ground: (x) => (x === 5 ? 3 : 0),
-    start: [1, 3], goal: [7, 3]
+    name: '悬挑跳板', tip: '长板一头搭住就行！上高台要叠台阶', bricks: 6,
+    ground: (x) => (x === 4 ? -2 : (x >= 6 ? 2 : 0)),
+    start: [1, 3], goal: [7, 5],
+    stars: [[4, 3], [5, 3], [7, 3]]
   },
   {
-    name: '自由搭建', tip: '砖块管够！搭一个你自己的世界吧', bricks: 999,
+    name: '小岛中转', tip: '河中央有个小岛，分两段搭桥，岛上也有星星', bricks: 6,
+    ground: (x) => (x === 4 || x === 6 ? -1 : (x === 5 ? 0 : (x >= 7 ? 1 : 0))),
+    start: [1, 3], goal: [7, 3],
+    stars: [[4, 3], [5, 3], [6, 3]]
+  },
+  {
+    name: '大工程', tip: '深水加高台，全部星星一颗都不能少', bricks: 8,
+    ground: (x) => (x === 4 || x === 5 ? -2 : (x >= 7 ? 2 : 0)),
+    start: [1, 3], goal: [7, 3],
+    stars: [[2, 5], [4, 2], [6, 4], [7, 1]]
+  },
+  {
+    name: '自由搭建', tip: '砖块管够！长板也能用，搭一个你自己的世界', bricks: 999,
     ground: () => 0,
-    start: [2, 3], goal: null
+    start: [2, 3], goal: null,
+    stars: []
   }
 ];
 
 /* ---------------- 世界工具 ---------------- */
 
-/** 格子表面高度（小人脚踩的高度）。水面没有砖 = -1 不可走 */
-function surface(w, x, z) {
-  if (x < 0 || z < 0 || x >= w.W || z >= w.D) return -1;
-  const g = w.ground[z][x];
-  const n = w.stacks[z][x].length;
-  return g < 0 ? (n ? n : -1) : g + n;
-}
-
 function inWorld(w, x, z) {
   return x >= 0 && z >= 0 && x < w.W && z < w.D;
 }
 
-/** BFS：小人能不能从 走到（向上最多爬 1 格，向下随便跳） */
+/** 格子表面高度（小人脚踩的高度）。
+    深水=-2 不可走；浅水没砖=-1；地面=地面高度+砖数 */
+function surface(w, x, z) {
+  if (!inWorld(w, x, z)) return -2;
+  const g = w.ground[z][x];
+  const n = w.stacks[z][x].length;
+  if (g === -2) return -2;
+  return (g < 0 ? 0 : g) + n;
+}
+
+/** 长板落面的基底高度（深水 = null 不可落） */
+function baseOf(w, x, z) {
+  if (!inWorld(w, x, z)) return null;
+  const g = w.ground[z][x];
+  if (g === -2) return null;
+  return (g < 0 ? 0 : g) + w.stacks[z][x].length;
+}
+
+/** 格子是不是「真支撑」（地面或已有砖）——长板至少一端要搭住 */
+function isSolid(w, x, z) {
+  const g = w.ground[z][x];
+  return g >= 0 || w.stacks[z][x].length > 0;
+}
+
+/** BFS：从 走到（向上最多爬 1 格，向下随便跳） */
 function findPath(w, sx, sz, tx, tz) {
-  if (surface(w, sx, sz) < 0) return null;
-  if (surface(w, tx, tz) < 0) return null;
+  if (surface(w, sx, sz) < 0 || surface(w, tx, tz) < 0) return null;
   const prev = new Map();
   const seen = new Set([sx + ',' + sz]);
   const queue = [[sx, sz]];
@@ -121,8 +166,12 @@ export function create(env) {
     fig: { x: 1, z: 3 },   // 小人所在的格
     from: { x: 1, z: 3 },
     prog: 1,
-    path: [],              // 待走的路（test 之后逐格走）
+    path: [],
+    stepIdx: 0,
+    brickLen: 1,           // 当前砖型：1 单砖 / 2 长板
+    brickDir: 0,           // 长板方向：0 横(沿x) / 1 竖(沿z)
     colorSeq: 0,
+    ghostOk: true,         // 光标处能不能放（幽灵砖变红用）
     T: 0
   };
 
@@ -130,7 +179,7 @@ export function create(env) {
 
   function buildLevel() {
     const def = LEVELS[S.level - 1];
-    const w = { W: 9, D: 7, ground: [], stacks: [] };
+    const w = { W: 9, D: 7, ground: [], stacks: [], stars: [], goal: def.goal ? { x: def.goal[0], z: def.goal[1] } : null };
     for (let z = 0; z < w.D; z++) {
       w.ground.push([]);
       w.stacks.push([]);
@@ -139,6 +188,8 @@ export function create(env) {
         w.stacks[z].push([]);
       }
     }
+    for (const [sx, sz] of def.stars || []) w.stars.push({ x: sx, z: sz, taken: false });
+
     S.world = w;
     S.bricksLeft = def.bricks;
     S.cursor = { x: def.start[0] + 1, z: def.start[1] };
@@ -148,6 +199,37 @@ export function create(env) {
     S.path = [];
     S.phase = 'build';
     S.winT = 0;
+    updateGhost();
+  }
+
+  /** 逻辑格中心 → 2D 逻辑坐标（给 FX 飘字 / 粒子用） */
+  function logicCenter(x, z) {
+    const ox = (L.W - S.world.W * L.CELL) / 2;
+    const oz = (L.H - S.world.D * L.CELL) / 2;
+    return [ox + x * L.CELL + L.CELL / 2, oz + z * L.CELL + L.CELL / 2];
+  }
+
+  /* ---------------- 放置规则 ---------------- */
+
+  /** 当前光标 + 砖型能不能放。单砖：非深水且没超限；
+      长板：两格基底相等 + 至少一端真支撑 + 没超限 */
+  function canPlaceAt(x, z, len, dir) {
+    const w = S.world;
+    if (!inWorld(w, x, z)) return false;
+    if (surface(w, x, z) === -2) return false;
+
+    if (len === 1) return surface(w, x, z) < L.MAX_STACK;
+
+    const dx = dir === 0 ? 1 : 0, dz = dir === 0 ? 0 : 1;
+    const x2 = x + dx, z2 = z + dz;
+    const b1 = baseOf(w, x, z), b2 = baseOf(w, x2, z2);
+    if (b1 === null || b2 === null || b1 !== b2) return false;
+    if (b1 >= L.MAX_STACK) return false;
+    return isSolid(w, x, z) || isSolid(w, x2, z2);
+  }
+
+  function updateGhost() {
+    S.ghostOk = canPlaceAt(S.cursor.x, S.cursor.z, S.brickLen, S.brickDir);
   }
 
   /* ---------------- 搭与拆 ---------------- */
@@ -156,17 +238,30 @@ export function create(env) {
     if (S.phase !== 'build') return;
     const w = S.world;
     const { x, z } = S.cursor;
-    if (!inWorld(w, x, z)) return;
-    if (surface(w, x, z) >= L.MAX_STACK) return;
+    if (!canPlaceAt(x, z, S.brickLen, S.brickDir)) {
+      FX.text(...logicCenter(x, z), S.brickLen === 2 ? '两头要一样高，一头要搭住' : '这里放不了', '#ff8787', 16);
+      Snd.soft();
+      return;
+    }
     if (S.bricksLeft <= 0) {
       FX.text(...logicCenter(x, z), '砖不够啦，按 ❤️', '#ff8787', 18);
       Snd.soft();
       return;
     }
-    w.stacks[z][x].push(S.colorSeq++);
     S.bricksLeft--;
+    const brick = { c: S.colorSeq++, l: S.brickLen };
+    if (S.brickLen === 2) {
+      const dx = S.brickDir === 0 ? 1 : 0, dz = S.brickDir === 0 ? 0 : 1;
+      brick.ox = x; brick.oz = z;
+      brick.x2 = x + dx; brick.z2 = z + dz;
+      w.stacks[z][x].push(brick);
+      w.stacks[brick.z2][brick.x2].push(brick);   // 同一对象存两格，拆时成对 pop
+    } else {
+      w.stacks[z][x].push(brick);
+    }
     Snd.brickPut();
     FX.burst(...logicCenter(x, z), ['#ffd8a8', '#ffffff'], 5, 0.55);
+    updateGhost();
   }
 
   function removeBrick() {
@@ -174,9 +269,15 @@ export function create(env) {
     const w = S.world;
     const { x, z } = S.cursor;
     if (!inWorld(w, x, z) || !w.stacks[z][x].length) return;
+    const top = w.stacks[z][x][w.stacks[z][x].length - 1];
+    if (top.l === 2) {
+      const peer = w.stacks[top.z2][top.x2];
+      if (peer[peer.length - 1] === top) peer.pop();   // 长板成对拆
+    }
     w.stacks[z][x].pop();
     S.bricksLeft++;
     Snd.brickTake();
+    updateGhost();
   }
 
   /** 爱心救场：砖块不够就送一撮（街机的老约定） */
@@ -187,15 +288,21 @@ export function create(env) {
     FX.text(...logicCenter(S.cursor.x, S.cursor.z), '❤️ +10', '#ff6b81', 20);
   }
 
-  /** 逻辑格中心 → 2D 逻辑坐标（给 FX 飘字 / 粒子用） */
-  function logicCenter(x, z) {
-    const ox = (L.W - w_pxs()) / 2, oz = (L.H - w_pzs()) / 2;
-    return [ox + x * L.CELL + L.CELL / 2, oz + z * L.CELL + L.CELL / 2];
+  /** 切换砖型（单砖 ↔ 长板）与长板方向 */
+  function flipBrick() {
+    if (S.phase !== 'build') return;
+    if (S.brickLen === 1) S.brickLen = 2;
+    else if (S.brickDir === 0) S.brickDir = 1;
+    else { S.brickLen = 1; S.brickDir = 0; }
+    Snd.pop(5);
+    updateGhost();
   }
-  const w_pxs = () => S.world.W * L.CELL;
-  const w_pzs = () => S.world.D * L.CELL;
 
   /* ---------------- 出发验收 ---------------- */
+
+  function starsLeft() {
+    return S.world.stars.filter((s) => !s.taken).length;
+  }
 
   function startWalk() {
     if (S.phase !== 'build') return;
@@ -219,9 +326,18 @@ export function create(env) {
   }
 
   function arriveGoal() {
+    const left = starsLeft();
+    if (left > 0) {
+      // 到了旗子但星星没收齐：不算过关，停在原地继续搭
+      FX.text(...logicCenter(S.fig.x, S.fig.z), `还有 ${left} 颗星星！`, '#f08c00', 20);
+      Snd.soft();
+      S.phase = 'build';
+      S.path = [];
+      return;
+    }
     S.phase = 'win';
     S.winT = 2.4;
-    S.stars++;
+    S.stars += 2;   // 全星过关记 2 分
     saveNumber(STARS_KEY, S.stars);
     if (S.level < LEVELS.length) saveNumber(BEST_LEVEL_KEY, Math.max(loadNumber(BEST_LEVEL_KEY, 1), S.level + 1));
     Snd.win();
@@ -230,6 +346,20 @@ export function create(env) {
       setTimeout(() => FX.burst(fx0 + (i - 1.5) * 34, fy0, ['#ffd43b', '#fff3bf', '#f1f3f5'], 14, 1.1, 'stud'), i * 130);
     }
     FX.text(fx0, fy0 - 26, '太棒了！', '#ffd43b', 26);
+  }
+
+  /** 走到一格：捡星星 */
+  function arriveCell() {
+    const w = S.world;
+    for (const s of w.stars) {
+      if (!s.taken && s.x === S.fig.x && s.z === S.fig.z) {
+        s.taken = true;
+        const [fx0, fy0] = logicCenter(S.fig.x, S.fig.z);
+        FX.burst(fx0, fy0, ['#ffd43b', '#fff3bf'], 12, 0.9, 'stud');
+        FX.text(fx0, fy0 - 22, '★', '#f08c00', 24);
+        Snd.eat();
+      }
+    }
   }
 
   /* ---------------- 每帧推进 ---------------- */
@@ -249,7 +379,6 @@ export function create(env) {
     if (S.phase === 'walk') {
       if (S.prog >= 1) {
         if (S.stepIdx >= S.path.length - 1) {
-          // 走到了终点：关卡里有旗子就庆祝，沙盒里走到光标处就收工
           const def = LEVELS[S.level - 1];
           if (def.goal && S.fig.x === def.goal[0] && S.fig.z === def.goal[1]) arriveGoal();
           else { S.phase = 'build'; S.path = []; }
@@ -260,6 +389,7 @@ export function create(env) {
         S.fig = { x: S.path[S.stepIdx].x, z: S.path[S.stepIdx].z };
         S.prog = 0;
         Snd.step();
+        arriveCell();
       }
       S.prog = Math.min(1, S.prog + dt / L.STEP_TIME);
     }
@@ -296,6 +426,7 @@ export function create(env) {
           S.cursor.x += dx;
           S.cursor.z += dz;
           Snd.pop(3);
+          updateGhost();
         }
         return;
       }
@@ -303,6 +434,7 @@ export function create(env) {
       if (name === 'remove') return removeBrick();
       if (name === 'test') return startWalk();
       if (name === 'love') return love();
+      if (name === 'flip') return flipBrick();
     },
 
     /** 视图层把画布点击翻译成格子（controls 里做射线拾取后回调） */
@@ -310,8 +442,15 @@ export function create(env) {
       if (S.phase !== 'build') return;
       if (!inWorld(S.world, x, z)) return;
       if (x === S.cursor.x && z === S.cursor.z) placeBrick();
-      else { S.cursor.x = x; S.cursor.z = z; Snd.pop(3); }
+      else { S.cursor.x = x; S.cursor.z = z; Snd.pop(3); updateGhost(); }
     },
+
+    /** 长板砖占的第二格（幽灵预览用） */
+    ghostPeer() {
+      if (S.brickLen !== 2) return null;
+      const dx = S.brickDir === 0 ? 1 : 0, dz = S.brickDir === 0 ? 0 : 1;
+      return { x: S.cursor.x + dx, z: S.cursor.z + dz };
+    }
   };
 
   api.controls = createControls();
