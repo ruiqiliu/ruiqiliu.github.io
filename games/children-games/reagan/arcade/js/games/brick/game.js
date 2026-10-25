@@ -94,20 +94,20 @@ function inWorld(w, x, z) {
 }
 
 /** 格子表面高度（小人脚踩的高度）。
-    深水=-2 不可走；浅水没砖=-1；地面=地面高度+砖数 */
+    深水=-2 不可走；深水上搭了长板才能走；地面=地面高度+砖数 */
 function surface(w, x, z) {
   if (!inWorld(w, x, z)) return -2;
   const g = w.ground[z][x];
   const n = w.stacks[z][x].length;
-  if (g === -2) return -2;
+  if (g === -2) return n ? n : -2;
   return (g < 0 ? 0 : g) + n;
 }
 
-/** 长板落面的基底高度（深水 = null 不可落） */
+/** 长板落面的基底高度（深水且没板 = null 不可落） */
 function baseOf(w, x, z) {
   if (!inWorld(w, x, z)) return null;
   const g = w.ground[z][x];
-  if (g === -2) return null;
+  if (g === -2 && w.stacks[z][x].length === 0) return null;
   return (g < 0 ? 0 : g) + w.stacks[z][x].length;
 }
 
@@ -199,6 +199,8 @@ export function create(env) {
     S.path = [];
     S.phase = 'build';
     S.winT = 0;
+    S.tip = `第 ${S.level} 关 · ${def.name}：${def.tip}`;
+    S.tipT = 4.5;
     updateGhost();
   }
 
@@ -211,21 +213,31 @@ export function create(env) {
 
   /* ---------------- 放置规则 ---------------- */
 
-  /** 当前光标 + 砖型能不能放。单砖：非深水且没超限；
-      长板：两格基底相等 + 至少一端真支撑 + 没超限 */
+  /** 当前光标 + 砖型能不能放。
+      单砖：非深水且没超限。
+      长板（悬挑规则）：至少一端搭在支撑上（地面或已有砖）；
+      非深水的另一端要和支撑端同高（板是平的）；深水端没有底，可以悬空。
+      这样一头搭岸、一头伸到深水上方 = 跨深水的跳板。 */
   function canPlaceAt(x, z, len, dir) {
     const w = S.world;
     if (!inWorld(w, x, z)) return false;
-    if (surface(w, x, z) === -2) return false;
 
-    if (len === 1) return surface(w, x, z) < L.MAX_STACK;
+    if (len === 1) {
+      const s = surface(w, x, z);
+      return s !== -2 && s < L.MAX_STACK;
+    }
 
-    const dx = dir === 0 ? 1 : 0, dz = dir === 0 ? 0 : 1;
-    const x2 = x + dx, z2 = z + dz;
+    const x2 = x + (dir === 0 ? 1 : 0), z2 = z + (dir === 0 ? 0 : 1);
+    if (!inWorld(w, x2, z2)) return false;        // 长板的第二格必须也在板内
     const b1 = baseOf(w, x, z), b2 = baseOf(w, x2, z2);
-    if (b1 === null || b2 === null || b1 !== b2) return false;
-    if (b1 >= L.MAX_STACK) return false;
-    return isSolid(w, x, z) || isSolid(w, x2, z2);
+    const s1 = b1 !== null && isSolid(w, x, z);
+    const s2 = b2 !== null && isSolid(w, x2, z2);
+    if (!s1 && !s2) return false;                 // 两头都悬空不行
+    const H = s1 ? b1 : b2;                       // 支撑端的落面高度
+    if (H >= L.MAX_STACK) return false;
+    if (b1 !== null && b1 !== H) return false;    // 有底的另一端必须同高
+    if (b2 !== null && b2 !== H) return false;
+    return true;
   }
 
   function updateGhost() {
@@ -360,12 +372,18 @@ export function create(env) {
         Snd.eat();
       }
     }
+    // 星星收齐 → 明确告诉玩家下一步
+    if (S.phase === 'walk' && starsLeft() === 0 && w.goal) {
+      const [fx0, fy0] = logicCenter(S.fig.x, S.fig.z);
+      FX.text(fx0, fy0 - 46, '星星收齐啦！去小旗 🚩', '#40c057', 20, 2200);
+    }
   }
 
   /* ---------------- 每帧推进 ---------------- */
 
   function update(dt) {
     S.T += dt;
+    S.tipT = Math.max(0, S.tipT - dt);
 
     if (S.phase === 'win') {
       S.winT -= dt;
@@ -418,6 +436,15 @@ export function create(env) {
 
     action(name, down) {
       if (!down) return;
+
+      // 数字键 / 按钮选关（1~7，随时可跳）
+      const m = name.match(/^lv(\d+)$/);
+      if (m) {
+        const n = +m[1];
+        if (n >= 1 && n <= LEVELS.length) { S.level = n; buildLevel(); }
+        return;
+      }
+
       if (name === 'left' || name === 'right' || name === 'up' || name === 'down') {
         if (S.phase !== 'build') return;
         const dx = name === 'left' ? -1 : name === 'right' ? 1 : 0;

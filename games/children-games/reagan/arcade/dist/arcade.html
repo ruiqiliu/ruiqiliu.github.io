@@ -1928,6 +1928,7 @@ function createFX3D(stage, toWorld) {
 
   fx = {
     group,
+    layer,          // DOM 飘字层；视图可往里挂自己的常驻提示条（随舞台一起拆除）
     /** 与 fx.js 同签名；kind='stud' 时粒子用小圆柱（乐高金粒的样子） */
     burst(x, y, colors, n = 12, s = 1, kind) {
       if (parts.length > 160) return;
@@ -1953,7 +1954,7 @@ function createFX3D(stage, toWorld) {
         group.add(mesh);
       }
     },
-    text(x, y, str, color = '#ffffff', size = 20) {
+    text(x, y, str, color = '#ffffff', size = 20, dur = 1000) {
       const [wx, wy, wz] = toWorld(x, y, 0);
       // 用相机把 3D 点投到屏幕：正面视角和平躺棋盘（还带旋转）都落在正确的位置
       const v = new T.Vector3(wx, wy, wz).project(stage.camera);
@@ -1963,7 +1964,7 @@ function createFX3D(stage, toWorld) {
         `left:${((v.x * 0.5 + 0.5) * 100).toFixed(1)}%;top:${((-v.y * 0.5 + 0.5) * 100).toFixed(1)}%;` +
         `color:${color};font-size:${size}px;transform:translate(-50%,-50%);`;
       layer.appendChild(sp);
-      setTimeout(() => sp.remove(), 1000);
+      setTimeout(() => sp.remove(), dur);
     },
     update(dt) {
       for (let i = parts.length - 1; i >= 0; i--) {
@@ -5156,12 +5157,13 @@ function boardAction(name) {
 let st = null, fx = null;
 let levelGroup = null, builtMaze = null;
 let starMeshes = [], exitFlag = null, playerSp = null, playerShadow = null, pathDots = [];
+let boardW = 0, boardD = 0, wallH = 40;   // 动态取景用（随关卡尺寸更新）
 
 function ensureStage(L) {
   st = createStage({
     W: L.W, H: L.H,
-    ortho: { w: L.W, h: L.H, margin: 1.45 },   // 转到 45° 时对角线最长，留足余量
-    cam: [0, 880, 620], look: [0, 0, 0],
+    ortho: { w: L.W, h: L.H, margin: 1.12 },
+    cam: [0, 980, 480], look: [0, 0, 0],       // 更偏俯视：纵向压缩小，地图显得更大
     bg: 0x101828
   });
   if (!st) return false;
@@ -5201,8 +5203,28 @@ function ensureStage(L) {
       if (Math.abs(yawTarget - yaw) < 0.004) yaw = yawTarget;
     }
     if (levelGroup) levelGroup.rotation.y = yaw;
+    fitMaze();
   };
   return true;
+}
+
+/** 取景跟随旋转角：0°/90° 时板子铺满画面，转到 45°（对角线最长）
+    才临时拉远一点。不再为最坏情况常驻留 45% 空白。 */
+function fitMaze() {
+  if (!st || !boardW) return;
+  const cam = st.camera;
+  const el = st.stageEl;
+  const aspect = Math.max(0.3, (el.clientWidth || 800) / (el.clientHeight || 600));
+  const c = Math.abs(Math.cos(yaw)), s = Math.abs(Math.sin(yaw));
+  // 板子在屏幕上的投影尺寸：水平 = 宽·cosθ + 深·sinθ；
+  // 纵向再乘俯视压缩系数（相机仰角的正弦），加上墙高
+  const sinE = cam.position.y / Math.hypot(cam.position.y, cam.position.z);
+  const halfW = (boardW / 2 * c + boardD / 2 * s) * 1.1 + 16;
+  const halfH = ((boardW / 2 * s + boardD / 2 * c) * sinE + wallH + 26) * 1.1;
+  const hh = Math.max(halfH, halfW / aspect);
+  const hw = hh * aspect;
+  cam.left = -hw; cam.right = hw; cam.top = hh; cam.bottom = -hh;
+  cam.updateProjectionMatrix();
 }
 
 /** 逻辑像素点 → levelGroup 本地坐标（板中心 = 原点，逻辑 y → z） */
@@ -5243,12 +5265,14 @@ function rebuildLevel(S, L) {
   //   1) 同向还有墙接着 → 延伸半厚，两段互相咬合不留缝；
   //   2) 有垂直墙在此相接 → 也延伸半厚，正好被对方的厚度补齐拐角；
   //   3) 开放端（什么都没有）→ 平齐收头。
-  // 原来无脑两端外伸，开放端会把过道啃窄一块（宽度不一致），
-  // 两截斜向相接的墙还会头对头焊死（0 距离）。
+  // 墙厚固定为格子的 0.18：任何关卡走廊都占 0.82 格，视觉统一且不拥挤。
   const wallMat = new T.MeshLambertMaterial({ color: 0xffd98a });
   const cs = maze.cell;
-  const WT = cs * 0.28;
+  const WT = Math.max(7, cs * 0.18);
   const WH = Math.max(20, cs * 0.66);
+  boardW = maze.cols * cs;
+  boardD = maze.rows * cs;
+  wallH = WH;
   const half = WT / 2;
 
   const hEdges = new Set(), vEdges = new Set();   // "格线x,格线y"
@@ -8528,20 +8552,20 @@ function inWorld(w, x, z) {
 }
 
 /** 格子表面高度（小人脚踩的高度）。
-    深水=-2 不可走；浅水没砖=-1；地面=地面高度+砖数 */
+    深水=-2 不可走；深水上搭了长板才能走；地面=地面高度+砖数 */
 function surface(w, x, z) {
   if (!inWorld(w, x, z)) return -2;
   const g = w.ground[z][x];
   const n = w.stacks[z][x].length;
-  if (g === -2) return -2;
+  if (g === -2) return n ? n : -2;
   return (g < 0 ? 0 : g) + n;
 }
 
-/** 长板落面的基底高度（深水 = null 不可落） */
+/** 长板落面的基底高度（深水且没板 = null 不可落） */
 function baseOf(w, x, z) {
   if (!inWorld(w, x, z)) return null;
   const g = w.ground[z][x];
-  if (g === -2) return null;
+  if (g === -2 && w.stacks[z][x].length === 0) return null;
   return (g < 0 ? 0 : g) + w.stacks[z][x].length;
 }
 
@@ -8633,6 +8657,8 @@ function create(env) {
     S.path = [];
     S.phase = 'build';
     S.winT = 0;
+    S.tip = `第 ${S.level} 关 · ${def.name}：${def.tip}`;
+    S.tipT = 4.5;
     updateGhost();
   }
 
@@ -8645,21 +8671,31 @@ function create(env) {
 
   /* ---------------- 放置规则 ---------------- */
 
-  /** 当前光标 + 砖型能不能放。单砖：非深水且没超限；
-      长板：两格基底相等 + 至少一端真支撑 + 没超限 */
+  /** 当前光标 + 砖型能不能放。
+      单砖：非深水且没超限。
+      长板（悬挑规则）：至少一端搭在支撑上（地面或已有砖）；
+      非深水的另一端要和支撑端同高（板是平的）；深水端没有底，可以悬空。
+      这样一头搭岸、一头伸到深水上方 = 跨深水的跳板。 */
   function canPlaceAt(x, z, len, dir) {
     const w = S.world;
     if (!inWorld(w, x, z)) return false;
-    if (surface(w, x, z) === -2) return false;
 
-    if (len === 1) return surface(w, x, z) < L.MAX_STACK;
+    if (len === 1) {
+      const s = surface(w, x, z);
+      return s !== -2 && s < L.MAX_STACK;
+    }
 
-    const dx = dir === 0 ? 1 : 0, dz = dir === 0 ? 0 : 1;
-    const x2 = x + dx, z2 = z + dz;
+    const x2 = x + (dir === 0 ? 1 : 0), z2 = z + (dir === 0 ? 0 : 1);
+    if (!inWorld(w, x2, z2)) return false;        // 长板的第二格必须也在板内
     const b1 = baseOf(w, x, z), b2 = baseOf(w, x2, z2);
-    if (b1 === null || b2 === null || b1 !== b2) return false;
-    if (b1 >= L.MAX_STACK) return false;
-    return isSolid(w, x, z) || isSolid(w, x2, z2);
+    const s1 = b1 !== null && isSolid(w, x, z);
+    const s2 = b2 !== null && isSolid(w, x2, z2);
+    if (!s1 && !s2) return false;                 // 两头都悬空不行
+    const H = s1 ? b1 : b2;                       // 支撑端的落面高度
+    if (H >= L.MAX_STACK) return false;
+    if (b1 !== null && b1 !== H) return false;    // 有底的另一端必须同高
+    if (b2 !== null && b2 !== H) return false;
+    return true;
   }
 
   function updateGhost() {
@@ -8794,12 +8830,18 @@ function create(env) {
         Snd.eat();
       }
     }
+    // 星星收齐 → 明确告诉玩家下一步
+    if (S.phase === 'walk' && starsLeft() === 0 && w.goal) {
+      const [fx0, fy0] = logicCenter(S.fig.x, S.fig.z);
+      FX.text(fx0, fy0 - 46, '星星收齐啦！去小旗 🚩', '#40c057', 20, 2200);
+    }
   }
 
   /* ---------------- 每帧推进 ---------------- */
 
   function update(dt) {
     S.T += dt;
+    S.tipT = Math.max(0, S.tipT - dt);
 
     if (S.phase === 'win') {
       S.winT -= dt;
@@ -8852,6 +8894,15 @@ function create(env) {
 
     action(name, down) {
       if (!down) return;
+
+      // 数字键 / 按钮选关（1~7，随时可跳）
+      const m = name.match(/^lv(\d+)$/);
+      if (m) {
+        const n = +m[1];
+        if (n >= 1 && n <= LEVELS.length) { S.level = n; buildLevel(); }
+        return;
+      }
+
       if (name === 'left' || name === 'right' || name === 'up' || name === 'down') {
         if (S.phase !== 'build') return;
         const dx = name === 'left' ? -1 : name === 'right' ? 1 : 0;
@@ -8913,7 +8964,8 @@ function createControls() {
       x: 'remove',
       f: 'flip',
       enter: 'test',
-      l: 'love'
+      l: 'love',
+      1: 'lv1', 2: 'lv2', 3: 'lv3', 4: 'lv4', 5: 'lv5', 6: 'lv6', 7: 'lv7'
     },
 
     pointer(game, p, type) {
@@ -8951,21 +9003,31 @@ const PADS =
     '<button class="pad" data-act="remove">▢ 拆一块</button>' +
     '<button class="pad" data-act="test">🚩 出发</button>' +
     '<button class="pad" data-act="love">❤️ +10</button>' +
+  '</div>' +
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+    '<button class="pad" data-act="lv5">5</button>' +
+    '<button class="pad" data-act="lv6">6</button>' +
+    '<button class="pad" data-act="lv7">自由</button>' +
   '</div>';
 
 const HINT =
   '<kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> 移动光标 · <kbd>空格</kbd> 放积木 · ' +
   '<kbd>F</kbd> 换砖型/方向（长板能一头悬空跨深水）· <kbd>X</kbd> 拆 · <kbd>回车</kbd> 出发 · ' +
-  '也可以直接点画面：点新格子移光标，再点一下放砖';
+  '<kbd>1</kbd>~<kbd>7</kbd> 选关 · 也可以直接点画面试试';
 
 function hud(S) {
   const lvName = ['搭桥过河', '规划路线', '长板跨深水', '悬挑跳板', '小岛中转', '大工程', '自由搭建'][S.level - 1] || '';
   const total = S.world ? S.world.stars.length : 0;
   const got = S.world ? S.world.stars.filter((s) => s.taken).length : 0;
   return [
-    ['关卡', lvName],
+    ['关卡', `${S.level}·${lvName}`],
     ['砖块', S.bricksLeft > 900 ? '管够' : S.bricksLeft],
-    ['星星', total ? `⭐${got}/${total}` : '⭐' + S.stars]
+    ['星星', total ? `⭐${got}/${total}` : '⭐' + S.stars],
+    ['目标', total ? '收齐星星→旗子' : '随便搭']
   ];
 }
 
@@ -8988,6 +9050,7 @@ function cellWorld(L, x, z) {
 let st = null, fx = null;
 let cellGroup = null, brickPool = [], brickUsed = 0;
 let ghostA = null, ghostB = null, figG = null, goalFlag = null, waterTiles = [], starCoins = [];
+let tipEl = null;
 let builtKey = '';
 
 function ensureStage(L) {
@@ -9106,6 +9169,15 @@ function ensureStage(L) {
   figG.add(face);
   img.onload = () => { tex.needsUpdate = true; };
   st.scene.add(figG);
+
+  // 目标提示条：挂在 fx3d 的飘字层里，随舞台一起创建/拆除
+  tipEl = document.createElement('div');
+  tipEl.style.cssText =
+    'position:absolute;top:12px;left:50%;transform:translateX(-50%);' +
+    'background:rgba(33,37,66,.86);color:#fff;padding:10px 18px;border-radius:14px;' +
+    'font-weight:700;font-size:17px;white-space:nowrap;pointer-events:none;';
+  tipEl.style.display = 'none';
+  fx.layer.appendChild(tipEl);
 
   st.onFrame = (dt) => { if (fx) fx.update(dt); };
   return true;
@@ -9263,6 +9335,14 @@ function draw(ctx, S, L) {
   if (builtKey !== levelKey(S)) rebuild(S, L);
 
   const w = S.world;
+
+  // 关卡开场的目标提示（带一点淡出尾巴）
+  if (tipEl) {
+    const on = S.tipT > 0;
+    tipEl.style.display = on ? 'block' : 'none';
+    tipEl.style.opacity = Math.min(1, S.tipT / 1.2);
+    tipEl.textContent = S.tip || '';
+  }
 
   // 幽灵光标：主格 + 长板第二格；可放白、不可放红
   {

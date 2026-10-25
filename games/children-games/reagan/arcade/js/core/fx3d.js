@@ -32,6 +32,7 @@ export function createFX3D(stage, toWorld) {
 
   fx = {
     group,
+    layer,          // DOM 飘字层；视图可往里挂自己的常驻提示条（随舞台一起拆除）
     /** 与 fx.js 同签名；kind='stud' 时粒子用小圆柱（乐高金粒的样子） */
     burst(x, y, colors, n = 12, s = 1, kind) {
       if (parts.length > 160) return;
@@ -57,7 +58,7 @@ export function createFX3D(stage, toWorld) {
         group.add(mesh);
       }
     },
-    text(x, y, str, color = '#ffffff', size = 20) {
+    text(x, y, str, color = '#ffffff', size = 20, dur = 1000) {
       const [wx, wy, wz] = toWorld(x, y, 0);
       // 用相机把 3D 点投到屏幕：正面视角和平躺棋盘（还带旋转）都落在正确的位置
       const v = new T.Vector3(wx, wy, wz).project(stage.camera);
@@ -67,7 +68,7 @@ export function createFX3D(stage, toWorld) {
         `left:${((v.x * 0.5 + 0.5) * 100).toFixed(1)}%;top:${((-v.y * 0.5 + 0.5) * 100).toFixed(1)}%;` +
         `color:${color};font-size:${size}px;transform:translate(-50%,-50%);`;
       layer.appendChild(sp);
-      setTimeout(() => sp.remove(), 1000);
+      setTimeout(() => sp.remove(), dur);
     },
     update(dt) {
       for (let i = parts.length - 1; i >= 0; i--) {

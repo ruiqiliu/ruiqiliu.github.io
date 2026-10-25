@@ -16,7 +16,8 @@ export function createControls() {
       x: 'remove',
       f: 'flip',
       enter: 'test',
-      l: 'love'
+      l: 'love',
+      1: 'lv1', 2: 'lv2', 3: 'lv3', 4: 'lv4', 5: 'lv5', 6: 'lv6', 7: 'lv7'
     },
 
     pointer(game, p, type) {

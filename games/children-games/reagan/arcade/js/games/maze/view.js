@@ -84,12 +84,13 @@ export function boardAction(name) {
 let st = null, fx = null;
 let levelGroup = null, builtMaze = null;
 let starMeshes = [], exitFlag = null, playerSp = null, playerShadow = null, pathDots = [];
+let boardW = 0, boardD = 0, wallH = 40;   // 动态取景用（随关卡尺寸更新）
 
 function ensureStage(L) {
   st = createStage({
     W: L.W, H: L.H,
-    ortho: { w: L.W, h: L.H, margin: 1.45 },   // 转到 45° 时对角线最长，留足余量
-    cam: [0, 880, 620], look: [0, 0, 0],
+    ortho: { w: L.W, h: L.H, margin: 1.12 },
+    cam: [0, 980, 480], look: [0, 0, 0],       // 更偏俯视：纵向压缩小，地图显得更大
     bg: 0x101828
   });
   if (!st) return false;
@@ -129,8 +130,28 @@ function ensureStage(L) {
       if (Math.abs(yawTarget - yaw) < 0.004) yaw = yawTarget;
     }
     if (levelGroup) levelGroup.rotation.y = yaw;
+    fitMaze();
   };
   return true;
+}
+
+/** 取景跟随旋转角：0°/90° 时板子铺满画面，转到 45°（对角线最长）
+    才临时拉远一点。不再为最坏情况常驻留 45% 空白。 */
+function fitMaze() {
+  if (!st || !boardW) return;
+  const cam = st.camera;
+  const el = st.stageEl;
+  const aspect = Math.max(0.3, (el.clientWidth || 800) / (el.clientHeight || 600));
+  const c = Math.abs(Math.cos(yaw)), s = Math.abs(Math.sin(yaw));
+  // 板子在屏幕上的投影尺寸：水平 = 宽·cosθ + 深·sinθ；
+  // 纵向再乘俯视压缩系数（相机仰角的正弦），加上墙高
+  const sinE = cam.position.y / Math.hypot(cam.position.y, cam.position.z);
+  const halfW = (boardW / 2 * c + boardD / 2 * s) * 1.1 + 16;
+  const halfH = ((boardW / 2 * s + boardD / 2 * c) * sinE + wallH + 26) * 1.1;
+  const hh = Math.max(halfH, halfW / aspect);
+  const hw = hh * aspect;
+  cam.left = -hw; cam.right = hw; cam.top = hh; cam.bottom = -hh;
+  cam.updateProjectionMatrix();
 }
 
 /** 逻辑像素点 → levelGroup 本地坐标（板中心 = 原点，逻辑 y → z） */
@@ -171,12 +192,14 @@ function rebuildLevel(S, L) {
   //   1) 同向还有墙接着 → 延伸半厚，两段互相咬合不留缝；
   //   2) 有垂直墙在此相接 → 也延伸半厚，正好被对方的厚度补齐拐角；
   //   3) 开放端（什么都没有）→ 平齐收头。
-  // 原来无脑两端外伸，开放端会把过道啃窄一块（宽度不一致），
-  // 两截斜向相接的墙还会头对头焊死（0 距离）。
+  // 墙厚固定为格子的 0.18：任何关卡走廊都占 0.82 格，视觉统一且不拥挤。
   const wallMat = new T.MeshLambertMaterial({ color: 0xffd98a });
   const cs = maze.cell;
-  const WT = cs * 0.28;
+  const WT = Math.max(7, cs * 0.18);
   const WH = Math.max(20, cs * 0.66);
+  boardW = maze.cols * cs;
+  boardD = maze.rows * cs;
+  wallH = WH;
   const half = WT / 2;
 
   const hEdges = new Set(), vEdges = new Set();   // "格线x,格线y"

@@ -21,21 +21,31 @@ export const PADS =
     '<button class="pad" data-act="remove">▢ 拆一块</button>' +
     '<button class="pad" data-act="test">🚩 出发</button>' +
     '<button class="pad" data-act="love">❤️ +10</button>' +
+  '</div>' +
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+    '<button class="pad" data-act="lv5">5</button>' +
+    '<button class="pad" data-act="lv6">6</button>' +
+    '<button class="pad" data-act="lv7">自由</button>' +
   '</div>';
 
 export const HINT =
   '<kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> 移动光标 · <kbd>空格</kbd> 放积木 · ' +
   '<kbd>F</kbd> 换砖型/方向（长板能一头悬空跨深水）· <kbd>X</kbd> 拆 · <kbd>回车</kbd> 出发 · ' +
-  '也可以直接点画面：点新格子移光标，再点一下放砖';
+  '<kbd>1</kbd>~<kbd>7</kbd> 选关 · 也可以直接点画面试试';
 
 export function hud(S) {
   const lvName = ['搭桥过河', '规划路线', '长板跨深水', '悬挑跳板', '小岛中转', '大工程', '自由搭建'][S.level - 1] || '';
   const total = S.world ? S.world.stars.length : 0;
   const got = S.world ? S.world.stars.filter((s) => s.taken).length : 0;
   return [
-    ['关卡', lvName],
+    ['关卡', `${S.level}·${lvName}`],
     ['砖块', S.bricksLeft > 900 ? '管够' : S.bricksLeft],
-    ['星星', total ? `⭐${got}/${total}` : '⭐' + S.stars]
+    ['星星', total ? `⭐${got}/${total}` : '⭐' + S.stars],
+    ['目标', total ? '收齐星星→旗子' : '随便搭']
   ];
 }
 
@@ -58,6 +68,7 @@ function cellWorld(L, x, z) {
 let st = null, fx = null;
 let cellGroup = null, brickPool = [], brickUsed = 0;
 let ghostA = null, ghostB = null, figG = null, goalFlag = null, waterTiles = [], starCoins = [];
+let tipEl = null;
 let builtKey = '';
 
 function ensureStage(L) {
@@ -176,6 +187,15 @@ function ensureStage(L) {
   figG.add(face);
   img.onload = () => { tex.needsUpdate = true; };
   st.scene.add(figG);
+
+  // 目标提示条：挂在 fx3d 的飘字层里，随舞台一起创建/拆除
+  tipEl = document.createElement('div');
+  tipEl.style.cssText =
+    'position:absolute;top:12px;left:50%;transform:translateX(-50%);' +
+    'background:rgba(33,37,66,.86);color:#fff;padding:10px 18px;border-radius:14px;' +
+    'font-weight:700;font-size:17px;white-space:nowrap;pointer-events:none;';
+  tipEl.style.display = 'none';
+  fx.layer.appendChild(tipEl);
 
   st.onFrame = (dt) => { if (fx) fx.update(dt); };
   return true;
@@ -333,6 +353,14 @@ export function draw(ctx, S, L) {
   if (builtKey !== levelKey(S)) rebuild(S, L);
 
   const w = S.world;
+
+  // 关卡开场的目标提示（带一点淡出尾巴）
+  if (tipEl) {
+    const on = S.tipT > 0;
+    tipEl.style.display = on ? 'block' : 'none';
+    tipEl.style.opacity = Math.min(1, S.tipT / 1.2);
+    tipEl.textContent = S.tip || '';
+  }
 
   // 幽灵光标：主格 + 长板第二格；可放白、不可放红
   {
