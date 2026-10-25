@@ -58,11 +58,13 @@ export function createFX3D(stage, toWorld) {
       }
     },
     text(x, y, str, color = '#ffffff', size = 20) {
-      const [wx, wy] = toWorld(x, y, 0);
+      const [wx, wy, wz] = toWorld(x, y, 0);
+      // 用相机把 3D 点投到屏幕：正面视角和平躺棋盘（还带旋转）都落在正确的位置
+      const v = new T.Vector3(wx, wy, wz).project(stage.camera);
       const sp = document.createElement('span');
       sp.textContent = str;
       sp.style.cssText =
-        `left:${((wx / stage.W) * 100).toFixed(1)}%;top:${((1 - wy / stage.H) * 100).toFixed(1)}%;` +
+        `left:${((v.x * 0.5 + 0.5) * 100).toFixed(1)}%;top:${((-v.y * 0.5 + 0.5) * 100).toFixed(1)}%;` +
         `color:${color};font-size:${size}px;transform:translate(-50%,-50%);`;
       layer.appendChild(sp);
       setTimeout(() => sp.remove(), 1000);
@@ -98,4 +100,9 @@ export function createFX3D(stage, toWorld) {
 
 export function currentFX3D() {
   return fx;
+}
+
+/** 3D 舞台被拆除时调用：把当前 fx3d 置空，逻辑层的 FX 调用回落到 2D 特效 */
+export function disposeCurrent3DFX() {
+  if (fx) fx.dispose();
 }

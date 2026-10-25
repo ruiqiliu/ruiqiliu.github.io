@@ -21,10 +21,29 @@
    ===================================================================== */
 import { surface } from './core/surface.js';
 import { FX } from './core/fx.js';
+import { currentFX3D } from './core/fx3d.js';
 import { Snd } from './core/audio.js';
 import { avatar } from './core/avatar.js';
 import { findById, games } from './games/registry.js';
 import { removeStage } from './core/render3d.js';
+
+/** 逻辑层的 FX 路由：当前有 3D 舞台就走到 3D 粒子（画在 2D 画布上的粒子
+    会被不透明的 3D 画布挡住，等于白画），没有 3D 舞台就走原来的 2D 特效。 */
+const FXRouter = {
+  burst(...args) {
+    const f = currentFX3D();
+    if (f) f.burst(...args);
+    else FX.burst(...args);
+  },
+  text(...args) {
+    const f = currentFX3D();
+    if (f) f.text(...args);
+    else FX.text(...args);
+  },
+  clear() { FX.clear(); },
+  update(dt) { FX.update(dt); },
+  draw(ctx) { FX.draw(ctx); }   // 3D 游戏时 2D 粒子列表恒空，等于 no-op
+};
 
 export function createShell({ homeView, playView, homeTitle }) {
   let active = null;
@@ -44,7 +63,7 @@ export function createShell({ homeView, playView, homeTitle }) {
     const slot = Math.max(0, games.indexOf(mod));
     avatar.setHero(slot);
 
-    active = mod.create({ ctx: surface.ctx, cv: surface.cv, Snd, FX });
+    active = mod.create({ ctx: surface.ctx, cv: surface.cv, Snd, FX: FXRouter });
 
     // 先按这个游戏的逻辑分辨率建画布，再让它准备静态背景
     surface.setup(active.W, active.H);

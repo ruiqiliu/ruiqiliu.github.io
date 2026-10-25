@@ -12,6 +12,8 @@
      未就绪时 createStage 返回 null，视图下一帧会重试。
    ===================================================================== */
 
+import { disposeCurrent3DFX } from './fx3d.js';
+
 const CANVAS_ID = 'stage3d';
 let stage = null;
 
@@ -212,6 +214,7 @@ function renderer_render(stage, dt) {
 /** 离开 3D 游戏 / 回首页时调用：拆除 3D 画布，恢复 2D 画布 */
 export function removeStage() {
   if (!stage) return;
+  disposeCurrent3DFX();               // 先让 fx3d 置空，逻辑层 FX 调用回落 2D
   window.removeEventListener('resize', stage.onResize);
   document.removeEventListener('fullscreenchange', stage.onResize);
   stage.cv.remove();

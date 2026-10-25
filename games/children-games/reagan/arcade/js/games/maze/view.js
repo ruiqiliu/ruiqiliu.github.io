@@ -146,6 +146,7 @@ function boardPos(maze, x, y, L) {
 /** 每一关重建墙体与物件 */
 function rebuildLevel(S, L) {
   if (levelGroup) {
+    if (fx && fx.group.parent === levelGroup) levelGroup.remove(fx.group);   // 粒子组要留给下一关，别跟着销毁
     st.world.remove(levelGroup);
     levelGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
     levelGroup = null;
@@ -166,38 +167,67 @@ function rebuildLevel(S, L) {
   floor.position.y = -6;
   levelGroup.add(floor);
 
-  // 墙：只画每格的 n / w 两面 + 最后一行 / 列的外沿，真正立在板面上
+  // 墙：按网格边收集后逐段绘制，端点分三种收头：
+  //   1) 同向还有墙接着 → 延伸半厚，两段互相咬合不留缝；
+  //   2) 有垂直墙在此相接 → 也延伸半厚，正好被对方的厚度补齐拐角；
+  //   3) 开放端（什么都没有）→ 平齐收头。
+  // 原来无脑两端外伸，开放端会把过道啃窄一块（宽度不一致），
+  // 两截斜向相接的墙还会头对头焊死（0 距离）。
   const wallMat = new T.MeshLambertMaterial({ color: 0xffd98a });
-  const WT = 11, WH = 42;
-  const addWall = (x1, y1, x2, y2) => {
-    const [ax, az] = ptPos(x1, y1, L);
-    const [bx, bz] = ptPos(x2, y2, L);
-    const horiz = Math.abs(x2 - x1) > Math.abs(y2 - y1);
-    const m = new T.Mesh(
-      new T.BoxGeometry(horiz ? bx - ax + WT : WT, WH, horiz ? WT : bz - az + WT),
-      wallMat
-    );
-    m.position.set((ax + bx) / 2, WH / 2, (az + bz) / 2);
+  const cs = maze.cell;
+  const WT = cs * 0.28;
+  const WH = Math.max(20, cs * 0.66);
+  const half = WT / 2;
+
+  const hEdges = new Set(), vEdges = new Set();   // "格线x,格线y"
+  for (let y = 0; y < maze.rows; y++) {
+    for (let x = 0; x < maze.cols; x++) {
+      const c = maze.cells[y * maze.cols + x];
+      if (c.n) hEdges.add(x + ',' + y);
+      if (c.w) vEdges.add(x + ',' + y);
+      if (y === maze.rows - 1 && c.s) hEdges.add(x + ',' + maze.rows);
+      if (x === maze.cols - 1 && c.e) vEdges.add(maze.cols + ',' + y);
+    }
+  }
+  const hasH = (x, y) => hEdges.has(x + ',' + y);
+  const hasV = (x, y) => vEdges.has(x + ',' + y);
+
+  // 横墙：格线 y 上从格点 x 到 x+1 的一段
+  const addH = (x, y) => {
+    const [ax, az] = ptPos(maze.ox + x * cs, maze.oy + y * cs, L);
+    const [bx, bz] = ptPos(maze.ox + (x + 1) * cs, maze.oy + y * cs, L);
+    const x1 = ax - (hasH(x - 1, y) || hasV(x, y) || hasV(x, y - 1) ? half : 0);
+    const x2 = bx + (hasH(x + 1, y) || hasV(x + 1, y) || hasV(x + 1, y - 1) ? half : 0);
+    const m = new T.Mesh(new T.BoxGeometry(x2 - x1, WH, WT), wallMat);
+    m.position.set((x1 + x2) / 2, WH / 2, az);
+    levelGroup.add(m);
+  };
+  // 竖墙：格线 x 上从格点 y 到 y+1 的一段
+  const addV = (x, y) => {
+    const [ax, az] = ptPos(maze.ox + x * cs, maze.oy + y * cs, L);
+    const [bx, bz] = ptPos(maze.ox + x * cs, maze.oy + (y + 1) * cs, L);
+    const z1 = az - (hasV(x, y - 1) || hasH(x, y) || hasH(x - 1, y) ? half : 0);
+    const z2 = bz + (hasV(x, y + 1) || hasH(x, y + 1) || hasH(x - 1, y + 1) ? half : 0);
+    const m = new T.Mesh(new T.BoxGeometry(WT, WH, z2 - z1), wallMat);
+    m.position.set(ax, WH / 2, (z1 + z2) / 2);
     levelGroup.add(m);
   };
 
   for (let y = 0; y < maze.rows; y++) {
     for (let x = 0; x < maze.cols; x++) {
-      const c = maze.cells[y * maze.cols + x];
-      const x0 = maze.ox + x * maze.cell, y0 = maze.oy + y * maze.cell;
-      if (c.n) addWall(x0, y0, x0 + maze.cell, y0);
-      if (c.w) addWall(x0, y0, x0, y0 + maze.cell);
-      if (y === maze.rows - 1 && c.s) addWall(x0, y0 + maze.cell, x0 + maze.cell, y0 + maze.cell);
-      if (x === maze.cols - 1 && c.e) addWall(x0 + maze.cell, y0, x0 + maze.cell, y0 + maze.cell);
+      if (hasH(x, y)) addH(x, y);
+      if (hasV(x, y)) addV(x, y);
     }
   }
+  for (let x = 0; x < maze.cols; x++) if (hasH(x, maze.rows)) addH(x, maze.rows);
+  for (let y = 0; y < maze.rows; y++) if (hasV(maze.cols, y)) addV(maze.cols, y);
 
   // 星星
   starMeshes = [];
   for (const coin of S.coins) {
     const m = new T.Mesh(new T.OctahedronGeometry(maze.cell * 0.22), new T.MeshBasicMaterial({ color: 0xffd43b }));
     const [wx, wz] = boardPos(maze, coin.x, coin.y, L);
-    m.position.set(wx, 22, wz);
+    m.position.set(wx, cs * 0.3, wz);
     levelGroup.add(m);
     starMeshes.push({ mesh: m, coin });
   }
@@ -219,7 +249,12 @@ function rebuildLevel(S, L) {
   exitFlag.position.set(ex, 0, ez);
   levelGroup.add(exitFlag);
 
-  // 玩家 + 阴影放进板子坐标系
+  // 玩家 / 阴影 / 旗子随格子等比缩放（72 = 第 1 关的格子尺寸，比例与旧版一致），
+  // 高关卡格子变小后头像不会再比墙还宽
+  const k = cs / 72;
+  playerSp.scale.set(52 * k, 52 * k, 1);
+  playerShadow.scale.setScalar(k);
+  exitFlag.scale.setScalar(k);
   levelGroup.add(playerSp);
   levelGroup.add(playerShadow);
 
@@ -240,7 +275,7 @@ export function draw(ctx, S, L) {
   const px = lerp(S.from.x, S.player.x, t);
   const py = lerp(S.from.y, S.player.y, t);
   const [wx, wz] = boardPos(maze, px, py, L);
-  playerSp.position.set(wx, 34, wz);
+  playerSp.position.set(wx, maze.cell * 0.47, wz);
   playerSp.material.rotation = Math.sin(S.T * 6) * 0.08;
   playerShadow.position.set(wx, 1.5, wz);
 
@@ -248,7 +283,7 @@ export function draw(ctx, S, L) {
   for (const s of starMeshes) {
     s.mesh.visible = !s.coin.taken;
     s.mesh.rotation.y += 0.05;
-    s.mesh.position.y = 22 + Math.sin(S.T * 3 + s.coin.x) * 3;
+    s.mesh.position.y = maze.cell * 0.3 + Math.sin(S.T * 3 + s.coin.x) * maze.cell * 0.05;
   }
 
   // 提示路线闪烁
