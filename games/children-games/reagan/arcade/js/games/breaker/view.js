@@ -4,7 +4,7 @@
    砖块被打碎时爆成小方块雨、挡板受击 squash、球拖尾。
    ===================================================================== */
 import { clamp, shade } from '../../core/util.js';
-import { createStage, place, shake as stageShake } from '../../core/render3d.js';
+import { createStage, place, shake as stageShake, stageAlive } from '../../core/render3d.js';
 import { createFX3D } from '../../core/fx3d.js';
 
 export const PADS = '';
@@ -28,6 +28,10 @@ let prevAliveSet = null;     // 上一帧存活的砖，用来找出「刚被打
 let squashT = 0, prevBallDy = 0;
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  brickPool = []; trailPool = [];
+  prevAliveSet = null; squashT = 0; prevBallDy = 0; lastBrickCount = -1;
+
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H },
@@ -83,6 +87,7 @@ function ensureStage(L) {
 /* ---------------- 每帧绘制 ---------------- */
 
 export function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
 
   // 砖块：按存活顺序复用池里的网格

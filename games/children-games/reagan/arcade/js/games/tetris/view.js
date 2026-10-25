@@ -3,7 +3,7 @@
    正交相机正对棋盘（判定零畸变），3D 只负责质感与远景：
    立体砖块、落点虚影、锁定弹跳、消行闪烁、右侧 3D 预览。
    ===================================================================== */
-import { createStage, place } from '../../core/render3d.js';
+import { createStage, stageAlive } from '../../core/render3d.js';
 import { createFX3D } from '../../core/fx3d.js';
 
 export const PADS =
@@ -34,6 +34,10 @@ let bounceCells = [], bounceT = 0;
 const CX = 240;   // 逻辑坐标里井的中心（井 20..500）
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  gridPool = []; curPool = []; ghostPool = []; nextPool = []; bgBlocks = [];
+  prevFilled = null; bounceCells = []; bounceT = 0;
+
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H },
@@ -127,6 +131,7 @@ function gridXY(L, col, row) {
 /* ---------------- 每帧绘制 ---------------- */
 
 export function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
   const T = st.T;
 

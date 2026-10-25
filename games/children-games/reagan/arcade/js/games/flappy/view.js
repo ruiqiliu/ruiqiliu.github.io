@@ -5,7 +5,7 @@
    逻辑层 game.js 与控制层 controls.js 不变。
    ===================================================================== */
 import { clamp } from '../../core/util.js';
-import { createStage, place } from '../../core/render3d.js';
+import { createStage, place, stageAlive } from '../../core/render3d.js';
 import { createFX3D } from '../../core/fx3d.js';
 import { avatar } from '../../core/avatar.js';
 
@@ -44,6 +44,9 @@ function scrollX(base, pos, speed) {
 }
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  pipePool = []; clouds = []; hills = []; bushes = [];
+
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H },
@@ -155,6 +158,7 @@ function ensureStage(L) {
 /* ---------------- 每帧绘制 ---------------- */
 
 export function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
 
   // 多层视差：云 → 近丘 → 草丛（草丛和管子同速，贴着地面跑）

@@ -5,7 +5,7 @@
    小人 = 圆柱身体 + 小朋友头像的头。
    ===================================================================== */
 import { lerp } from '../../core/util.js';
-import { createStage } from '../../core/render3d.js';
+import { createStage, stageAlive } from '../../core/render3d.js';
 import { createFX3D } from '../../core/fx3d.js';
 import { avatar } from '../../core/avatar.js';
 
@@ -57,6 +57,9 @@ function cellWorld(L, x, z) {
 }
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  brickPool = []; brickUsed = 0; builtKey = ''; waterTiles = [];
+
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H, margin: 1.32 },
@@ -282,6 +285,7 @@ export function pickCell(p, LW, LH) {
 }
 
 export function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
   if (!S.world) return;
   if (builtKey !== levelKey(S)) rebuild(S, L);

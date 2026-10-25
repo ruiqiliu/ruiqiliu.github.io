@@ -5,7 +5,7 @@
    屏幕上的上 = 走屏幕上方那格，转了视角也不乱。
    ===================================================================== */
 import { clamp, lerp } from '../../core/util.js';
-import { createStage } from '../../core/render3d.js';
+import { createStage, stageAlive } from '../../core/render3d.js';
 import { createFX3D } from '../../core/fx3d.js';
 import { avatar } from '../../core/avatar.js';
 
@@ -265,8 +265,12 @@ function rebuildLevel(S, L) {
 /* ---------------- 每帧绘制 ---------------- */
 
 export function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) {          // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
+    st = null;
+    levelGroup = null;                  // 旧关卡模型连同旧舞台一起作废，触发整关重建
+  }
   if (!st && !ensureStage(L)) return;
-  if (builtMaze !== S.maze) rebuildLevel(S, L);
+  if (builtMaze !== S.maze || !levelGroup) rebuildLevel(S, L);
 
   const maze = S.maze;
   const t = clamp(S.prog, 0, 1);

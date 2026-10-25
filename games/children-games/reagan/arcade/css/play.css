@@ -118,7 +118,7 @@
 canvas {
   display: block;
   /* --ar 由 js/core/surface.js 按当前游戏宽高比写入 */
-  width: min(100%, 840px, calc((100dvh - 340px) * var(--ar, 1.43)));
+  width: min(100%, 1040px, calc((100dvh - 340px) * var(--ar, 1.43)));
   height: auto;
   border-radius: 20px;
   touch-action: none;

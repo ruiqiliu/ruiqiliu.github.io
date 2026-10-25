@@ -318,7 +318,7 @@ kbd {
 canvas {
   display: block;
   /* --ar 由 js/core/surface.js 按当前游戏宽高比写入 */
-  width: min(100%, 840px, calc((100dvh - 340px) * var(--ar, 1.43)));
+  width: min(100%, 1040px, calc((100dvh - 340px) * var(--ar, 1.43)));
   height: auto;
   border-radius: 20px;
   touch-action: none;
@@ -1517,7 +1517,7 @@ __factories["js/games/breaker/view.js"] = function (exports) {
    砖块被打碎时爆成小方块雨、挡板受击 squash、球拖尾。
    ===================================================================== */
 const { clamp, shade } = __req("js/core/util.js");
-const { createStage, place, shake: stageShake } = __req("js/core/render3d.js");
+const { createStage, place, shake: stageShake, stageAlive } = __req("js/core/render3d.js");
 const { createFX3D } = __req("js/core/fx3d.js");
 
 const PADS = '';
@@ -1541,6 +1541,10 @@ let prevAliveSet = null;     // 上一帧存活的砖，用来找出「刚被打
 let squashT = 0, prevBallDy = 0;
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  brickPool = []; trailPool = [];
+  prevAliveSet = null; squashT = 0; prevBallDy = 0; lastBrickCount = -1;
+
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H },
@@ -1596,6 +1600,7 @@ function ensureStage(L) {
 /* ---------------- 每帧绘制 ---------------- */
 
 function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
 
   // 砖块：按存活顺序复用池里的网格
@@ -1767,6 +1772,13 @@ function createStage(opts = {}) {
   return stage;
 }
 
+/** 视图持有的 stage 是否还有效：回首页 / 切游戏时画布会被拆除
+    （removeStage），视图模块里的 st 还指向它，再渲染就是画到
+    一张已经不在页面里的画布上 → 重玩时整屏空白。 */
+function stageAlive(s) {
+  return !!s && s.cv.isConnected;
+}
+
 /** 逻辑坐标 → 世界坐标（y 翻转成向上） */
 function toWorld(stage, x, y, z = 0) {
   return [x - stage.W / 2, stage.H / 2 - y, z];
@@ -1878,7 +1890,7 @@ function removeStage() {
 }
 
 
-Object.assign(exports, { getTHREE, createStage, toWorld, place, boxMesh, sphereMesh, cylinderMesh, spriteMesh, shake, render, removeStage });
+Object.assign(exports, { getTHREE, createStage, stageAlive, toWorld, place, boxMesh, sphereMesh, cylinderMesh, spriteMesh, shake, render, removeStage });
 };
 __factories["js/core/fx3d.js"] = function (exports) {
 /* =====================================================================
@@ -2304,7 +2316,7 @@ __factories["js/games/snake/view.js"] = function (exports) {
    头尾平滑插值：头往前伸、尾往回收，中间节原地不动。
    ===================================================================== */
 const { clamp, lerp } = __req("js/core/util.js");
-const { createStage } = __req("js/core/render3d.js");
+const { createStage, stageAlive } = __req("js/core/render3d.js");
 const { createFX3D } = __req("js/core/fx3d.js");
 
 const PADS =
@@ -2344,9 +2356,14 @@ function flat(L, lx, ly, y) {
 }
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  tiles = [];
+  segPool = [];
+  prevSnake = null;
+
   st = createStage({
     W: L.W, H: L.H,
-    ortho: { w: L.W, h: L.H, margin: 1.34 },   // 斜俯视纵向有压缩，多留边
+    ortho: { w: L.W, h: L.H, margin: 1.1 },    // 留边小一点，棋盘尽量占满画布
     cam: [0, 700, 430], look: [0, 0, 0],
     bg: 0xfbeed3                               // 奶油底：明亮暖色，绿蛇一眼就跳出来
   });
@@ -2434,6 +2451,7 @@ function ensureStage(L) {
 let prevSnake = null;   // 上一帧的蛇身快照，用来做头尾平滑插值
 
 function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
 
   // 平滑插值：头从旧格滑向新格、尾从被弹出的格缩回，中间节原地不动。
@@ -2894,7 +2912,7 @@ __factories["js/games/tetris/view.js"] = function (exports) {
    正交相机正对棋盘（判定零畸变），3D 只负责质感与远景：
    立体砖块、落点虚影、锁定弹跳、消行闪烁、右侧 3D 预览。
    ===================================================================== */
-const { createStage, place } = __req("js/core/render3d.js");
+const { createStage, stageAlive } = __req("js/core/render3d.js");
 const { createFX3D } = __req("js/core/fx3d.js");
 
 const PADS =
@@ -2925,6 +2943,10 @@ let bounceCells = [], bounceT = 0;
 const CX = 240;   // 逻辑坐标里井的中心（井 20..500）
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  gridPool = []; curPool = []; ghostPool = []; nextPool = []; bgBlocks = [];
+  prevFilled = null; bounceCells = []; bounceT = 0;
+
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H },
@@ -3018,6 +3040,7 @@ function gridXY(L, col, row) {
 /* ---------------- 每帧绘制 ---------------- */
 
 function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
   const T = st.T;
 
@@ -4439,7 +4462,7 @@ __factories["js/games/flappy/view.js"] = function (exports) {
    逻辑层 game.js 与控制层 controls.js 不变。
    ===================================================================== */
 const { clamp } = __req("js/core/util.js");
-const { createStage, place } = __req("js/core/render3d.js");
+const { createStage, place, stageAlive } = __req("js/core/render3d.js");
 const { createFX3D } = __req("js/core/fx3d.js");
 const { avatar } = __req("js/core/avatar.js");
 
@@ -4478,6 +4501,9 @@ function scrollX(base, pos, speed) {
 }
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  pipePool = []; clouds = []; hills = []; bushes = [];
+
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H },
@@ -4589,6 +4615,7 @@ function ensureStage(L) {
 /* ---------------- 每帧绘制 ---------------- */
 
 function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
 
   // 多层视差：云 → 近丘 → 草丛（草丛和管子同速，贴着地面跑）
@@ -5049,7 +5076,7 @@ __factories["js/games/maze/view.js"] = function (exports) {
    屏幕上的上 = 走屏幕上方那格，转了视角也不乱。
    ===================================================================== */
 const { clamp, lerp } = __req("js/core/util.js");
-const { createStage } = __req("js/core/render3d.js");
+const { createStage, stageAlive } = __req("js/core/render3d.js");
 const { createFX3D } = __req("js/core/fx3d.js");
 const { avatar } = __req("js/core/avatar.js");
 
@@ -5309,8 +5336,12 @@ function rebuildLevel(S, L) {
 /* ---------------- 每帧绘制 ---------------- */
 
 function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) {          // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
+    st = null;
+    levelGroup = null;                  // 旧关卡模型连同旧舞台一起作废，触发整关重建
+  }
   if (!st && !ensureStage(L)) return;
-  if (builtMaze !== S.maze) rebuildLevel(S, L);
+  if (builtMaze !== S.maze || !levelGroup) rebuildLevel(S, L);
 
   const maze = S.maze;
   const t = clamp(S.prog, 0, 1);
@@ -8763,7 +8794,7 @@ __factories["js/games/brick/view.js"] = function (exports) {
    小人 = 圆柱身体 + 小朋友头像的头。
    ===================================================================== */
 const { lerp } = __req("js/core/util.js");
-const { createStage } = __req("js/core/render3d.js");
+const { createStage, stageAlive } = __req("js/core/render3d.js");
 const { createFX3D } = __req("js/core/fx3d.js");
 const { avatar } = __req("js/core/avatar.js");
 
@@ -8815,6 +8846,9 @@ function cellWorld(L, x, z) {
 }
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  brickPool = []; brickUsed = 0; builtKey = ''; waterTiles = [];
+
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H, margin: 1.32 },
@@ -9040,6 +9074,7 @@ function pickCell(p, LW, LH) {
 }
 
 function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
   if (!S.world) return;
   if (builtKey !== levelKey(S)) rebuild(S, L);

@@ -4,7 +4,7 @@
    头尾平滑插值：头往前伸、尾往回收，中间节原地不动。
    ===================================================================== */
 import { clamp, lerp } from '../../core/util.js';
-import { createStage } from '../../core/render3d.js';
+import { createStage, stageAlive } from '../../core/render3d.js';
 import { createFX3D } from '../../core/fx3d.js';
 
 export const PADS =
@@ -44,9 +44,14 @@ function flat(L, lx, ly, y) {
 }
 
 function ensureStage(L) {
+  // 重进游戏时旧舞台已被拆除：清空视图模块的旧状态再重建
+  tiles = [];
+  segPool = [];
+  prevSnake = null;
+
   st = createStage({
     W: L.W, H: L.H,
-    ortho: { w: L.W, h: L.H, margin: 1.34 },   // 斜俯视纵向有压缩，多留边
+    ortho: { w: L.W, h: L.H, margin: 1.1 },    // 留边小一点，棋盘尽量占满画布
     cam: [0, 700, 430], look: [0, 0, 0],
     bg: 0xfbeed3                               // 奶油底：明亮暖色，绿蛇一眼就跳出来
   });
@@ -134,6 +139,7 @@ function ensureStage(L) {
 let prevSnake = null;   // 上一帧的蛇身快照，用来做头尾平滑插值
 
 export function draw(ctx, S, L) {
+  if (st && !stageAlive(st)) st = null;   // 3D 舞台被拆除过（重玩 / 切游戏）→ 重建
   if (!st && !ensureStage(L)) return;
 
   // 平滑插值：头从旧格滑向新格、尾从被弹出的格缩回，中间节原地不动。

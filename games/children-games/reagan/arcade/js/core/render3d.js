@@ -113,6 +113,13 @@ export function createStage(opts = {}) {
   return stage;
 }
 
+/** 视图持有的 stage 是否还有效：回首页 / 切游戏时画布会被拆除
+    （removeStage），视图模块里的 st 还指向它，再渲染就是画到
+    一张已经不在页面里的画布上 → 重玩时整屏空白。 */
+export function stageAlive(s) {
+  return !!s && s.cv.isConnected;
+}
+
 /** 逻辑坐标 → 世界坐标（y 翻转成向上） */
 export function toWorld(stage, x, y, z = 0) {
   return [x - stage.W / 2, stage.H / 2 - y, z];
