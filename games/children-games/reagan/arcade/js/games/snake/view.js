@@ -6,6 +6,7 @@
 import { clamp, lerp } from '../../core/util.js';
 import { createStage, stageAlive } from '../../core/render3d.js';
 import { createFX3D } from '../../core/fx3d.js';
+import { avatar } from '../../core/avatar.js';
 
 export const PADS =
   '<div class="dpad">' +
@@ -52,12 +53,31 @@ function ensureStage(L) {
   st = createStage({
     W: L.W, H: L.H,
     ortho: { w: L.W, h: L.H, margin: 1.1 },    // 留边小一点，棋盘尽量占满画布
-    cam: [0, 700, 430], look: [0, 0, 0],
+    cam: [0, 660, 560], look: [0, 0, 0],       // 俯角低一点（≈50°），立体感更强
     bg: 0xfbeed3                               // 奶油底：明亮暖色，绿蛇一眼就跳出来
   });
   if (!st) return false;
   fx = createFX3D(st, (x, y, z) => [x - L.W / 2, L.H / 2 - y, z || 0]);
   const T = st.T;
+
+  // 真阴影：和积木救救队同一套，立体感的最大来源
+  st.renderer.shadowMap.enabled = true;
+  st.renderer.shadowMap.type = T.PCFSoftShadowMap;
+  st.dl.castShadow = true;
+  st.dl.shadow.mapSize.set(2048, 2048);
+  const sc = st.dl.shadow.camera;
+  sc.left = -560; sc.right = 560; sc.top = 560; sc.bottom = -560;
+  sc.near = 100; sc.far = 2400;
+  st.dl.shadow.bias = -0.0004;
+
+  // 厚底板：棋盘下方一块蜂蜜木板，侧面看得见，整块棋盘像真的摆在桌上
+  const plate = new T.Mesh(
+    new T.BoxGeometry(L.N * L.CELL + 56, 24, L.N * L.CELL + 56),
+    new T.MeshBasicMaterial({ color: 0xc08b4a })
+  );
+  plate.position.y = -20;
+  plate.receiveShadow = true;
+  st.world.add(plate);
 
   // 棋盘格（暖沙色棋盘格）：不受灯光影响的 Unlit 材质，
   // 颜色所见即所得，怎么照都是明亮护眼的底子
@@ -69,11 +89,23 @@ function ensureStage(L) {
       );
       const [wx, , wz] = flat(L, L.PAD + x * L.CELL + L.CELL / 2, L.PAD + y * L.CELL + L.CELL / 2);
       m.position.set(wx, -4, wz);
+      m.receiveShadow = true;
       st.world.add(m);
       tiles.push(m);
     }
   }
-  // 边框：立在地上的四条蜂蜜木色矮沿
+  // 影子捕捉层：Unlit 格子收不到阴影，用一块只画影子的透明面盖在上面
+  const catcher = new T.Mesh(
+    new T.PlaneGeometry(L.N * L.CELL, L.N * L.CELL),
+    new T.ShadowMaterial({ opacity: 0.2 })
+  );
+  catcher.rotation.x = -Math.PI / 2;
+  const [cx0] = flat(L, L.PAD + (L.N * L.CELL) / 2, L.PAD + (L.N * L.CELL) / 2);
+  const [, cz0] = flat(L, L.PAD + (L.N * L.CELL) / 2, L.PAD + (L.N * L.CELL) / 2);
+  catcher.position.set(cx0, 0.8, cz0);
+  catcher.receiveShadow = true;
+  st.world.add(catcher);
+  // 边框：立在地上的四条蜂蜜木色矮沿（加高 + 投影）
   const frameMat = new T.MeshBasicMaterial({ color: 0xd9a05b });
   const side = L.N * L.CELL + 20;
   const mid = L.PAD + (L.N * L.CELL) / 2;
@@ -83,39 +115,55 @@ function ensureStage(L) {
     [20, side + 24, L.PAD - 12, mid],
     [20, side + 24, L.PAD + L.N * L.CELL + 12, mid]
   ]) {
-    const m = new T.Mesh(new T.BoxGeometry(w, 26, d), frameMat);
+    const m = new T.Mesh(new T.BoxGeometry(w, 36, d), frameMat);
     const [wx, , wz] = flat(L, x, y);
-    m.position.set(wx, 0, wz);
+    m.position.set(wx, 6, wz);
+    m.castShadow = true;
+    m.receiveShadow = true;
     st.world.add(m);
   }
 
-  // 蛇身池（坐在板面上）
+  // 蛇身池：圆滚滚的球串（比方盒子可爱也立体），坐在板面上，投影子
   for (let i = 0; i < 70; i++) {
     const m = new T.Mesh(
-      new T.BoxGeometry(L.CELL - 10, 22, L.CELL - 10),
+      new T.SphereGeometry(L.CELL * 0.42, 18, 14),
       new T.MeshLambertMaterial({ color: 0x69db7c })
     );
+    m.scale.y = 0.82;
+    m.castShadow = true;
     st.world.add(m);
     segPool.push(m);
   }
 
-  // 蛇头（带眼睛；眼睛在本地 +z 面，转头朝前进方向）
+  // 蛇头：亮绿大脑袋球 + 大眼睛 + 小朋友头像的脸（眼睛/脸在本地 +z，转头朝前进方向）
   headG = new T.Group();
-  const head = new T.Mesh(new T.BoxGeometry(L.CELL - 6, 26, L.CELL - 6), new T.MeshLambertMaterial({ color: 0x2f9e44 }));
-  head.position.y = 13;
+  const head = new T.Mesh(new T.SphereGeometry(L.CELL * 0.47, 20, 16), new T.MeshLambertMaterial({ color: 0x40c057 }));
+  head.scale.y = 0.82;
+  head.position.y = 15;
+  head.castShadow = true;
   headG.add(head);
-  for (const ex of [-9, 9]) {
-    const e = new T.Mesh(new T.SphereGeometry(4.5, 10, 8), new T.MeshLambertMaterial({ color: 0xffffff }));
-    e.position.set(ex, 20, 10);
+  for (const ex of [-10, 10]) {
+    const e = new T.Mesh(new T.SphereGeometry(5.2, 10, 8), new T.MeshLambertMaterial({ color: 0xffffff }));
+    e.position.set(ex, 22, 12);
     headG.add(e);
-    const p = new T.Mesh(new T.SphereGeometry(2.2, 8, 6), new T.MeshLambertMaterial({ color: 0x212529 }));
-    p.position.set(ex, 20, 13);
+    const p = new T.Mesh(new T.SphereGeometry(2.6, 8, 6), new T.MeshLambertMaterial({ color: 0x212529 }));
+    p.position.set(ex, 22, 15.5);
     headG.add(p);
   }
+  const img = new Image();
+  img.src = avatar.heroURL();
+  const tex = new T.Texture(img);
+  tex.colorSpace = T.SRGBColorSpace;
+  const face = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true }));
+  face.scale.set(34, 34, 1);
+  face.position.set(0, 19, 22);
+  headG.add(face);
+  img.onload = () => { tex.needsUpdate = true; };
   st.world.add(headG);
 
-  // 食物：水果球（浮在板面上方）
+  // 食物：水果球（浮在板面上方，带影子）
   foodMesh = new T.Mesh(new T.SphereGeometry(15, 20, 16), new T.MeshLambertMaterial({ color: 0xe03131 }));
+  foodMesh.castShadow = true;
   st.world.add(foodMesh);
   const foodCv = document.createElement('canvas');
   foodCv.width = foodCv.height = 64;
@@ -169,7 +217,7 @@ export function draw(ctx, S, L) {
       }
       m.visible = true;
       const [wx, , wz] = flat(L, px, py);
-      m.position.set(wx, 11, wz);
+      m.position.set(wx, 13, wz);
       const k = i / Math.max(1, S.snake.length);
       m.material.color.setHex(i === 0 ? 0x2b8a3e : (i % 2 ? 0x51cf66 : 0x69db7c));
       m.scale.setScalar(1 - k * 0.25);

@@ -216,6 +216,18 @@ const SCRIPTS = {
       if (i % 71 === 23) g.action('flip', true);
       if (i % 211 === 100) g.action('test', true);
       if (i % 907 === 300) g.action('love', true);
+      if (i === 20000) g.action('lv3', true);    // 跳关：深水关
+    }
+  },
+
+  numtrain: {
+    logic: 60000,    // 纯逻辑快进：靠「教我」自动作答推进题目，覆盖三类题型 / 欢呼 / 过关
+    frames: 2000,
+    press: function (i, g) {
+      if (i % 30 === 0) g.action('hint', true);            // 自动答对 → 推进
+      if (i % 97 === 40) g.action('p' + (1 + (rnd(i) % 5)), true);   // 乱点也覆盖（答错抖动）
+      if (i % 211 === 90) g.action('shuffle', true);
+      if (i === 30000) g.action('lv5', true);              // 跳关：长长列车
     }
   }
 };

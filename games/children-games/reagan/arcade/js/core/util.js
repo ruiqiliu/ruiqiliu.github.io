@@ -11,6 +11,15 @@ export const ri = (a, b) => Math.floor(rand(a, b + 1));
 export const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 export const lerp = (a, b, k) => a + (b - a) * k;
 
+/** 原地洗牌（Fisher-Yates），返回原数组 */
+export function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 /** 圆角矩形路径（只建路径，填充/描边由调用方决定） */
 export function rr(g, x, y, w, h, r) {
   r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
