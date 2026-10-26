@@ -229,6 +229,18 @@ const SCRIPTS = {
       if (i % 211 === 90) g.action('shuffle', true);
       if (i === 30000) g.action('lv5', true);              // 跳关：长长列车
     }
+  },
+
+  ride: {
+    logic: 60000,    // 纯逻辑快进：自动骑约 3.5 圈，覆盖印章收集 / 卡片 / 地形 / 盖圈庆祝
+    frames: 2000,
+    press: function (i, g) {
+      if (i === 5) g.action('auto', true);
+      if (i === 30000) { g.action('auto', false); }        // 中途改手动（速度自然衰减）
+      if (i === 30100) { g.action('pedal', true); }        // 手动踩一段
+      if (i === 40000) g.action('lv1', true);              // 直达下一个景点
+      if (i % 5000 === 20) g.action('auto', true);
+    }
   }
 };
 

@@ -15,8 +15,9 @@ import * as m23 from './m23/game.js';
 import * as garage from './garage/game.js';
 import * as brick from './brick/game.js';
 import * as numtrain from './numtrain/game.js';
+import * as ride from './ride/game.js';
 
-export const games = [breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23, garage, brick, numtrain];
+export const games = [breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23, garage, brick, numtrain, ride];
 
 export function findById(id) {
   return games.find((g) => g.meta.id === id) || null;

@@ -479,7 +479,7 @@ const { createHomeView } = __req("js/ui/home.js");
 const { createPlayView } = __req("js/ui/play.js");
 const { createShell } = __req("js/shell.js");
 
-const HOME_TITLE = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 小鸟飞飞 / 迷宫探险 / 头像拼图 / 1024 / 2和3 / 车库大师 / 积木救救队 / 数字小列车';
+const HOME_TITLE = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 小鸟飞飞 / 迷宫探险 / 头像拼图 / 1024 / 2和3 / 车库大师 / 积木救救队 / 数字小列车 / 环国骑行';
 
 /* ---------------- 画布 ---------------- */
 const canvas = document.getElementById('cv');
@@ -1055,8 +1055,9 @@ const m23 = __req("js/games/m23/game.js");
 const garage = __req("js/games/garage/game.js");
 const brick = __req("js/games/brick/game.js");
 const numtrain = __req("js/games/numtrain/game.js");
+const ride = __req("js/games/ride/game.js");
 
-const games = [breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23, garage, brick, numtrain];
+const games = [breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23, garage, brick, numtrain, ride];
 
 function findById(id) {
   return games.find((g) => g.meta.id === id) || null;
@@ -10220,6 +10221,734 @@ function circle(ctx, x, y, r) {
 
 
 Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/ride/game.js"] = function (exports) {
+/* =====================================================================
+   games/ride/game.js — 环国骑行 · 逻辑层（13 号游戏，键 M）
+   沿国境线 + 海岸线骑一圈中国：按住 ▶ 踩踏板（或开「自动骑」），
+   沿途经过 24 个风土人情印章点——靠近时自动减速，盖章看介绍；
+   集齐印章骑完全程 = 环国一圈完成（🏅），可以再来一圈。
+
+   无失败、无惩罚：想慢慢看风景就松开踏板。
+   ===================================================================== */
+const { lerp } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/ride/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/ride/view.js");
+const { buildRoute, buildIslands, LANDMARKS } = __req("js/games/ride/route.js");
+
+const meta = {
+  id: 'ride',
+  name: '环国骑行',
+  icon: '🚴',
+  accent: '#b2f2bb',
+  desc: ['沿国境线骑一圈中国', '盖章看遍各地风土人情']
+};
+
+const BEST_KEY = 'hpy-ride-laps';
+const STARS_KEY = 'hpy-ride-stars';
+
+const L = { W: 800, H: 560 };
+
+const TOTAL_KM = 22800;        // 现实里陆境+海岸一圈约 2.28 万公里
+const PEDAL = 0.68;            // 踩踏板的基础速度（世界单位/秒）
+const COAST = 46;              // 松开踏板时的减速（单位/秒²）
+const NEAR = 2.2;              // 接近印章点的减速半径
+
+/* 地形带：[起点比例, 结束比例, 名称, 速度倍率]——顺路认识大地貌 */
+const TERRAIN = [
+  [0.00, 0.07, '东北平原', 1.15],
+  [0.07, 0.20, '长白林海', 1.0],
+  [0.20, 0.28, '呼伦贝尔草原', 1.2],
+  [0.28, 0.38, '大漠戈壁', 0.9],
+  [0.38, 0.48, '天山脚下', 0.85],
+  [0.48, 0.60, '帕米尔高原', 0.7],
+  [0.60, 0.70, '青藏高原', 0.7],
+  [0.70, 0.78, '横断山区', 0.8],
+  [0.78, 1.00, '万里海岸线', 1.3]
+];
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    route: buildRoute(),
+    islands: buildIslands(),
+    marks: LANDMARKS.map((m) => ({ ...m, taken: false })),
+    d: 0,                  // 沿路径的里程（世界单位）
+    speed: 0,
+    pedaling: false,
+    auto: false,           // 自动骑（小乘客模式）
+    lap: 0,
+    laps: loadNumber(BEST_KEY),
+    stars: loadNumber(STARS_KEY),
+    kmLap: 0,              // 本圈里程
+    kmAll: 0,              // 总里程
+    card: null,            // 当前展示的风土人情卡 {icon,name,note}
+    cardT: 0,
+    celebrate: 0,          // 过关/盖圈庆祝计时
+    terrain: TERRAIN[0][2],
+    T: 0
+  };
+
+  const kmPerUnit = TOTAL_KM / S.route.total;
+
+  function terrainAt(t) {
+    for (const [a, b, name] of TERRAIN) if (t >= a && t < b) return name;
+    return TERRAIN[TERRAIN.length - 1][2];
+  }
+
+  function multAt(t) {
+    for (const [a, b, , m] of TERRAIN) if (t >= a && t < b) return m;
+    return 1;
+  }
+
+  /* ---------------- 每帧推进 ---------------- */
+
+  function update(dt) {
+    S.T += dt;
+    S.cardT = Math.max(0, S.cardT - dt);
+    S.celebrate = Math.max(0, S.celebrate - dt);
+
+    const t = S.d / S.route.total;
+    S.terrain = terrainAt(t);
+    let mult = multAt(t);
+
+    // 快到印章点 → 自动减速看风景（把速度压到 1/3，约最后 12 秒）
+    const next = nextMarkDist();
+    if (next !== null && next < 1.5 && S.cardT <= 0) mult *= 0.35;
+
+    if (S.pedaling || S.auto) {
+      S.speed = lerp(S.speed, PEDAL * mult, Math.min(1, dt * 2.6));
+    } else {
+      S.speed = Math.max(0, S.speed - COAST * dt);
+    }
+
+    if (S.speed > 0.01) {
+      S.d += S.speed * dt;
+      S.kmLap += S.speed * dt * kmPerUnit;
+      S.kmAll += S.speed * dt * kmPerUnit;
+      checkLandmarks();
+      // 骑完一圈（回到起点）→ 庆祝 + 重置印章
+      if (S.d >= S.route.total) {
+        S.d -= S.route.total;
+        S.lap++;
+        S.laps++;
+        saveNumber(BEST_KEY, S.laps);
+        S.stars++;
+        saveNumber(STARS_KEY, S.stars);
+        S.kmLap = 0;
+        S.celebrate = 3.0;
+        S.card = { icon: '🏅', name: `环国一圈完成 × ${S.lap}`, note: '下一圈，换个方向再看看？' };
+        S.cardT = 4.5;
+        for (const m of S.marks) m.taken = false;
+        Snd.win();
+      }
+      // 踩踏板的哒哒声（轻）
+      if (S.pedaling && Math.floor(S.T * 2.2) !== Math.floor((S.T - dt) * 2.2)) Snd.step();
+    }
+  }
+
+  /** 距离下一个未盖印章还有多远（世界单位）；都盖完返回 null */
+  function nextMarkDist() {
+    let best = null;
+    for (const m of S.marks) {
+      if (m.taken) continue;
+      const md = m.d - S.d;
+      const fwd = ((md % S.route.total) + S.route.total) % S.route.total;
+      if (best === null || fwd < best) best = fwd;
+    }
+    return best;
+  }
+
+  function checkLandmarks() {
+    for (const m of S.marks) {
+      if (m.taken) continue;
+      const fwd = ((m.d - S.d) % S.route.total + S.route.total) % S.route.total;
+      if (fwd < 0.8) {
+        m.taken = true;
+        S.card = { icon: m.icon, name: m.name, note: m.note };
+        S.cardT = 4.6;
+        Snd.star();
+        const all = S.marks.every((k) => k.taken);
+        if (all) {
+          FX.text(L.W / 2, 120, '印章集齐啦！', '#40c057', 30, 2600);
+        }
+        break;
+      }
+    }
+  }
+
+  /* ---------------- 对外接口 ---------------- */
+
+  const api = {
+    W: L.W,
+    H: L.H,
+    pads: PADS,
+    hint: HINT,
+    cursor: 'pointer',
+
+    start() {
+      S.d = 0;
+      S.speed = 0;
+      S.kmLap = 0;
+      S.lap = 0;
+      S.card = { icon: '🚴', name: '环国骑行出发！', note: '按住 ▶ 踩踏板，看到景点会自动慢下来' };
+      S.cardT = 5;
+      for (const m of S.marks) m.taken = false;
+    },
+    resize() {},
+    restart() { api.start(); },
+    destroy() {},
+
+    update,
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+    debug() { return { d: Math.round(S.d * 10) / 10, total: Math.round(S.route.total), speed: S.speed.toFixed(2), auto: S.auto, pedaling: S.pedaling, lap: S.lap, kmLap: Math.round(S.kmLap), cardT: Math.round(S.cardT) }; },
+
+    action(name, down) {
+      if (name === 'pedal') { S.pedaling = down; return; }
+      if (!down) return;
+      if (name === 'auto') {
+        S.auto = !S.auto;
+        Snd.pop(S.auto ? 4 : 1);
+        if (S.auto) {
+          S.card = { icon: '🛋️', name: '自动骑开启', note: '小马会自己踩踏板，专心看风景吧' };
+          S.cardT = 3.5;
+        }
+        return;
+      }
+      if (name === 'lv1') {   // 跳到下一个未盖章的印章附近（找景点直达）
+        let best = null;
+        for (const m of S.marks) {
+          if (m.taken) continue;
+          const fwd = ((m.d - S.d) % S.route.total + S.route.total) % S.route.total;
+          if (best === null || fwd < best) best = fwd;
+        }
+        if (best !== null) { S.d = (S.d + best - NEAR * 2 + S.route.total) % S.route.total; S.speed = 0; }
+      }
+    }
+  };
+
+  // 预计算每个印章的路径里程
+  for (const m of S.marks) m.d = S.route.cum[m.i];
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/ride/controls.js"] = function (exports) {
+/* =====================================================================
+   games/ride/controls.js — 环国骑行 · 控制层
+   按住 ▶ / 空格 / 画面任意位置 = 踩踏板；A = 自动骑开关；M = 直达下一个景点
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {
+      arrowright: 'pedal',
+      d: 'pedal',
+      ' ': 'pedal',
+      a: 'auto',
+      m: 'lv1'
+    },
+
+    pointer(game, p, type) {
+      if (type === 'down') game.action('pedal', true);
+      else if (type === 'up') game.action('pedal', false);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/ride/view.js"] = function (exports) {
+/* =====================================================================
+   games/ride/view.js — 环国骑行 · UI 层（2D 画布）
+   镜头跟着骑手走（32 倍经纬度缩放）：海面 → 中国版图 → 骑过的路
+   橙色、没骑的淡虚线；印章点画小旗；右上角小地图显示全程进度；
+   左上角的风土人情卡片靠近自动弹出。
+   ===================================================================== */
+const { clamp } = __req("js/core/util.js");
+const { pointAt } = __req("js/games/ride/route.js");
+const { avatar } = __req("js/core/avatar.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad wide" data-act="pedal">▶ 踩踏板</button>' +
+    '<button class="pad wide" data-act="auto">🛋️ 自动骑</button>' +
+    '<button class="pad wide" data-act="lv1">🏁 找景点</button>' +
+  '</div>';
+
+const HINT =
+  '<kbd>▶</kbd> / <kbd>空格</kbd> / 按住画面 = 踩踏板 · 松开就滑行 · ' +
+  '<kbd>A</kbd> 自动骑 · <kbd>M</kbd> 找景点 · 靠近景点会自动慢下来盖章';
+
+function hud(S) {
+  const got = S.marks.filter((m) => m.taken).length;
+  return [
+    ['里程', Math.round(S.kmLap) + ' km'],
+    ['印章', `🎴${got}/${S.marks.length}`],
+    ['地形', S.terrain],
+    ['圈数', String(S.lap)]
+  ];
+}
+
+/* ---------------- 画布常量 ---------------- */
+
+const C = {
+  sea: '#dfeadf',          // 境外（邻国）用安静的浅灰绿，像地图集的底
+  land: '#f7e3ae',         // 中国版图：暖黄突出
+  landEdge: '#b45309',
+  routeOld: '#e8590c',
+  routeNew: 'rgba(255,255,255,.75)',
+  stamp: '#f5b301',
+  ink: '#4a3b28'
+};
+
+const ZOOM = 32;
+const CCX = 400, CCY = 268;   // 骑手在屏幕上的落点
+
+function w2s(wx, wy, rx, ry) {
+  return [(wx - rx) * ZOOM + CCX, (wy - ry) * ZOOM + CCY];
+}
+
+/* ---------------- 主绘制 ---------------- */
+
+function draw(ctx, S, L) {
+  const rx = posOf(S).x, ry = posOf(S).y;
+
+  // 境外底色（邻国留白，地图集风格）
+  ctx.fillStyle = C.sea;
+  ctx.fillRect(0, 0, L.W, L.H);
+  // 淡淡的经纬网格，增加「地图」感
+  ctx.strokeStyle = 'rgba(74,59,40,.07)';
+  ctx.lineWidth = 1;
+  const span = 6;
+  const gx0 = Math.floor((rx - CCX / ZOOM) / span) * span;
+  const gy0 = Math.floor((ry - CCY / ZOOM) / span) * span;
+  for (let gy = gy0; gy < ry + (L.H - CCY) / ZOOM; gy += span) {
+    const [, sy] = w2s(0, gy, rx, ry);
+    ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(L.W, sy); ctx.stroke();
+  }
+  for (let gx = gx0; gx < rx + (L.W - CCX) / ZOOM; gx += span) {
+    const [sx] = w2s(gx, 0, rx, ry);
+    ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, L.H); ctx.stroke();
+  }
+
+  // 版图（含岛屿）
+  drawPoly(ctx, S.route.pts, rx, ry, C.land, C.landEdge, 2.2);
+  for (const poly of S.islands) drawPoly(ctx, poly, rx, ry, C.land, C.landEdge, 2.2);
+
+  // 骑行路线：全程淡虚线 + 已骑部分橙色实线
+  drawRouteLine(ctx, S, rx, ry);
+
+  // 印章点
+  drawMarks(ctx, S, rx, ry);
+
+  // 骑手
+  drawRider(ctx, S, rx, ry);
+
+  // UI：卡片 / 小地图 / 进度条
+  card(ctx, S, L);
+  minimap(ctx, S, L);
+  progress(ctx, S, L);
+
+  // 庆祝横幅
+  if (S.celebrate > 0) {
+    ctx.fillStyle = 'rgba(255,249,236,.55)';
+    ctx.fillRect(0, 0, L.W, L.H);
+    ctx.fillStyle = C.ink;
+    ctx.font = '800 42px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏅 环国一圈完成！', L.W / 2, L.H / 2 - 10);
+    ctx.font = '700 24px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillStyle = '#e8590c';
+    ctx.fillText(`已骑 ${Math.round(S.kmAll)} km`, L.W / 2, L.H / 2 + 34);
+    ctx.textAlign = 'left';
+  }
+}
+
+function posOf(S) {
+  return pointAt(S.route, S.d);
+}
+
+/* ---------------- 海面 / 版图 / 路线 ---------------- */
+
+function drawPoly(ctx, pts, rx, ry, fill, stroke, lw) {
+  ctx.beginPath();
+  pts.forEach(([wx, wy], i) => {
+    const [sx, sy] = w2s(wx, wy, rx, ry);
+    if (i === 0) ctx.moveTo(sx, sy);
+    else ctx.lineTo(sx, sy);
+  });
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = lw;
+  ctx.stroke();
+}
+
+function drawRouteLine(ctx, S, rx, ry) {
+  const { pts, total } = S.route;
+  // 全程：淡虚线
+  ctx.setLineDash([6, 7]);
+  ctx.strokeStyle = C.routeNew;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  pts.forEach(([wx, wy], i) => {
+    const [sx, sy] = w2s(wx, wy, rx, ry);
+    i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+  });
+  ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 已骑：橙色实线（从起点到当前位置）
+  const pos = posOf(S);
+  ctx.strokeStyle = C.routeOld;
+  ctx.lineWidth = 3.4;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  let d = 0, started = false;
+  for (let i = 0; i < pts.length; i++) {
+    if (S.route.cum[i] <= S.d) {
+      const [sx, sy] = w2s(pts[i][0], pts[i][1], rx, ry);
+      started ? ctx.lineTo(sx, sy) : (ctx.moveTo(sx, sy), (started = true));
+      d = S.route.cum[i];
+    } else break;
+  }
+  // 最后一段到当前位置
+  const [ex, ey] = w2s(pos.x, pos.y, rx, ry);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+}
+
+/* ---------------- 印章点 ---------------- */
+
+function drawMarks(ctx, S, rx, ry) {
+  for (const m of S.marks) {
+    const p = pointAt(S.route, m.d);
+    const [sx, sy] = w2s(p.x, p.y, rx, ry);
+    if (sx < -30 || sx > 830 || sy < -30 || sy > 590) continue;
+
+    if (m.taken) {
+      // 已盖章：小旗
+      ctx.fillStyle = C.stamp;
+      ctx.fillRect(sx - 1, sy - 16, 2, 16);
+      ctx.beginPath();
+      ctx.moveTo(sx + 1, sy - 16);
+      ctx.lineTo(sx + 14, sy - 11);
+      ctx.lineTo(sx + 1, sy - 6);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      // 未盖章：呼吸的金圈 + 图标
+      const pulse = 10 + Math.sin(S.T * 3 + m.d) * 2.5;
+      ctx.strokeStyle = C.stamp;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(sx, sy, pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.font = '14px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(m.icon, sx, sy + 5);
+      ctx.textAlign = 'left';
+    }
+  }
+}
+
+/* ---------------- 骑手 ---------------- */
+
+function drawRider(ctx, S, rx, ry) {
+  const pos = posOf(S);
+  const [sx, sy] = w2s(pos.x, pos.y, rx, ry);
+  const ang = Math.atan2(pos.dy, pos.dx);
+
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(ang);
+  const bob = S.speed > 0.05 ? Math.sin(S.T * 14) * 1.6 : Math.sin(S.T * 2) * 0.8;
+
+  // 车轮
+  ctx.strokeStyle = '#343a40';
+  ctx.lineWidth = 2.4;
+  for (const wx of [-8, 8]) {
+    ctx.beginPath();
+    ctx.arc(wx, 5, 4.6, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // 车架
+  ctx.beginPath();
+  ctx.moveTo(-8, 5); ctx.lineTo(0, -2); ctx.lineTo(8, 5); ctx.lineTo(0, 0); ctx.closePath();
+  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(2, -8); ctx.stroke();  // 车把杆
+  // 人：身体 + 踩动的腿
+  ctx.strokeStyle = '#343a40';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-1, -6);
+  ctx.lineTo(-3, -13 + bob);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-1, -6); ctx.lineTo(3 + Math.sin(S.T * 8) * 2, 2); ctx.stroke();
+  // 头像头
+  avatar.hero(ctx, -3, -19 + bob, 8.5);
+  ctx.restore();
+}
+
+/* ---------------- UI：卡片 / 小地图 / 进度条 ---------------- */
+
+function card(ctx, S, L) {
+  if (S.cardT <= 0 || !S.card) return;
+  const a = Math.min(1, S.cardT / 0.6);
+  ctx.save();
+  ctx.globalAlpha = a;
+  const x = 14, y = 64, w = 320, h = 96;
+  ctx.fillStyle = 'rgba(255,249,236,.95)';
+  rr(ctx, x, y, w, h, 18);
+  ctx.fill();
+  ctx.strokeStyle = C.stamp;
+  ctx.lineWidth = 3;
+  rr(ctx, x, y, w, h, 18);
+  ctx.stroke();
+  ctx.font = '38px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+  ctx.fillText(S.card.icon, x + 18, y + 56);
+  ctx.fillStyle = C.ink;
+  ctx.font = '800 22px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(S.card.name, x + 70, y + 38);
+  ctx.font = '600 16px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#6b5a3e';
+  // 文案手动折行（约 15 字一行）
+  const note = S.card.note;
+  for (let i = 0; i * 15 < note.length; i++) {
+    ctx.fillText(note.slice(i * 15, i * 15 + 15), x + 70, y + 64 + i * 20);
+  }
+  ctx.restore();
+}
+
+function minimap(ctx, S, L) {
+  const mw = 176, mh = 132, mx = L.W - mw - 14, my = 12;
+  ctx.fillStyle = 'rgba(255,249,236,.9)';
+  rr(ctx, mx, my, mw, mh, 12);
+  ctx.fill();
+  const k = Math.min((mw - 16) / 50.5, (mh - 16) / 36);
+  const ox = mx + (mw - 50.5 * k) / 2, oy = my + (mh - 36 * k) / 2;
+
+  const map = ([wx, wy]) => [ox + wx * k, oy + wy * k];
+
+  ctx.beginPath();
+  S.route.pts.forEach(([wx, wy], i) => {
+    const [px, py] = map([wx, wy]);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  });
+  ctx.closePath();
+  ctx.fillStyle = C.land;
+  ctx.fill();
+  ctx.strokeStyle = '#9e8752';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  for (const poly of S.islands) {
+    ctx.beginPath();
+    poly.forEach(([wx, wy], i) => {
+      const [px, py] = map([wx, wy]);
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  // 印章：盖过的金点、没盖的灰点
+  for (const m of S.marks) {
+    const p = pointAt(S.route, m.d);
+    const [px, py] = map([p.x, p.y]);
+    ctx.fillStyle = m.taken ? C.stamp : 'rgba(74,59,40,.3)';
+    circle(ctx, px, py, 2.4);
+  }
+  // 骑手
+  const pos = posOf(S);
+  const [px, py] = map([pos.x, pos.y]);
+  ctx.fillStyle = '#e8590c';
+  circle(ctx, px, py, 3.6);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(px, py, 3.6, 0, Math.PI * 2); ctx.stroke();
+}
+
+function progress(ctx, S, L) {
+  const x = 50, y = L.H - 26, w = L.W - 100, h = 8;
+  ctx.fillStyle = 'rgba(74,59,40,.18)';
+  rr(ctx, x, y, w, h, 4);
+  ctx.fill();
+  const t = clamp(S.d / S.route.total, 0, 1);
+  ctx.fillStyle = C.routeOld;
+  rr(ctx, x, y, w * t, h, 4);
+  ctx.fill();
+  for (const m of S.marks) {
+    const mt = m.d / S.route.total;
+    ctx.fillStyle = m.taken ? C.stamp : 'rgba(74,59,40,.35)';
+    circle(ctx, x + w * mt, y + h / 2, 3);
+  }
+  // 骑手小标记
+  ctx.fillStyle = '#e8590c';
+  circle(ctx, x + w * t, y + h / 2, 5);
+  ctx.fillStyle = '#fff';
+  circle(ctx, x + w * t, y + h / 2, 2);
+  // 起终点标注
+  ctx.fillStyle = C.ink;
+  ctx.font = '700 13px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('丹东出发', x, y - 8);
+  ctx.textAlign = 'right';
+  ctx.fillText('回到丹东', x + w, y - 8);
+  ctx.textAlign = 'left';
+}
+
+/* ---------------- 小工具 ---------------- */
+
+function circle(ctx, x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/ride/route.js"] = function (exports) {
+/* =====================================================================
+   games/ride/route.js — 环国骑行 · 路线数据
+   ROUTE：沿国境线 + 海岸线一圈的简化折线（经度, 纬度），从丹东出发
+   逆时针（东北 → 正北 → 西 → 南 → 沿海岸北上回丹东）。
+   顶点是手工简化的示意轮廓，够孩子认出"大公鸡"就行。
+   LANDMARKS：沿路的「风土人情」印章点，i = ROUTE 顶点下标。
+   ===================================================================== */
+
+const ROUTE = [
+  [124.4, 40.0],   // 丹东（起点）
+  [125.6, 41.1], [127.2, 41.5], [128.1, 41.4],   // 长白山
+  [129.4, 42.4], [130.6, 42.7], [131.2, 44.4],   // 珲春 / 绥芬河
+  [132.9, 45.5], [133.9, 46.2], [134.7, 48.3],   // 乌苏里江 / 抚远
+  [133.0, 47.6], [131.0, 47.7], [128.5, 49.6],   // 三江平原北
+  [127.5, 50.2], [126.6, 51.7],                  // 黑河
+  [123.5, 53.2], [122.4, 53.5],                  // 漠河（最北）
+  [120.7, 52.6], [119.3, 50.3], [117.4, 49.6],   // 大兴安岭 / 满洲里
+  [115.0, 48.1], [113.0, 46.5], [111.9, 43.7],   // 草原 / 二连浩特
+  [109.5, 42.9], [105.0, 41.8], [100.8, 42.4],   // 戈壁 / 额济纳
+  [96.5, 42.8], [94.5, 42.2], [89.9, 43.6], [86.0, 44.4],
+  [82.6, 45.2],                                  // 阿拉山口
+  [80.4, 44.2], [80.6, 42.9], [79.5, 41.5],      // 霍尔果斯 / 昭苏
+  [74.8, 39.8], [73.8, 39.4],                    // 乌恰 / 喀什
+  [75.0, 37.2], [75.1, 36.3],                    // 帕米尔 / 红其拉甫
+  [78.2, 34.5], [80.1, 32.5], [81.3, 30.4],      // 阿里 / 狮泉河 / 普兰
+  [85.2, 29.1], [86.6, 28.1],                    // 珠峰（定日）
+  [88.9, 27.4], [91.9, 27.9], [96.8, 28.2],      // 亚东 / 错那 / 察隅
+  [98.6, 26.0], [97.9, 24.7], [97.8, 24.0],      // 片马 / 盈江 / 瑞丽
+  [100.0, 21.9], [101.6, 21.3],                  // 西双版纳 / 勐腊
+  [103.9, 22.5], [104.8, 23.1],                  // 河口 / 麻栗坡
+  [106.7, 22.1], [108.0, 21.5],                  // 凭祥 / 东兴
+  [109.1, 21.5], [110.4, 21.2], [111.9, 21.8],   // 北海 / 湛江 / 阳江
+  [113.6, 22.2], [116.8, 23.3], [118.1, 24.4],   // 大湾区 / 汕头 / 厦门
+  [119.6, 26.1], [121.0, 27.9], [121.7, 29.9],   // 福州 / 温州 / 宁波
+  [121.9, 31.2], [119.5, 34.6], [120.4, 36.1],   // 上海 / 连云港 / 青岛
+  [122.2, 37.5], [121.4, 37.6], [119.2, 37.8],   // 威海 / 烟台 / 东营
+  [117.8, 39.1], [119.6, 40.0], [120.9, 40.7],   // 天津 / 秦皇岛 / 葫芦岛
+  [122.2, 40.7], [121.6, 38.9]                   // 营口 / 大连（回丹东）
+];
+
+/** 装饰性岛屿（台湾 / 海南） */
+const ISLANDS = [
+  [[121.0, 25.3], [122.0, 25.0], [121.6, 23.5], [120.7, 21.9], [120.1, 22.6], [120.1, 23.8]],
+  [[110.0, 20.1], [110.7, 20.0], [111.0, 19.2], [110.0, 18.2], [108.7, 18.5], [108.6, 19.5], [109.3, 20.0]]
+];
+
+/** 风土人情印章点（i = ROUTE 下标；文案写给小朋友） */
+const LANDMARKS = [
+  { i: 3, icon: '💧', name: '长白山天池', note: '山顶的湖像一块蓝宝石' },
+  { i: 9, icon: '🌾', name: '三江平原', note: '黑土地肥得能攥出油' },
+  { i: 16, icon: '🌙', name: '漠河北极村', note: '中国最北的村子，夏夜天不黑' },
+  { i: 19, icon: '🪆', name: '满洲里', note: '草原边上的套娃广场' },
+  { i: 22, icon: '🦕', name: '二连浩特', note: '恐龙化石的故乡' },
+  { i: 25, icon: '🍂', name: '额济纳胡杨林', note: '秋天整片林子金灿灿' },
+  { i: 30, icon: '🌬️', name: '阿拉山口', note: '大风把风车吹得呼呼转' },
+  { i: 35, icon: '🫓', name: '喀什古城', note: '老城像迷宫，馕和干果堆成山' },
+  { i: 37, icon: '🐏', name: '红其拉甫', note: '雪山下的牦牛和盘羊' },
+  { i: 42, icon: '🏔️', name: '珠穆朗玛峰', note: '世界最高峰，8848 米' },
+  { i: 45, icon: '🌸', name: '察隅', note: '雪山脚下开桃花' },
+  { i: 48, icon: '🎪', name: '瑞丽', note: '一寨两国，秋千荡过去就是邻国' },
+  { i: 49, icon: '🐘', name: '西双版纳', note: '泼水节、大象和孔雀' },
+  { i: 51, icon: '🛶', name: '河口', note: '红河上的小渡船' },
+  { i: 53, icon: '🏯', name: '友谊关', note: '古时候的南大门' },
+  { i: 55, icon: '🏖️', name: '北海银滩', note: '沙子白得像糖，还有涠洲岛' },
+  { i: 56, icon: '🍍', name: '湛江', note: '中国大陆最南端，菠萝的海' },
+  { i: 58, icon: '🌆', name: '大湾区', note: '高楼像森林，晚上亮成星海' },
+  { i: 60, icon: '🎹', name: '厦门', note: '鼓浪屿的琴声，圆圆的土楼' },
+  { i: 63, icon: '⚓', name: '宁波', note: '海上丝绸之路的老港口' },
+  { i: 64, icon: '🌃', name: '上海', note: '外滩的灯和东方明珠' },
+  { i: 66, icon: '🚢', name: '青岛', note: '帆船之都，栈桥上看海鸥' },
+  { i: 67, icon: '🌅', name: '威海成山头', note: '中国最早看到海上日出' },
+  { i: 74, icon: '🚋', name: '大连', note: '广场上的有轨电车叮叮响' }
+];
+
+/** 把经纬度折线投到「世界单位」坐标（1 单位 ≈ 1 纬度） */
+function project(pts) {
+  return pts.map(([lon, lat]) => [(lon - 73.5) * 0.82, 54.2 - lat]);
+}
+
+/** 构建骑行路径：平滑坐标 + 累计弧长。返回 { pts, cum, total } */
+function buildRoute() {
+  const pts = project(ROUTE);
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1];
+    const [x1, y1] = pts[i];
+    cum.push(cum[i - 1] + Math.hypot(x1 - x0, y1 - y0));
+  }
+  // 闭合：最后一段回到起点
+  const [x0, y0] = pts[pts.length - 1];
+  const [x1, y1] = pts[0];
+  cum.push(cum[cum.length - 1] + Math.hypot(x1 - x0, y1 - y0));
+  return { pts, cum, total: cum[cum.length - 1] };
+}
+
+/** 距离 d 处的位置与朝向（单位向量） */
+function pointAt(route, d) {
+  const { pts, cum, total } = route;
+  let dd = ((d % total) + total) % total;
+  let i = 1;
+  while (i < cum.length && cum[i] < dd) i++;
+  const t = (dd - cum[i - 1]) / (cum[i] - cum[i - 1] || 1);
+  const a = pts[i - 1];
+  const b = pts[i % pts.length];
+  return {
+    x: a[0] + (b[0] - a[0]) * t,
+    y: a[1] + (b[1] - a[1]) * t,
+    dx: b[0] - a[0], dy: b[1] - a[1],
+    idx: i % pts.length
+  };
+}
+
+/** 装饰岛屿也投到世界坐标 */
+function buildIslands() {
+  return ISLANDS.map((poly) => project(poly));
+}
+
+
+Object.assign(exports, { ROUTE, ISLANDS, LANDMARKS, buildRoute, pointAt, buildIslands });
 };
 __factories["js/ui/home.js"] = function (exports) {
 /* =====================================================================
