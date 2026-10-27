@@ -4,7 +4,7 @@
    橙色、没骑的淡虚线；印章点画小旗；右上角小地图显示全程进度；
    左上角的风土人情卡片靠近自动弹出。
    ===================================================================== */
-import { clamp } from '../../core/util.js';
+import { clamp, FONT_EMOJI } from '../../core/util.js';
 import { pointAt } from './route.js';
 import { avatar } from '../../core/avatar.js';
 
@@ -12,7 +12,7 @@ export const PADS =
   '<div class="row">' +
     '<button class="pad wide" data-act="pedal">▶ 踩踏板</button>' +
     '<button class="pad wide" data-act="auto">🛋️ 自动骑</button>' +
-    '<button class="pad wide" data-act="lv1">🏁 找景点</button>' +
+    '<button class="pad wide" data-act="nextmark">🏁 找景点</button>' +
   '</div>';
 
 export const HINT =
@@ -79,7 +79,7 @@ export function draw(ctx, S, L) {
   drawRouteLine(ctx, S, rx, ry);
 
   // 印章点
-  drawMarks(ctx, S, rx, ry);
+  drawMarks(ctx, S, rx, ry, L);
 
   // 骑手
   drawRider(ctx, S, rx, ry);
@@ -146,12 +146,11 @@ function drawRouteLine(ctx, S, rx, ry) {
   ctx.lineWidth = 3.4;
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  let d = 0, started = false;
+  let started = false;
   for (let i = 0; i < pts.length; i++) {
     if (S.route.cum[i] <= S.d) {
       const [sx, sy] = w2s(pts[i][0], pts[i][1], rx, ry);
       started ? ctx.lineTo(sx, sy) : (ctx.moveTo(sx, sy), (started = true));
-      d = S.route.cum[i];
     } else break;
   }
   // 最后一段到当前位置
@@ -162,11 +161,11 @@ function drawRouteLine(ctx, S, rx, ry) {
 
 /* ---------------- 印章点 ---------------- */
 
-function drawMarks(ctx, S, rx, ry) {
+function drawMarks(ctx, S, rx, ry, L) {
   for (const m of S.marks) {
     const p = pointAt(S.route, m.d);
     const [sx, sy] = w2s(p.x, p.y, rx, ry);
-    if (sx < -30 || sx > 830 || sy < -30 || sy > 590) continue;
+    if (sx < -30 || sx > L.W + 30 || sy < -30 || sy > L.H + 30) continue;
 
     if (m.taken) {
       // 已盖章：小旗
@@ -186,7 +185,7 @@ function drawMarks(ctx, S, rx, ry) {
       ctx.beginPath();
       ctx.arc(sx, sy, pulse, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.font = '14px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+      ctx.font = `14px ${FONT_EMOJI}`;
       ctx.textAlign = 'center';
       ctx.fillText(m.icon, sx, sy + 5);
       ctx.textAlign = 'left';
@@ -248,7 +247,7 @@ function card(ctx, S, L) {
   ctx.lineWidth = 3;
   rr(ctx, x, y, w, h, 18);
   ctx.stroke();
-  ctx.font = '38px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+  ctx.font = `38px ${FONT_EMOJI}`;
   ctx.fillText(S.card.icon, x + 18, y + 56);
   ctx.fillStyle = C.ink;
   ctx.font = '800 22px "PingFang SC","Microsoft YaHei",sans-serif';

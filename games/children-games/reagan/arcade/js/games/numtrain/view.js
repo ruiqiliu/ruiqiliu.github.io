@@ -11,11 +11,23 @@ export const PADS =
   '<div class="row">' +
     '<button class="pad wide" data-act="hint">💡 教我</button>' +
     '<button class="pad wide" data-act="shuffle">🔀 换一换</button>' +
+  '</div>' +
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+    '<button class="pad" data-act="lv5">5</button>' +
+    '<button class="pad" data-act="lv6">6</button>' +
+    '<button class="pad" data-act="lv7">7</button>' +
+    '<button class="pad" data-act="lv8">8</button>' +
+    '<button class="pad" data-act="lv9">9</button>' +
   '</div>';
 
 export const HINT =
   '<kbd>1</kbd>~<kbd>6</kbd> 或直接点下面的数字块 · ' +
-  '挂车厢那关要先点一块、再点一块，加起来等于车头 · 卡住了点「教我」';
+  '挂车厢那关要先点一块、再点一块，加起来等于车头 · 卡住了点「教我」 · ' +
+  '<kbd>1</kbd>~<kbd>9</kbd> 选关';
 
 export function hud(S) {
   const lvName = ['小小列车员', '车厢排排队', '挂车厢', '数字接龙', '长长列车', '大车头', '接龙高手', '倒着开', '列车长考验'][S.level - 1] || '';
@@ -36,17 +48,15 @@ const C = {
   engineDark: '#e8590c',
   slotEmpty: '#efe2c2',
   slotLine: '#d9c896',
-  block: ['#ff6b6b', '#ffa94d', '#ffd43b', '#51cf66', '#4dabf7', '#b197fc', '#f783ac'],
+  block: ['#ff6b6b', '#ffa94d', '#ffd43b', '#51cf66', '#4dabf7', '#b197fc', '#f783ac', '#63e6be', '#ffc9c9', '#a5d8ff'],
   ink: '#4a3b28',
   cream: '#fff9ec',
   good: '#40c057'
 };
 
-const BLOCK_COLORS = {};   // 数值 → 颜色（同一局里同数同色，帮孩子建立对应感）
-
+/** 数值 → 颜色：1~10 各占一色且永远固定，同一局里同数同色 */
 function colorOf(v) {
-  if (!BLOCK_COLORS[v]) BLOCK_COLORS[v] = C.block[Object.keys(BLOCK_COLORS).length % C.block.length];
-  return BLOCK_COLORS[v];
+  return C.block[(v - 1) % C.block.length];
 }
 
 /* ---------------- 绘制 ---------------- */
@@ -238,18 +248,22 @@ function drawBlock(ctx, x, y, w, h, v, scale, selected) {
   ctx.lineWidth = 3;
   rr(ctx, 0, 0, w, h, 16);
   ctx.stroke();
-  // 数字
+  // 数字（字号跟块走，两位数也放得下）
   ctx.fillStyle = '#fff';
-  ctx.font = '800 44px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.font = `800 ${Math.round(w * 0.46)}px "PingFang SC","Microsoft YaHei",sans-serif`;
   ctx.textAlign = 'center';
-  ctx.fillText(String(v), w / 2, h / 2 + 10);
-  // 圆点（帮小朋友数数；>6 个画两排）
-  const dots = Math.min(v, 6);
+  ctx.fillText(String(v), w / 2, h / 2 + w * 0.1);
+  // 圆点（帮小朋友数数：1~10 全画，5 个一排）
   ctx.fillStyle = 'rgba(255,255,255,.85)';
-  for (let i = 0; i < dots; i++) {
-    const dx = w / 2 + (i % 3) * 12 - (Math.min(dots, 3) - 1) * 6;
-    const dy = h - 14 - Math.floor(i / 3) * 11;
-    circle(ctx, dx, dy, 3.4);
+  const dotR = Math.max(2, w * 0.035);
+  const dotGap = dotR * 2.6;
+  const perRow = Math.min(5, v);
+  for (let i = 0; i < v; i++) {
+    const row = Math.floor(i / 5);
+    const inRow = Math.min(5, v - row * 5);
+    const dx = w / 2 + (i % 5) * dotGap - (inRow - 1) * dotGap / 2;
+    const dy = h - 9 - dotR * 2 - row * dotGap * 1.5;
+    circle(ctx, dx, dy, dotR);
   }
   ctx.restore();
   ctx.textAlign = 'left';

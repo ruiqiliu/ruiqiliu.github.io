@@ -124,13 +124,17 @@ export function create(env) {
     }
   }
 
+  /** 前向环程距离：从 d 出发沿骑行方向到 target 还有多远 */
+  function fwdDist(d, target) {
+    return ((target - d) % S.route.total + S.route.total) % S.route.total;
+  }
+
   /** 距离下一个未盖印章还有多远（世界单位）；都盖完返回 null */
   function nextMarkDist() {
     let best = null;
     for (const m of S.marks) {
       if (m.taken) continue;
-      const md = m.d - S.d;
-      const fwd = ((md % S.route.total) + S.route.total) % S.route.total;
+      const fwd = fwdDist(S.d, m.d);
       if (best === null || fwd < best) best = fwd;
     }
     return best;
@@ -139,8 +143,7 @@ export function create(env) {
   function checkLandmarks() {
     for (const m of S.marks) {
       if (m.taken) continue;
-      const fwd = ((m.d - S.d) % S.route.total + S.route.total) % S.route.total;
-      if (fwd < 0.8) {
+      if (fwdDist(S.d, m.d) < 0.8) {
         m.taken = true;
         S.card = { icon: m.icon, name: m.name, note: m.note };
         S.cardT = 4.6;
@@ -193,13 +196,8 @@ export function create(env) {
         }
         return;
       }
-      if (name === 'lv1') {   // 跳到下一个未盖章的印章附近（找景点直达）
-        let best = null;
-        for (const m of S.marks) {
-          if (m.taken) continue;
-          const fwd = ((m.d - S.d) % S.route.total + S.route.total) % S.route.total;
-          if (best === null || fwd < best) best = fwd;
-        }
+      if (name === 'nextmark') {   // 跳到下一个未盖章的印章附近（找景点直达）
+        const best = nextMarkDist();
         if (best !== null) { S.d = (S.d + best - NEAR * 2 + S.route.total) % S.route.total; S.speed = 0; }
       }
     }

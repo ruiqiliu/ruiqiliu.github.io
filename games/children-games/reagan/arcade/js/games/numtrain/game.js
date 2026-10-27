@@ -80,10 +80,11 @@ function genRound(def) {
     const a = ri(1, n - 1);
     const b = n - a;
     const cand = [a, b];
-    // 干扰项从 1..max+1 里挑，且不能互相凑出 n；空间不够就少放几个（guard 防死循环）
+    // 干扰项不能互相凑出 n；空间不够就少放几个（guard 防死循环）。
+    // 范围保持在 1..max，守住「10 以内」的题面
     let guard = 0;
     while (cand.length < 5 && guard++ < 60) {
-      const v = ri(1, def.max + 1);
+      const v = ri(1, def.max);
       if (cand.includes(v)) continue;
       let bad = false;
       for (const c of cand) if (c + v === n) bad = true;
@@ -100,7 +101,7 @@ function genRound(def) {
   const cand = missing.slice();
   let guard = 0;
   while (cand.length < missing.length + 2 && guard++ < 60) {
-    const v = ri(Math.max(1, start - 1), def.hi + 1);
+    const v = ri(Math.max(1, start - 1), def.hi);   // 干扰项也守住 10 以内
     if (!cand.includes(v) && !missing.includes(v)) cand.push(v);
   }
   return { kind: 'seq', seq, holes: holeIdx, missing, cand: shuffle(cand) };
@@ -171,17 +172,20 @@ export function create(env) {
       s.y = 292;
       s.w = SLOT; s.h = SLOT;
     });
-    // 候选块：一排最多 3 块，多的排第二排
+    // 候选块：≤3 个一排大块；超过 3 个缩成 62px 的两排（保证不出画布下沿）
     const m = S.pool.length;
-    const cols = Math.min(3, m);
-    const rows = Math.ceil(m / cols);
-    const px = 400 - (cols * SLOT + (cols - 1) * GAP) / 2;
+    const big = m <= 3;
+    const bs = big ? SLOT : 62;
+    const gap = big ? GAP : 8;
+    const cols = big ? m : Math.ceil(m / 2);
+    const px = 400 - (cols * bs + (cols - 1) * gap) / 2;
+    const py = big ? 420 : 424;
     S.pool.forEach((p, i) => {
-      const row = Math.floor(i / cols);
-      const col = i % cols;
-      p.x = px + col * (SLOT + GAP);
-      p.y = 420 + row * (SLOT + 16);
-      p.w = SLOT; p.h = SLOT;
+      const row = big ? 0 : Math.floor(i / cols);
+      const col = big ? i : i % cols;
+      p.x = px + col * (bs + gap);
+      p.y = py + row * (bs + gap);
+      p.w = bs; p.h = bs;
     });
   }
 
@@ -340,14 +344,12 @@ export function create(env) {
   /** 🔀 候选块换个顺序（纯视觉，不影响答案） */
   function shufflePool() {
     if (S.phase !== 'play') return;
-    const kept = S.pool.map((p) => p.v);
-    const order = shuffle(kept.map((_, i) => i));
-    kept.forEach((v, i) => { S.pool[i].v = order[i] === undefined ? null : kept[order[i]]; });
+    const vals = shuffle(S.pool.map((p) => p.v));
+    S.pool.forEach((p, i) => { p.v = vals[i]; });
     S.sel = -1;
     Snd.pop(1);
   }
 
-  /** bond：第二个空位该配几（教我/幽灵提示用） */
   /* ---------------- 对外接口 ---------------- */
 
   const api = {

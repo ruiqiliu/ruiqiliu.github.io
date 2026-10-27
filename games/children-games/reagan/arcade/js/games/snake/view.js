@@ -5,6 +5,7 @@
    ===================================================================== */
 import { clamp, lerp } from '../../core/util.js';
 import { createStage, stageAlive } from '../../core/render3d.js';
+import { FONT_EMOJI } from '../../core/util.js';
 import { createFX3D } from '../../core/fx3d.js';
 import { avatar } from '../../core/avatar.js';
 
@@ -34,7 +35,7 @@ export function makeBackground() { return null; }
 
 let st = null, fx = null;
 let segPool = [], eyeL = null, eyeR = null, headG = null;
-let foodMesh = null, foodSprite = null, tiles = [];
+let foodMesh = null, tiles = [];
 let boardBuilt = false;
 
 const FRUIT_COLORS = { '🍎': 0xe03131, '🍌': 0xfab005, '🍇': 0x9b59b6, '🍓': 0xff6b81, '🍊': 0xff922b, '🍉': 0x51cf66, '🍒': 0xc2255c, '🥝': 0x94c94a };
@@ -100,9 +101,8 @@ function ensureStage(L) {
     new T.ShadowMaterial({ opacity: 0.2 })
   );
   catcher.rotation.x = -Math.PI / 2;
-  const [cx0] = flat(L, L.PAD + (L.N * L.CELL) / 2, L.PAD + (L.N * L.CELL) / 2);
-  const [, cz0] = flat(L, L.PAD + (L.N * L.CELL) / 2, L.PAD + (L.N * L.CELL) / 2);
-  catcher.position.set(cx0, 0.8, cz0);
+  const [ccx, , ccz] = flat(L, L.PAD + (L.N * L.CELL) / 2, L.PAD + (L.N * L.CELL) / 2);
+  catcher.position.set(ccx, 0.8, ccz);
   catcher.receiveShadow = true;
   st.world.add(catcher);
   // 边框：立在地上的四条蜂蜜木色矮沿（加高 + 投影）
@@ -165,19 +165,6 @@ function ensureStage(L) {
   foodMesh = new T.Mesh(new T.SphereGeometry(15, 20, 16), new T.MeshLambertMaterial({ color: 0xe03131 }));
   foodMesh.castShadow = true;
   st.world.add(foodMesh);
-  const foodCv = document.createElement('canvas');
-  foodCv.width = foodCv.height = 64;
-  const fcx = foodCv.getContext('2d');
-  fcx.font = '48px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
-  fcx.textAlign = 'center';
-  fcx.textBaseline = 'middle';
-  fcx.fillText('🍎', 32, 34);
-  const fTex = new T.CanvasTexture(foodCv);
-  fTex.colorSpace = T.SRGBColorSpace;
-  foodSprite = new T.Sprite(new T.SpriteMaterial({ map: fTex, transparent: true }));
-  foodSprite.scale.set(30, 30, 1);
-  st.world.add(foodSprite);
-
   st.onFrame = (dt) => { if (fx) fx.update(dt); };
   return true;
 }
@@ -258,10 +245,8 @@ export function draw(ctx, S, L) {
       foodMesh.material.color.setHex(FRUIT_COLORS[S.food.emo] || 0xe03131);
       foodMesh.material.emissive.setHex(0x000000);
     }
-    foodSprite.visible = false;
   } else {
     foodMesh.visible = false;
-    foodSprite.visible = false;
   }
 
   st.render(1 / 60);

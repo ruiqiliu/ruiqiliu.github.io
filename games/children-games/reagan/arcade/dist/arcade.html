@@ -2330,6 +2330,7 @@ __factories["js/games/snake/view.js"] = function (exports) {
    ===================================================================== */
 const { clamp, lerp } = __req("js/core/util.js");
 const { createStage, stageAlive } = __req("js/core/render3d.js");
+const { FONT_EMOJI } = __req("js/core/util.js");
 const { createFX3D } = __req("js/core/fx3d.js");
 const { avatar } = __req("js/core/avatar.js");
 
@@ -2359,7 +2360,7 @@ function makeBackground() { return null; }
 
 let st = null, fx = null;
 let segPool = [], eyeL = null, eyeR = null, headG = null;
-let foodMesh = null, foodSprite = null, tiles = [];
+let foodMesh = null, tiles = [];
 let boardBuilt = false;
 
 const FRUIT_COLORS = { '🍎': 0xe03131, '🍌': 0xfab005, '🍇': 0x9b59b6, '🍓': 0xff6b81, '🍊': 0xff922b, '🍉': 0x51cf66, '🍒': 0xc2255c, '🥝': 0x94c94a };
@@ -2425,9 +2426,8 @@ function ensureStage(L) {
     new T.ShadowMaterial({ opacity: 0.2 })
   );
   catcher.rotation.x = -Math.PI / 2;
-  const [cx0] = flat(L, L.PAD + (L.N * L.CELL) / 2, L.PAD + (L.N * L.CELL) / 2);
-  const [, cz0] = flat(L, L.PAD + (L.N * L.CELL) / 2, L.PAD + (L.N * L.CELL) / 2);
-  catcher.position.set(cx0, 0.8, cz0);
+  const [ccx, , ccz] = flat(L, L.PAD + (L.N * L.CELL) / 2, L.PAD + (L.N * L.CELL) / 2);
+  catcher.position.set(ccx, 0.8, ccz);
   catcher.receiveShadow = true;
   st.world.add(catcher);
   // 边框：立在地上的四条蜂蜜木色矮沿（加高 + 投影）
@@ -2490,19 +2490,6 @@ function ensureStage(L) {
   foodMesh = new T.Mesh(new T.SphereGeometry(15, 20, 16), new T.MeshLambertMaterial({ color: 0xe03131 }));
   foodMesh.castShadow = true;
   st.world.add(foodMesh);
-  const foodCv = document.createElement('canvas');
-  foodCv.width = foodCv.height = 64;
-  const fcx = foodCv.getContext('2d');
-  fcx.font = '48px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
-  fcx.textAlign = 'center';
-  fcx.textBaseline = 'middle';
-  fcx.fillText('🍎', 32, 34);
-  const fTex = new T.CanvasTexture(foodCv);
-  fTex.colorSpace = T.SRGBColorSpace;
-  foodSprite = new T.Sprite(new T.SpriteMaterial({ map: fTex, transparent: true }));
-  foodSprite.scale.set(30, 30, 1);
-  st.world.add(foodSprite);
-
   st.onFrame = (dt) => { if (fx) fx.update(dt); };
   return true;
 }
@@ -2583,10 +2570,8 @@ function draw(ctx, S, L) {
       foodMesh.material.color.setHex(FRUIT_COLORS[S.food.emo] || 0xe03131);
       foodMesh.material.emissive.setHex(0x000000);
     }
-    foodSprite.visible = false;
   } else {
     foodMesh.visible = false;
-    foodSprite.visible = false;
   }
 
   st.render(1 / 60);
@@ -9592,10 +9577,11 @@ function genRound(def) {
     const a = ri(1, n - 1);
     const b = n - a;
     const cand = [a, b];
-    // 干扰项从 1..max+1 里挑，且不能互相凑出 n；空间不够就少放几个（guard 防死循环）
+    // 干扰项不能互相凑出 n；空间不够就少放几个（guard 防死循环）。
+    // 范围保持在 1..max，守住「10 以内」的题面
     let guard = 0;
     while (cand.length < 5 && guard++ < 60) {
-      const v = ri(1, def.max + 1);
+      const v = ri(1, def.max);
       if (cand.includes(v)) continue;
       let bad = false;
       for (const c of cand) if (c + v === n) bad = true;
@@ -9612,7 +9598,7 @@ function genRound(def) {
   const cand = missing.slice();
   let guard = 0;
   while (cand.length < missing.length + 2 && guard++ < 60) {
-    const v = ri(Math.max(1, start - 1), def.hi + 1);
+    const v = ri(Math.max(1, start - 1), def.hi);   // 干扰项也守住 10 以内
     if (!cand.includes(v) && !missing.includes(v)) cand.push(v);
   }
   return { kind: 'seq', seq, holes: holeIdx, missing, cand: shuffle(cand) };
@@ -9683,17 +9669,20 @@ function create(env) {
       s.y = 292;
       s.w = SLOT; s.h = SLOT;
     });
-    // 候选块：一排最多 3 块，多的排第二排
+    // 候选块：≤3 个一排大块；超过 3 个缩成 62px 的两排（保证不出画布下沿）
     const m = S.pool.length;
-    const cols = Math.min(3, m);
-    const rows = Math.ceil(m / cols);
-    const px = 400 - (cols * SLOT + (cols - 1) * GAP) / 2;
+    const big = m <= 3;
+    const bs = big ? SLOT : 62;
+    const gap = big ? GAP : 8;
+    const cols = big ? m : Math.ceil(m / 2);
+    const px = 400 - (cols * bs + (cols - 1) * gap) / 2;
+    const py = big ? 420 : 424;
     S.pool.forEach((p, i) => {
-      const row = Math.floor(i / cols);
-      const col = i % cols;
-      p.x = px + col * (SLOT + GAP);
-      p.y = 420 + row * (SLOT + 16);
-      p.w = SLOT; p.h = SLOT;
+      const row = big ? 0 : Math.floor(i / cols);
+      const col = big ? i : i % cols;
+      p.x = px + col * (bs + gap);
+      p.y = py + row * (bs + gap);
+      p.w = bs; p.h = bs;
     });
   }
 
@@ -9852,14 +9841,12 @@ function create(env) {
   /** 🔀 候选块换个顺序（纯视觉，不影响答案） */
   function shufflePool() {
     if (S.phase !== 'play') return;
-    const kept = S.pool.map((p) => p.v);
-    const order = shuffle(kept.map((_, i) => i));
-    kept.forEach((v, i) => { S.pool[i].v = order[i] === undefined ? null : kept[order[i]]; });
+    const vals = shuffle(S.pool.map((p) => p.v));
+    S.pool.forEach((p, i) => { p.v = vals[i]; });
     S.sel = -1;
     Snd.pop(1);
   }
 
-  /** bond：第二个空位该配几（教我/幽灵提示用） */
   /* ---------------- 对外接口 ---------------- */
 
   const api = {
@@ -9948,11 +9935,23 @@ const PADS =
   '<div class="row">' +
     '<button class="pad wide" data-act="hint">💡 教我</button>' +
     '<button class="pad wide" data-act="shuffle">🔀 换一换</button>' +
+  '</div>' +
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+    '<button class="pad" data-act="lv5">5</button>' +
+    '<button class="pad" data-act="lv6">6</button>' +
+    '<button class="pad" data-act="lv7">7</button>' +
+    '<button class="pad" data-act="lv8">8</button>' +
+    '<button class="pad" data-act="lv9">9</button>' +
   '</div>';
 
 const HINT =
   '<kbd>1</kbd>~<kbd>6</kbd> 或直接点下面的数字块 · ' +
-  '挂车厢那关要先点一块、再点一块，加起来等于车头 · 卡住了点「教我」';
+  '挂车厢那关要先点一块、再点一块，加起来等于车头 · 卡住了点「教我」 · ' +
+  '<kbd>1</kbd>~<kbd>9</kbd> 选关';
 
 function hud(S) {
   const lvName = ['小小列车员', '车厢排排队', '挂车厢', '数字接龙', '长长列车', '大车头', '接龙高手', '倒着开', '列车长考验'][S.level - 1] || '';
@@ -9973,17 +9972,15 @@ const C = {
   engineDark: '#e8590c',
   slotEmpty: '#efe2c2',
   slotLine: '#d9c896',
-  block: ['#ff6b6b', '#ffa94d', '#ffd43b', '#51cf66', '#4dabf7', '#b197fc', '#f783ac'],
+  block: ['#ff6b6b', '#ffa94d', '#ffd43b', '#51cf66', '#4dabf7', '#b197fc', '#f783ac', '#63e6be', '#ffc9c9', '#a5d8ff'],
   ink: '#4a3b28',
   cream: '#fff9ec',
   good: '#40c057'
 };
 
-const BLOCK_COLORS = {};   // 数值 → 颜色（同一局里同数同色，帮孩子建立对应感）
-
+/** 数值 → 颜色：1~10 各占一色且永远固定，同一局里同数同色 */
 function colorOf(v) {
-  if (!BLOCK_COLORS[v]) BLOCK_COLORS[v] = C.block[Object.keys(BLOCK_COLORS).length % C.block.length];
-  return BLOCK_COLORS[v];
+  return C.block[(v - 1) % C.block.length];
 }
 
 /* ---------------- 绘制 ---------------- */
@@ -10175,18 +10172,22 @@ function drawBlock(ctx, x, y, w, h, v, scale, selected) {
   ctx.lineWidth = 3;
   rr(ctx, 0, 0, w, h, 16);
   ctx.stroke();
-  // 数字
+  // 数字（字号跟块走，两位数也放得下）
   ctx.fillStyle = '#fff';
-  ctx.font = '800 44px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.font = `800 ${Math.round(w * 0.46)}px "PingFang SC","Microsoft YaHei",sans-serif`;
   ctx.textAlign = 'center';
-  ctx.fillText(String(v), w / 2, h / 2 + 10);
-  // 圆点（帮小朋友数数；>6 个画两排）
-  const dots = Math.min(v, 6);
+  ctx.fillText(String(v), w / 2, h / 2 + w * 0.1);
+  // 圆点（帮小朋友数数：1~10 全画，5 个一排）
   ctx.fillStyle = 'rgba(255,255,255,.85)';
-  for (let i = 0; i < dots; i++) {
-    const dx = w / 2 + (i % 3) * 12 - (Math.min(dots, 3) - 1) * 6;
-    const dy = h - 14 - Math.floor(i / 3) * 11;
-    circle(ctx, dx, dy, 3.4);
+  const dotR = Math.max(2, w * 0.035);
+  const dotGap = dotR * 2.6;
+  const perRow = Math.min(5, v);
+  for (let i = 0; i < v; i++) {
+    const row = Math.floor(i / 5);
+    const inRow = Math.min(5, v - row * 5);
+    const dx = w / 2 + (i % 5) * dotGap - (inRow - 1) * dotGap / 2;
+    const dy = h - 9 - dotR * 2 - row * dotGap * 1.5;
+    circle(ctx, dx, dy, dotR);
   }
   ctx.restore();
   ctx.textAlign = 'left';
@@ -10349,13 +10350,17 @@ function create(env) {
     }
   }
 
+  /** 前向环程距离：从 d 出发沿骑行方向到 target 还有多远 */
+  function fwdDist(d, target) {
+    return ((target - d) % S.route.total + S.route.total) % S.route.total;
+  }
+
   /** 距离下一个未盖印章还有多远（世界单位）；都盖完返回 null */
   function nextMarkDist() {
     let best = null;
     for (const m of S.marks) {
       if (m.taken) continue;
-      const md = m.d - S.d;
-      const fwd = ((md % S.route.total) + S.route.total) % S.route.total;
+      const fwd = fwdDist(S.d, m.d);
       if (best === null || fwd < best) best = fwd;
     }
     return best;
@@ -10364,8 +10369,7 @@ function create(env) {
   function checkLandmarks() {
     for (const m of S.marks) {
       if (m.taken) continue;
-      const fwd = ((m.d - S.d) % S.route.total + S.route.total) % S.route.total;
-      if (fwd < 0.8) {
+      if (fwdDist(S.d, m.d) < 0.8) {
         m.taken = true;
         S.card = { icon: m.icon, name: m.name, note: m.note };
         S.cardT = 4.6;
@@ -10418,13 +10422,8 @@ function create(env) {
         }
         return;
       }
-      if (name === 'lv1') {   // 跳到下一个未盖章的印章附近（找景点直达）
-        let best = null;
-        for (const m of S.marks) {
-          if (m.taken) continue;
-          const fwd = ((m.d - S.d) % S.route.total + S.route.total) % S.route.total;
-          if (best === null || fwd < best) best = fwd;
-        }
+      if (name === 'nextmark') {   // 跳到下一个未盖章的印章附近（找景点直达）
+        const best = nextMarkDist();
         if (best !== null) { S.d = (S.d + best - NEAR * 2 + S.route.total) % S.route.total; S.speed = 0; }
       }
     }
@@ -10453,7 +10452,7 @@ function createControls() {
       d: 'pedal',
       ' ': 'pedal',
       a: 'auto',
-      m: 'lv1'
+      m: 'nextmark'
     },
 
     pointer(game, p, type) {
@@ -10473,7 +10472,7 @@ __factories["js/games/ride/view.js"] = function (exports) {
    橙色、没骑的淡虚线；印章点画小旗；右上角小地图显示全程进度；
    左上角的风土人情卡片靠近自动弹出。
    ===================================================================== */
-const { clamp } = __req("js/core/util.js");
+const { clamp, FONT_EMOJI } = __req("js/core/util.js");
 const { pointAt } = __req("js/games/ride/route.js");
 const { avatar } = __req("js/core/avatar.js");
 
@@ -10481,7 +10480,7 @@ const PADS =
   '<div class="row">' +
     '<button class="pad wide" data-act="pedal">▶ 踩踏板</button>' +
     '<button class="pad wide" data-act="auto">🛋️ 自动骑</button>' +
-    '<button class="pad wide" data-act="lv1">🏁 找景点</button>' +
+    '<button class="pad wide" data-act="nextmark">🏁 找景点</button>' +
   '</div>';
 
 const HINT =
@@ -10548,7 +10547,7 @@ function draw(ctx, S, L) {
   drawRouteLine(ctx, S, rx, ry);
 
   // 印章点
-  drawMarks(ctx, S, rx, ry);
+  drawMarks(ctx, S, rx, ry, L);
 
   // 骑手
   drawRider(ctx, S, rx, ry);
@@ -10615,12 +10614,11 @@ function drawRouteLine(ctx, S, rx, ry) {
   ctx.lineWidth = 3.4;
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  let d = 0, started = false;
+  let started = false;
   for (let i = 0; i < pts.length; i++) {
     if (S.route.cum[i] <= S.d) {
       const [sx, sy] = w2s(pts[i][0], pts[i][1], rx, ry);
       started ? ctx.lineTo(sx, sy) : (ctx.moveTo(sx, sy), (started = true));
-      d = S.route.cum[i];
     } else break;
   }
   // 最后一段到当前位置
@@ -10631,11 +10629,11 @@ function drawRouteLine(ctx, S, rx, ry) {
 
 /* ---------------- 印章点 ---------------- */
 
-function drawMarks(ctx, S, rx, ry) {
+function drawMarks(ctx, S, rx, ry, L) {
   for (const m of S.marks) {
     const p = pointAt(S.route, m.d);
     const [sx, sy] = w2s(p.x, p.y, rx, ry);
-    if (sx < -30 || sx > 830 || sy < -30 || sy > 590) continue;
+    if (sx < -30 || sx > L.W + 30 || sy < -30 || sy > L.H + 30) continue;
 
     if (m.taken) {
       // 已盖章：小旗
@@ -10655,7 +10653,7 @@ function drawMarks(ctx, S, rx, ry) {
       ctx.beginPath();
       ctx.arc(sx, sy, pulse, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.font = '14px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+      ctx.font = `14px ${FONT_EMOJI}`;
       ctx.textAlign = 'center';
       ctx.fillText(m.icon, sx, sy + 5);
       ctx.textAlign = 'left';
@@ -10717,7 +10715,7 @@ function card(ctx, S, L) {
   ctx.lineWidth = 3;
   rr(ctx, x, y, w, h, 18);
   ctx.stroke();
-  ctx.font = '38px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+  ctx.font = `38px ${FONT_EMOJI}`;
   ctx.fillText(S.card.icon, x + 18, y + 56);
   ctx.fillStyle = C.ink;
   ctx.font = '800 22px "PingFang SC","Microsoft YaHei",sans-serif';

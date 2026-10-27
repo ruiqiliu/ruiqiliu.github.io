@@ -10,7 +10,7 @@ export function createControls() {
       d: 'pedal',
       ' ': 'pedal',
       a: 'auto',
-      m: 'lv1'
+      m: 'nextmark'
     },
 
     pointer(game, p, type) {
