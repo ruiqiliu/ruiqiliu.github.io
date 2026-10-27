@@ -10,13 +10,13 @@ import { avatar } from '../../core/avatar.js';
 
 export const PADS =
   '<div class="row">' +
-    '<button class="pad wide" data-act="pedal">▶ 踩踏板</button>' +
+    '<button class="pad wide" data-act="togglepedal">🚴 骑 / 停</button>' +
     '<button class="pad wide" data-act="auto">🛋️ 自动骑</button>' +
     '<button class="pad wide" data-act="nextmark">🏁 找景点</button>' +
   '</div>';
 
 export const HINT =
-  '<kbd>▶</kbd> / <kbd>空格</kbd> / 按住画面 = 踩踏板 · 松开就滑行 · ' +
+  '<kbd>▶</kbd> / <kbd>空格</kbd> / 按住画面 = 踩踏板（点「骑 / 停」切换自动踩） · ' +
   '<kbd>A</kbd> 自动骑 · <kbd>M</kbd> 找景点 · 靠近景点会自动慢下来盖章';
 
 export function hud(S) {

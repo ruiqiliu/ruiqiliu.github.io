@@ -38,17 +38,19 @@ const LEVELS = [
   { name: '车厢排排队', kind: 'sort', rounds: 4, size: 4, lo: 1, hi: 6 },
   { name: '挂车厢', kind: 'bond', rounds: 4, max: 5 },
   { name: '数字接龙', kind: 'seq', rounds: 4, len: 4, holes: 1, lo: 1, hi: 7 },
+  { name: '排队形', kind: 'explore', rounds: 2, size: 3, lo: 1, hi: 6, need: 3 },
   { name: '长长列车', kind: 'sort', rounds: 4, size: 5, lo: 1, hi: 9 },
   { name: '大车头', kind: 'bond', rounds: 5, max: 9 },
   { name: '接龙高手', kind: 'seq', rounds: 5, len: 5, holes: 2, lo: 1, hi: 9 },
   { name: '倒着开', kind: 'sort', rounds: 4, size: 5, lo: 2, hi: 10, desc: true },
-  { name: '列车长考验', mixed: true, rounds: 6 }
+  { name: '列车长考验', mixed: true, rounds: 7 }
 ];
 
 const MIXED = [
   { kind: 'sort', size: 5, lo: 2, hi: 10 },
   { kind: 'bond', max: 10 },
   { kind: 'seq', len: 5, holes: 2, lo: 1, hi: 10 },
+  { kind: 'explore', size: 4, lo: 2, hi: 9, need: 3 },
   { kind: 'sort', size: 4, lo: 1, hi: 9, desc: true },
   { kind: 'bond', max: 9 },
   { kind: 'seq', len: 4, holes: 2, lo: 1, hi: 8 }
@@ -74,6 +76,10 @@ function genRound(def) {
       target: def.desc ? nums.slice().sort((a, b) => b - a) : nums.slice().sort((a, b) => a - b),
       desc: !!def.desc
     };
+  }
+  if (def.kind === 'explore') {
+    // 排列探索：同一组数字排出尽量多种不同队形（顺序随便，不重复就行）
+    return { kind: 'explore', nums: distinct(def.lo, def.hi, def.size), found: [], need: def.need };
   }
   if (def.kind === 'bond') {
     const n = ri(3, def.max);
@@ -123,6 +129,7 @@ export function create(env) {
     sel: -1,                // bond 模式里已选中的候选下标
     msg: '',
     msgT: 0,
+    fact: null,             // 知识卡（欢呼时展示的排列/组成小知识）
     T: 0
   };
 
@@ -146,14 +153,26 @@ export function create(env) {
     const r = S.rounds[S.roundIdx];
     S.round = r;
     S.sel = -1;
+    S.fact = null;
     if (r.kind === 'sort') {
       S.slots = r.nums.map(() => ({ v: null, pop: 0 }));
       S.pool = r.nums.map((v) => ({ v, shake: 0 }));
     } else if (r.kind === 'bond') {
       S.slots = [{ v: null, pop: 0 }, { v: null, pop: 0 }];
       S.pool = r.cand.map((v) => ({ v, shake: 0 }));
+    } else if (r.kind === 'explore') {
+      S.slots = r.nums.map(() => ({ v: null, pop: 0 }));
+      S.pool = shuffle(r.nums.map((v) => ({ v, shake: 0 })));
+      S.msg = `排出 ${r.need} 种不一样的队形！`;
+      S.msgT = 3.5;
     } else {
-      S.slots = r.seq.map((v) => ({ v: v == null ? null : v, pop: 0, hole: v == null }));
+      // seq：数列里是真实数字，挖的空位由 r.holes 下标决定（原来的
+      // v == null 判断永远不成立 → 第四关一进来就是「满的」）
+      S.slots = r.seq.map((v, i) => ({
+        v: r.holes.includes(i) ? null : v,
+        pop: 0,
+        hole: r.holes.includes(i)
+      }));
       S.pool = r.cand.map((v) => ({ v, shake: 0 }));
     }
     layout();
@@ -228,6 +247,18 @@ export function create(env) {
       return;
     }
 
+    // 探索关：顺序随便排，排满就提交（新队形 +1，重复的摇摇头）
+    if (r.kind === 'explore') {
+      const slot = S.slots.find((s) => s.v === null);
+      if (!slot) return;
+      slot.v = p.v;
+      slot.pop = 0.3;
+      p.v = null;
+      Snd.pop(2);
+      if (S.slots.every((s) => s.v !== null)) submitExplore();
+      return;
+    }
+
     if (!correctPick(p.v)) {
       p.shake = 0.45;
       Snd.soft();
@@ -242,6 +273,7 @@ export function create(env) {
     afterMove();
   }
 
+  /** bond：先点一块选中，再点一块凑成车头；凑不上两块都抖一抖 */
   function tapBond(idx, p) {
     const r = S.round;
     if (S.sel === -1) {
@@ -268,14 +300,80 @@ export function create(env) {
     afterMove();
   }
 
-  function afterMove() {
-    if (!roundDone()) return;
-    // 一道题完成 → 欢呼
-    S.phase = 'cheer';
-    S.cheerT = 1.1;
-    Snd.note(S.roundIdx + 1);
+  /** 探索关：把候选块放回站台重新排 */
+  function resetExplore() {
+    const r = S.round;
+    S.slots.forEach((s) => { s.v = null; s.pop = 0; });
+    const vals = shuffle(r.nums.slice());
+    S.pool.forEach((p, i) => { p.v = vals[i]; p.shake = 0; });
+    layout();
+  }
+
+  /** 探索关提交：新队形记一笔；发现够数 → 带着「排列知识」欢呼过关 */
+  function submitExplore() {
+    const r = S.round;
+    const key = S.slots.map((s) => s.v).join(',');
+    if (r.found.includes(key)) {
+      S.slots.forEach((s) => { s.shake = 0.45; });
+      S.msg = '这个队形排过啦，换一种新队形！';
+      S.msgT = 2.2;
+      Snd.soft();
+      resetExplore();
+      return;
+    }
+    r.found.push(key);
+    Snd.note(r.found.length);
+    burstMid();
+    if (r.found.length >= r.need) {
+      const n = r.nums.length;
+      const f = permFact(n);
+      S.fact = [`${n} 节车厢能排出 ${f.text} = ${f.total} 种队形`, `你亲手发现了其中 ${r.need} 种！`];
+      afterMove();
+    } else {
+      S.msg = `新队形 +1，已经发现 ${r.found.length}/${r.need} 种`;
+      S.msgT = 2;
+      resetExplore();
+    }
+  }
+
+  /** n 的排列数：4 → { chain: '4×3×2×1', total: 24 } */
+  function permFact(n) {
+    const chain = [];
+    let p = 1;
+    for (let i = n; i >= 1; i--) { chain.push(i); p *= i; }
+    return { text: chain.join('×'), total: p };
+  }
+
+  /** 槽位中央的庆祝粒子 */
+  function burstMid() {
     const slot = S.slots[Math.floor(S.slots.length / 2)];
     FX.burst(slot.x + slot.w / 2, slot.y - 20, ['#ffd43b', '#51cf66', '#ff8fb1'], 14, 0.9);
+  }
+
+  /** 知识卡：做完题顺口告诉小朋友背后的数学 */
+  function makeFact() {
+    const r = S.round;
+    if (r.kind === 'sort') {
+      const n = r.nums.length;
+      const f = permFact(n);
+      S.fact = [`${n} 节车厢可以排出 ${f.text} = ${f.total} 种队形`];
+    } else if (r.kind === 'bond') {
+      const pairs = [];
+      for (let a = 1; a < r.n; a++) pairs.push(`${a}+${r.n - a}`);
+      S.fact = [`${r.n} 可以分成：${pairs.join('、')}`, `一共 ${pairs.length} 种分法！`];
+    } else {
+      S.fact = null;
+    }
+  }
+
+  function afterMove() {
+    if (!roundDone()) return;
+    // 一道题完成 → 欢呼；带知识卡的多看一会儿
+    if (!S.fact) makeFact();
+    S.phase = 'cheer';
+    S.cheerT = S.fact ? 3.6 : 1.1;
+    Snd.note(S.roundIdx + 1);
+    burstMid();
   }
 
   /* ---------------- 每帧推进 ---------------- */
@@ -285,7 +383,10 @@ export function create(env) {
     S.msgT = Math.max(0, S.msgT - dt);
 
     for (const p of S.pool) p.shake = Math.max(0, p.shake - dt);
-    for (const s of S.slots) s.pop = Math.max(0, s.pop - dt);
+    for (const s of S.slots) {
+      s.pop = Math.max(0, s.pop - dt);
+      s.shake = Math.max(0, (s.shake || 0) - dt);
+    }
 
     if (S.phase === 'cheer') {
       S.cheerT -= dt;
@@ -318,7 +419,7 @@ export function create(env) {
     }
   }
 
-  /** 💡 教我：自动把下一块正确的放上（bond 补齐一对） */
+  /** 💡 教我：自动把下一块正确的放上（bond 补齐一对；探索关示范一种新队形） */
   function hint() {
     if (S.phase !== 'play') return;
     const r = S.round;
@@ -336,14 +437,33 @@ export function create(env) {
       }
       return;
     }
+    if (r.kind === 'explore') {
+      // 示范一种还没排过的队形（把站上的块收回来，按新排列重新挂）
+      for (let tries = 0; tries < 300; tries++) {
+        const perm = shuffle(r.nums.slice());
+        if (r.found.includes(perm.join(','))) continue;
+        resetExplore();
+        perm.forEach((v, i) => {
+          const slot = S.slots[i];
+          const p = S.pool.find((q) => q.v === v);
+          slot.v = v;
+          slot.pop = 0.3;
+          if (p) p.v = null;
+        });
+        submitExplore();
+        return;
+      }
+      return;
+    }
     const exp = expected();
     const idx = S.pool.findIndex((p) => p.v === exp);
     if (idx >= 0) tapPool(idx);
   }
 
-  /** 🔀 候选块换个顺序（纯视觉，不影响答案） */
+  /** 🔀 候选块换个顺序；探索关 = 收回重排 */
   function shufflePool() {
     if (S.phase !== 'play') return;
+    if (S.round.kind === 'explore') { resetExplore(); Snd.pop(1); return; }
     const vals = shuffle(S.pool.map((p) => p.v));
     S.pool.forEach((p, i) => { p.v = vals[i]; });
     S.sel = -1;

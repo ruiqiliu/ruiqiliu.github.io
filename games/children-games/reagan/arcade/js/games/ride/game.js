@@ -53,6 +53,7 @@ export function create(env) {
     d: 0,                  // 沿路径的里程（世界单位）
     speed: 0,
     pedaling: false,
+    pedalLatch: false,     // 「骑 / 停」按钮的锁定状态：开着时松开踏板也会继续骑
     auto: false,           // 自动骑（小乘客模式）
     lap: 0,
     laps: loadNumber(BEST_KEY),
@@ -169,6 +170,7 @@ export function create(env) {
     start() {
       S.d = 0;
       S.speed = 0;
+      S.pedalLatch = false;
       S.kmLap = 0;
       S.lap = 0;
       S.card = { icon: '🚴', name: '环国骑行出发！', note: '按住 ▶ 踩踏板，看到景点会自动慢下来' };
@@ -185,8 +187,15 @@ export function create(env) {
     debug() { return { d: Math.round(S.d * 10) / 10, total: Math.round(S.route.total), speed: S.speed.toFixed(2), auto: S.auto, pedaling: S.pedaling, lap: S.lap, kmLap: Math.round(S.kmLap), cardT: Math.round(S.cardT) }; },
 
     action(name, down) {
-      if (name === 'pedal') { S.pedaling = down; return; }
+      // 按住 = 踩；松开 = 回到「骑 / 停」开关的状态（点按切换不被松手抵消）
+      if (name === 'pedal') { S.pedaling = down ? true : S.pedalLatch; return; }
       if (!down) return;
+      if (name === 'togglepedal') {
+        S.pedalLatch = !S.pedalLatch;
+        S.pedaling = S.pedalLatch;
+        Snd.pop(S.pedalLatch ? 4 : 1);
+        return;
+      }
       if (name === 'auto') {
         S.auto = !S.auto;
         Snd.pop(S.auto ? 4 : 1);

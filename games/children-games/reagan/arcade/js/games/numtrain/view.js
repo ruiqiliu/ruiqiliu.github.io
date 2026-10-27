@@ -22,15 +22,16 @@ export const PADS =
     '<button class="pad" data-act="lv7">7</button>' +
     '<button class="pad" data-act="lv8">8</button>' +
     '<button class="pad" data-act="lv9">9</button>' +
+    '<button class="pad" data-act="lv10">10</button>' +
   '</div>';
 
 export const HINT =
   '<kbd>1</kbd>~<kbd>6</kbd> 或直接点下面的数字块 · ' +
   '挂车厢那关要先点一块、再点一块，加起来等于车头 · 卡住了点「教我」 · ' +
-  '<kbd>1</kbd>~<kbd>9</kbd> 选关';
+  '底部 1~10 按钮选关';
 
 export function hud(S) {
-  const lvName = ['小小列车员', '车厢排排队', '挂车厢', '数字接龙', '长长列车', '大车头', '接龙高手', '倒着开', '列车长考验'][S.level - 1] || '';
+  const lvName = ['小小列车员', '车厢排排队', '挂车厢', '数字接龙', '排队形', '长长列车', '大车头', '接龙高手', '倒着开', '列车长考验'][S.level - 1] || '';
   return [
     ['关卡', `${S.level}·${lvName}`],
     ['题目', `${Math.min(S.roundIdx + 1, S.rounds.length)}/${S.rounds.length}`],
@@ -93,6 +94,14 @@ export function draw(ctx, S, L) {
       ctx.fillStyle = '#e8590c';
       ctx.fillText('下一关马上发车…', L.W / 2, L.H / 2);
     }
+    // 知识卡：做完题顺口讲一句排列/组成的数学
+    if (S.fact && S.fact.length) {
+      ctx.font = '700 22px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.fillStyle = '#2b8a3e';
+      S.fact.forEach((line, i) => {
+        ctx.fillText(line, L.W / 2, L.H / 2 + 18 + i * 32);
+      });
+    }
     ctx.textAlign = 'left';
   }
 }
@@ -123,7 +132,9 @@ function banner(ctx, S, L) {
       ? (r.desc ? '从大到小，把车厢排好' : '从小到大，把车厢排好')
       : r.kind === 'bond'
         ? `选两节车厢，加起来 = ${r.n}`
-        : '接龙：挑出空位上的数字';
+        : r.kind === 'explore'
+          ? '同样的数字，排出没排过的队形'
+          : '接龙：挑出空位上的数字';
   ctx.fillText(task, L.W / 2, 118);
   ctx.textAlign = 'left';
 }
@@ -181,7 +192,7 @@ function track(ctx, S) {
 
 function slots(ctx, S, r) {
   S.slots.forEach((s, i) => {
-    const x = s.x, y = s.y, w = s.w, h = s.h;
+    const x = s.x + (s.shake ? Math.sin(s.shake * 40) * 6 : 0), y = s.y, w = s.w, h = s.h;
     if (s.v === null) {
       ctx.fillStyle = C.slotEmpty;
       rr(ctx, x, y, w, h, 16);
