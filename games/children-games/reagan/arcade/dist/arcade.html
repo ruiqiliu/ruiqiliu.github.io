@@ -10363,11 +10363,11 @@ __factories["js/games/ride/game.js"] = function (exports) {
 
    无失败、无惩罚：想慢慢看风景就松开踏板。
    ===================================================================== */
-const { lerp } = __req("js/core/util.js");
+const { clamp, lerp } = __req("js/core/util.js");
 const { loadNumber, saveNumber } = __req("js/core/storage.js");
 const { createControls } = __req("js/games/ride/controls.js");
 const { draw, hud: hudOf, PADS, HINT } = __req("js/games/ride/view.js");
-const { buildRoute, buildIslands, LANDMARKS } = __req("js/games/ride/route.js");
+const { buildRoute, buildIslands, LANDMARKS, GEARS } = __req("js/games/ride/route.js");
 
 const meta = {
   id: 'ride',
@@ -10383,9 +10383,9 @@ const STARS_KEY = 'hpy-ride-stars';
 const L = { W: 800, H: 560 };
 
 const TOTAL_KM = 22800;        // 现实里陆境+海岸一圈约 2.28 万公里
-const PEDAL = 0.68;            // 踩踏板的基础速度（世界单位/秒）
 const COAST = 46;              // 松开踏板时的减速（单位/秒²）
 const NEAR = 2.2;              // 接近印章点的减速半径
+const GEAR_KEY = 'hpy-ride-gear';
 
 /* 地形带：[起点比例, 结束比例, 名称, 速度倍率]——顺路认识大地貌 */
 const TERRAIN = [
@@ -10411,6 +10411,7 @@ function create(env) {
     speed: 0,
     pedaling: false,
     pedalLatch: false,     // 「骑 / 停」按钮的锁定状态：开着时松开踏板也会继续骑
+    gear: clamp(loadNumber(GEAR_KEY, 1), 0, GEARS.length - 1),   // 30/50/80 三档
     auto: false,           // 自动骑（小乘客模式）
     lap: 0,
     laps: loadNumber(BEST_KEY),
@@ -10452,7 +10453,9 @@ function create(env) {
     if (next !== null && next < 1.5 && S.cardT <= 0) mult *= 0.35;
 
     if (S.pedaling || S.auto) {
-      S.speed = lerp(S.speed, PEDAL * mult, Math.min(1, dt * 2.6));
+      // 档位 km/h → 世界单位/秒；上坡/逆风再乘地形倍率
+      const target = GEARS[S.gear] / kmPerUnit * mult;
+      S.speed = lerp(S.speed, target, Math.min(1, dt * 2.6));
     } else {
       S.speed = Math.max(0, S.speed - COAST * dt);
     }
@@ -10566,6 +10569,13 @@ function create(env) {
         const best = nextMarkDist();
         if (best !== null) { S.d = (S.d + best - NEAR * 2 + S.route.total) % S.route.total; S.speed = 0; }
       }
+      if (name === 'gear') {
+        S.gear = (S.gear + 1) % GEARS.length;
+        saveNumber(GEAR_KEY, S.gear);
+        Snd.pop(5);
+        S.card = { icon: '⚙️', name: `速度：${GEARS[S.gear]} km/h`, note: '上坡会慢一点，海岸线顺风更快' };
+        S.cardT = 2.6;
+      }
     }
   };
 
@@ -10592,6 +10602,7 @@ function createControls() {
       d: 'pedal',
       ' ': 'pedal',
       a: 'auto',
+      g: 'gear',
       m: 'nextmark'
     },
 
@@ -10613,24 +10624,26 @@ __factories["js/games/ride/view.js"] = function (exports) {
    左上角的风土人情卡片靠近自动弹出。
    ===================================================================== */
 const { clamp, FONT_EMOJI } = __req("js/core/util.js");
-const { pointAt } = __req("js/games/ride/route.js");
+const { pointAt, GEARS } = __req("js/games/ride/route.js");
 const { avatar } = __req("js/core/avatar.js");
 
 const PADS =
   '<div class="row">' +
     '<button class="pad wide" data-act="togglepedal">🚴 骑 / 停</button>' +
+    '<button class="pad wide" data-act="gear">⚙️ 换挡</button>' +
     '<button class="pad wide" data-act="auto">🛋️ 自动骑</button>' +
     '<button class="pad wide" data-act="nextmark">🏁 找景点</button>' +
   '</div>';
 
 const HINT =
   '<kbd>▶</kbd> / <kbd>空格</kbd> / 按住画面 = 踩踏板（点「骑 / 停」切换自动踩） · ' +
-  '<kbd>A</kbd> 自动骑 · <kbd>M</kbd> 找景点 · 靠近景点会自动慢下来盖章';
+  '<kbd>A</kbd> 自动骑 · <kbd>M</kbd> 找景点 · <kbd>G</kbd> 换挡 30/50/80 · 靠近景点会自动慢下来盖章';
 
 function hud(S) {
   const got = S.marks.filter((m) => m.taken).length;
   return [
     ['里程', Math.round(S.kmLap) + ' km'],
+    ['车速', GEARS[S.gear] + ' km/h'],
     ['印章', `🎴${got}/${S.marks.length}`],
     ['地形', S.terrain],
     ['圈数', String(S.lap)]
@@ -11042,6 +11055,9 @@ const LANDMARKS = [
   { i: 74, icon: '🚋', name: '大连', note: '广场上的有轨电车叮叮响' }
 ];
 
+/** 三档巡航速度（km/h）——route.js 放共享常量，view/game 都从这里拿 */
+const GEARS = [30, 50, 80];
+
 /** 把经纬度折线投到「世界单位」坐标（1 单位 ≈ 1 纬度） */
 function project(pts) {
   return pts.map(([lon, lat]) => [(lon - 73.5) * 0.82, 54.2 - lat]);
@@ -11086,7 +11102,7 @@ function buildIslands() {
 }
 
 
-Object.assign(exports, { ROUTE, ISLANDS, LANDMARKS, buildRoute, pointAt, buildIslands });
+Object.assign(exports, { ROUTE, ISLANDS, LANDMARKS, GEARS, buildRoute, pointAt, buildIslands });
 };
 __factories["js/ui/home.js"] = function (exports) {
 /* =====================================================================

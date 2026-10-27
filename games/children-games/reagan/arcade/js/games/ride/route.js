@@ -72,6 +72,9 @@ export const LANDMARKS = [
   { i: 74, icon: '🚋', name: '大连', note: '广场上的有轨电车叮叮响' }
 ];
 
+/** 三档巡航速度（km/h）——route.js 放共享常量，view/game 都从这里拿 */
+export const GEARS = [30, 50, 80];
+
 /** 把经纬度折线投到「世界单位」坐标（1 单位 ≈ 1 纬度） */
 function project(pts) {
   return pts.map(([lon, lat]) => [(lon - 73.5) * 0.82, 54.2 - lat]);

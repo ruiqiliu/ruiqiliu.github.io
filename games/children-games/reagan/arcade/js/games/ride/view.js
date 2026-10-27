@@ -5,24 +5,26 @@
    左上角的风土人情卡片靠近自动弹出。
    ===================================================================== */
 import { clamp, FONT_EMOJI } from '../../core/util.js';
-import { pointAt } from './route.js';
+import { pointAt, GEARS } from './route.js';
 import { avatar } from '../../core/avatar.js';
 
 export const PADS =
   '<div class="row">' +
     '<button class="pad wide" data-act="togglepedal">🚴 骑 / 停</button>' +
+    '<button class="pad wide" data-act="gear">⚙️ 换挡</button>' +
     '<button class="pad wide" data-act="auto">🛋️ 自动骑</button>' +
     '<button class="pad wide" data-act="nextmark">🏁 找景点</button>' +
   '</div>';
 
 export const HINT =
   '<kbd>▶</kbd> / <kbd>空格</kbd> / 按住画面 = 踩踏板（点「骑 / 停」切换自动踩） · ' +
-  '<kbd>A</kbd> 自动骑 · <kbd>M</kbd> 找景点 · 靠近景点会自动慢下来盖章';
+  '<kbd>A</kbd> 自动骑 · <kbd>M</kbd> 找景点 · <kbd>G</kbd> 换挡 30/50/80 · 靠近景点会自动慢下来盖章';
 
 export function hud(S) {
   const got = S.marks.filter((m) => m.taken).length;
   return [
     ['里程', Math.round(S.kmLap) + ' km'],
+    ['车速', GEARS[S.gear] + ' km/h'],
     ['印章', `🎴${got}/${S.marks.length}`],
     ['地形', S.terrain],
     ['圈数', String(S.lap)]

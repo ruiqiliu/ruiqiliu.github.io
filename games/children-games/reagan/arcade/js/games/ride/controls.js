@@ -10,6 +10,7 @@ export function createControls() {
       d: 'pedal',
       ' ': 'pedal',
       a: 'auto',
+      g: 'gear',
       m: 'nextmark'
     },
 

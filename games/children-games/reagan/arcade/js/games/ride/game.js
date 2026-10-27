@@ -6,11 +6,11 @@
 
    无失败、无惩罚：想慢慢看风景就松开踏板。
    ===================================================================== */
-import { lerp } from '../../core/util.js';
+import { clamp, lerp } from '../../core/util.js';
 import { loadNumber, saveNumber } from '../../core/storage.js';
 import { createControls } from './controls.js';
 import { draw, hud as hudOf, PADS, HINT } from './view.js';
-import { buildRoute, buildIslands, LANDMARKS } from './route.js';
+import { buildRoute, buildIslands, LANDMARKS, GEARS } from './route.js';
 
 export const meta = {
   id: 'ride',
@@ -26,9 +26,9 @@ const STARS_KEY = 'hpy-ride-stars';
 export const L = { W: 800, H: 560 };
 
 const TOTAL_KM = 22800;        // 现实里陆境+海岸一圈约 2.28 万公里
-const PEDAL = 0.68;            // 踩踏板的基础速度（世界单位/秒）
 const COAST = 46;              // 松开踏板时的减速（单位/秒²）
 const NEAR = 2.2;              // 接近印章点的减速半径
+const GEAR_KEY = 'hpy-ride-gear';
 
 /* 地形带：[起点比例, 结束比例, 名称, 速度倍率]——顺路认识大地貌 */
 const TERRAIN = [
@@ -54,6 +54,7 @@ export function create(env) {
     speed: 0,
     pedaling: false,
     pedalLatch: false,     // 「骑 / 停」按钮的锁定状态：开着时松开踏板也会继续骑
+    gear: clamp(loadNumber(GEAR_KEY, 1), 0, GEARS.length - 1),   // 30/50/80 三档
     auto: false,           // 自动骑（小乘客模式）
     lap: 0,
     laps: loadNumber(BEST_KEY),
@@ -95,7 +96,9 @@ export function create(env) {
     if (next !== null && next < 1.5 && S.cardT <= 0) mult *= 0.35;
 
     if (S.pedaling || S.auto) {
-      S.speed = lerp(S.speed, PEDAL * mult, Math.min(1, dt * 2.6));
+      // 档位 km/h → 世界单位/秒；上坡/逆风再乘地形倍率
+      const target = GEARS[S.gear] / kmPerUnit * mult;
+      S.speed = lerp(S.speed, target, Math.min(1, dt * 2.6));
     } else {
       S.speed = Math.max(0, S.speed - COAST * dt);
     }
@@ -208,6 +211,13 @@ export function create(env) {
       if (name === 'nextmark') {   // 跳到下一个未盖章的印章附近（找景点直达）
         const best = nextMarkDist();
         if (best !== null) { S.d = (S.d + best - NEAR * 2 + S.route.total) % S.route.total; S.speed = 0; }
+      }
+      if (name === 'gear') {
+        S.gear = (S.gear + 1) % GEARS.length;
+        saveNumber(GEAR_KEY, S.gear);
+        Snd.pop(5);
+        S.card = { icon: '⚙️', name: `速度：${GEARS[S.gear]} km/h`, note: '上坡会慢一点，海岸线顺风更快' };
+        S.cardT = 2.6;
       }
     }
   };
