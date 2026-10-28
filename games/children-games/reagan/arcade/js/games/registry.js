@@ -16,8 +16,20 @@ import * as garage from './garage/game.js';
 import * as brick from './brick/game.js';
 import * as numtrain from './numtrain/game.js';
 import * as ride from './ride/game.js';
+import * as guess from './guess/game.js';
+import * as sudoku from './sudoku/game.js';
+import * as tangram from './tangram/game.js';
+import * as memory from './memory/game.js';
+import * as shop from './shop/game.js';
+import * as make10 from './make10/game.js';
+import * as balance from './balance/game.js';
+import * as blocks from './blocks/game.js';
 
-export const games = [breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23, garage, brick, numtrain, ride];
+export const games = [
+  breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23,
+  garage, brick, numtrain, ride,
+  guess, sudoku, tangram, memory, shop, make10, balance, blocks
+];
 
 export function findById(id) {
   return games.find((g) => g.meta.id === id) || null;

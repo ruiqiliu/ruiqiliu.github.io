@@ -479,7 +479,7 @@ const { createHomeView } = __req("js/ui/home.js");
 const { createPlayView } = __req("js/ui/play.js");
 const { createShell } = __req("js/shell.js");
 
-const HOME_TITLE = '快乐小游戏 · 打砖块 / 贪吃蛇 / 俄罗斯方块 / 暴力摩托 / 小鸟飞飞 / 迷宫探险 / 头像拼图 / 1024 / 2和3 / 车库大师 / 积木救救队 / 数字小列车 / 环国骑行';
+const HOME_TITLE = '快乐小游戏 · 21 个数学 / 逻辑 / 益智小游戏';
 
 /* ---------------- 画布 ---------------- */
 const canvas = document.getElementById('cv');
@@ -1056,8 +1056,20 @@ const garage = __req("js/games/garage/game.js");
 const brick = __req("js/games/brick/game.js");
 const numtrain = __req("js/games/numtrain/game.js");
 const ride = __req("js/games/ride/game.js");
+const guess = __req("js/games/guess/game.js");
+const sudoku = __req("js/games/sudoku/game.js");
+const tangram = __req("js/games/tangram/game.js");
+const memory = __req("js/games/memory/game.js");
+const shop = __req("js/games/shop/game.js");
+const make10 = __req("js/games/make10/game.js");
+const balance = __req("js/games/balance/game.js");
+const blocks = __req("js/games/blocks/game.js");
 
-const games = [breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23, garage, brick, numtrain, ride];
+const games = [
+  breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23,
+  garage, brick, numtrain, ride,
+  guess, sudoku, tangram, memory, shop, make10, balance, blocks
+];
 
 function findById(id) {
   return games.find((g) => g.meta.id === id) || null;
@@ -11103,6 +11115,2582 @@ function buildIslands() {
 
 
 Object.assign(exports, { ROUTE, ISLANDS, LANDMARKS, GEARS, buildRoute, pointAt, buildIslands });
+};
+__factories["js/games/guess/game.js"] = function (exports) {
+/* =====================================================================
+   games/guess/game.js — 猜数字 · 逻辑层（14 号，键 N）
+   电脑想一个数，小朋友在数字表上点着猜：每猜一次提示「大了/小了」，
+   范围外的数字会自动变淡——玩几局就悟出「每次都猜中间」的二分思路。
+   猜中 = 🎉；连续答对 3 局升一级（范围更大）。
+   ===================================================================== */
+const { ri, clamp } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/guess/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/guess/view.js");
+
+const meta = {
+  id: 'guess',
+  name: '猜数字',
+  icon: '🔍',
+  accent: '#d0bfff',
+  desc: ['大了还是小了？', '几次能猜中？']
+};
+
+const BEST_KEY = 'hpy-guess-best';
+const L = { W: 800, H: 560 };
+
+const LEVELS = [
+  { lo: 1, hi: 20, cols: 5, win: 2 },
+  { lo: 1, hi: 50, cols: 10, win: 3 },
+  { lo: 1, hi: 100, cols: 10, win: 4 }
+];
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    level: 1,
+    wins: 0,
+    ans: 0,
+    lo: 1, hi: 20,
+    tries: 0,
+    def: LEVELS[0],
+    cells: [],
+    best: [99, 99, 99].map((v, i) => loadNumber(`${BEST_KEY}-${i}`, v)),
+    done: false,
+    doneT: 0,
+    lastTip: '',
+    T: 0
+  };
+
+  function newRound() {
+    const def = LEVELS[S.level - 1];
+    S.def = def;
+    S.ans = ri(def.lo, def.hi);
+    S.lo = def.lo; S.hi = def.hi;
+    S.tries = 0;
+    S.done = false;
+    S.lastTip = '';
+    layout();
+  }
+
+  /** 数字格布局（tap 命中用，view 只读绘制） */
+  function layout() {
+    const def = LEVELS[S.level - 1];
+    const n = def.hi - def.lo + 1;
+    const cols = def.cols;
+    const cw = Math.min(86, (L.W - 80) / cols);
+    const chh = Math.min(64, (L.H - 260) / Math.ceil(n / cols));
+    const ox = (L.W - (cols * cw + (cols - 1) * 8)) / 2;
+    const oy = 190;
+    S.cells = [];
+    for (let i = 0; i < n; i++) {
+      S.cells.push({
+        v: def.lo + i,
+        x: ox + (i % cols) * (cw + 8),
+        y: oy + Math.floor(i / cols) * (chh + 8),
+        w: cw, h: chh
+      });
+    }
+  }
+
+  /** 点中数值 v：更新范围与提示；猜中结算 */
+  function guess(v) {
+    if (S.done || v < S.lo || v > S.hi) return;
+    S.tries++;
+    if (v === S.ans) {
+      S.done = true;
+      S.doneT = 1.8;
+      Snd.win();
+      FX.text(L.W / 2, 150, `${S.tries} 步猜中！`, '#40c057', 30, 1600);
+      if (S.tries < S.best[S.level - 1]) {
+        S.best[S.level - 1] = S.tries;
+        saveNumber(`${BEST_KEY}-${S.level - 1}`, S.tries);
+      }
+      return;
+    }
+    if (v < S.ans) {
+      S.lo = v + 1;
+      S.lastTip = v < Math.floor((S.lo + S.hi) / 2) ? '小了！往大猜 ↑' : '小了一点点 ↑';
+      Snd.pop(1);
+    } else {
+      S.hi = v - 1;
+      S.lastTip = v > Math.ceil((S.lo + S.hi) / 2) ? '大了！往小猜 ↓' : '大了一点点 ↓';
+      Snd.pop(1);
+    }
+    if (S.lo === S.hi) S.lastTip = `只剩 ${S.lo} 啦！`;
+  }
+
+  /* ---------------- 对外接口 ---------------- */
+
+  const api = {
+    W: L.W, H: L.H,
+    pads: PADS, hint: HINT, cursor: 'pointer',
+
+    start() {
+      S.level = clamp(loadNumber(`${BEST_KEY}-level`, 1), 1, LEVELS.length);
+      S.wins = 0;
+      newRound();
+    },
+    resize() {},
+    restart() { api.start(); },
+    destroy() {},
+
+    update(dt) {
+      S.T += dt;
+      if (S.done) {
+        S.doneT -= dt;
+        if (S.doneT <= 0) {
+          S.wins++;
+          if (S.wins >= LEVELS[S.level - 1].win && S.level < LEVELS.length) {
+            S.level++;
+            saveNumber(`${BEST_KEY}-level`, S.level);
+            Snd.star();
+          }
+          newRound();
+        }
+      }
+    },
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      if (name === 'auto') {   // 💡 试一试：猜正中间（教二分思路）
+        guess(Math.floor((S.lo + S.hi) / 2));
+        return;
+      }
+      const v = parseInt(name.slice(1), 10);
+      if (!isNaN(v)) guess(v);
+    },
+
+    tap(x, y) {
+      const hit = S.cells.find((c) => x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h);
+      if (hit) guess(hit.v);
+    }
+  };
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/guess/controls.js"] = function (exports) {
+/* =====================================================================
+   games/guess/controls.js — 猜数字 · 控制层：点数字格即可
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {},
+    pointer(game, p, type) {
+      if (type === 'down') game.tap(p.x, p.y);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/guess/view.js"] = function (exports) {
+/* =====================================================================
+   games/guess/view.js — 猜数字 · UI 层（2D 画布）
+   数字格子铺满画布：可猜范围明亮、猜过的范围变淡，
+   一眼看出「还能猜哪里」——提示箭头在上方。
+   ===================================================================== */
+const { rr } = __req("js/core/util.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad wide" data-act="auto">💡 试一试（猜中间）</button>' +
+  '</div>';
+
+const HINT =
+  '<kbd>点数字</kbd> 猜一次 · 上面的箭头告诉你大了还是小了 · ' +
+  '变淡的数字已经排除啦 · 试试每次都猜中间，最快！';
+
+function hud(S) {
+  const def = S.def;
+  return [
+    ['范围', `${def.lo}~${def.hi}`],
+    ['已猜', String(S.tries)],
+    ['最佳', String(S.best[S.level - 1])]
+  ];
+}
+
+/* 每局重建数字格子（布局算好存在模块里，tap 用） */
+let cells = [];
+
+function draw(ctx, S, L) {
+  const def = S.def;
+  const cw = Math.min(86, (L.W - 80) / def.cols);
+  const ch = Math.min(64, (L.H - 260) / Math.ceil((def.hi - def.lo + 1) / def.cols));
+
+  ctx.fillStyle = '#fdf3dd';
+  ctx.fillRect(0, 0, L.W, L.H);
+
+  // 提示
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '800 34px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(S.lastTip || '点一个数字猜猜看！', L.W / 2, 108);
+  if (S.lo < S.hi) {
+    ctx.font = '700 22px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillStyle = '#e8590c';
+    ctx.fillText(`范围 ${S.lo} ~ ${S.hi}`, L.W / 2, 148);
+  } else {
+    ctx.font = '800 26px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillStyle = '#40c057';
+    ctx.fillText(`就是 ${S.lo}！`, L.W / 2, 148);
+  }
+
+  // 数字格（位置由 game.js 的 layout 算好）
+  for (const c of S.cells) {
+    const v = c.v;
+    const cx = c.x, cy = c.y, cw2 = c.w, ch = c.h;
+    const alive = v >= S.lo && v <= S.hi;
+    const isAns = S.done && v === S.ans;
+    ctx.globalAlpha = alive ? 1 : 0.25;
+    ctx.fillStyle = isAns ? '#40c057' : alive ? '#fff9ec' : '#d9cdb4';
+    rr(ctx, cx, cy, cw, ch, 10);
+    ctx.fill();
+    if (alive && !S.done) {
+      ctx.strokeStyle = '#d9c896';
+      ctx.lineWidth = 2;
+      rr(ctx, cx, cy, cw, ch, 10);
+      ctx.stroke();
+    }
+    ctx.fillStyle = isAns ? '#fff' : '#4a3b28';
+    ctx.font = `800 ${Math.round(cw2 * 0.42)}px "PingFang SC","Microsoft YaHei",sans-serif`;
+    ctx.fillText(String(v), cx + cw2 / 2, cy + ch / 2 + cw2 * 0.15);
+    ctx.globalAlpha = 1;
+  }
+  void cw;
+  ctx.textAlign = 'left';
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/sudoku/game.js"] = function (exports) {
+/* =====================================================================
+   games/sudoku/game.js — 图画数独 · 逻辑层（20 号游戏）
+   4×4 / 6×6 图画数独：每行、每列、每个宫里的小动物都不重复。
+   点格子选中，再点下面的动物放进去；有冲突的格子会变红。
+   ===================================================================== */
+const { shuffle, ri, clamp } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/sudoku/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/sudoku/view.js");
+
+const meta = {
+  id: 'sudoku',
+  name: '图画数独',
+  icon: '🔢',
+  accent: '#d8f5a2',
+  desc: ['每行每列不重复', '小动物数独']
+};
+
+const BEST_KEY = 'hpy-sudoku-level';
+const L = { W: 800, H: 560 };
+
+const LEVELS = [
+  { size: 4, holes: 4 }, { size: 4, holes: 6 }, { size: 4, holes: 8 },
+  { size: 6, holes: 8 }, { size: 6, holes: 12 }, { size: 6, holes: 16 }
+];
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    level: 1,
+    size: 4,
+    board: [],       // board[r][c] = 0 空 或 1..size
+    fixed: [],       // 题目给定的格子
+    solution: [],
+    sel: null,       // {r, c}
+    conflict: [],    // 冲突格 "r,c"
+    done: false,
+    doneT: 0,
+    stars: loadNumber('hpy-sudoku-stars', 0),
+    T: 0
+  };
+
+  /** 回溯生成一个完整解 */
+  function solve(board, size, boxR, boxC) {
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (board[r][c]) continue;
+        for (let v = 1; v <= size; v++) {
+          if (fits(board, size, boxR, boxC, r, c, v)) {
+            board[r][c] = v;
+            if (solve(board, size, boxR, boxC)) return true;
+            board[r][c] = 0;
+          }
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function fits(board, size, boxR, boxC, r, c, v) {
+    for (let i = 0; i < size; i++) {
+      if (board[r][i] === v || board[i][c] === v) return false;
+    }
+    const r0 = Math.floor(r / boxR) * boxR, c0 = Math.floor(c / boxC) * boxC;
+    for (let rr2 = r0; rr2 < r0 + boxR; rr2++) {
+      for (let cc = c0; cc < c0 + boxC; cc++) {
+        if (board[rr2][cc] === v) return false;
+      }
+    }
+    return true;
+  }
+
+  function buildLevel() {
+    const def = LEVELS[S.level - 1];
+    const size = def.size;
+    const boxR = size === 4 ? 2 : 2;
+    const boxC = size === 4 ? 2 : 3;
+    // 随机预填对角宫后回溯求解；个别预填组合会无解，失败就重来
+    let board = null;
+    for (let tries = 0; tries < 80 && !board; tries++) {
+      board = Array.from({ length: size }, () => new Array(size).fill(0));
+      for (let b = 0; b < size / boxR; b++) {
+        const vals = shuffle(Array.from({ length: size }, (_, i) => i + 1));
+        let k = 0;
+        for (let r = b * boxR; r < b * boxR + boxR; r++) {
+          for (let c = b * boxC; c < b * boxC + boxC; c++) board[r][c] = vals[k++];
+        }
+      }
+      if (!solve(board, size, boxR, boxC)) board = null;
+    }
+    if (!board) {
+      // 兜底：循环移位拉丁方（行内错位 boxC，保证宫内也不重复）
+      board = Array.from({ length: size }, (_, r) =>
+        Array.from({ length: size }, (_, c) => ((r % boxR) * boxC + Math.floor(r / boxR) + c) % size + 1)
+      );
+    }
+    S.solution = board.map((row) => row.slice());
+
+    // 按难度挖空（保证仍有解即可——小朋友看冲突自查）
+    S.board = board.map((row) => row.slice());
+    S.fixed = board.map((row) => row.map(() => true));
+    let holes = 0, guard = 0;
+    while (holes < def.holes && guard++ < 200) {
+      const r = ri(0, size - 1), c = ri(0, size - 1);
+      if (S.board[r][c] !== 0) {
+        S.board[r][c] = 0;
+        S.fixed[r][c] = false;
+        holes++;
+      }
+    }
+    S.size = size;
+    S.sel = null;
+    S.conflict = [];
+    S.done = false;
+    layout();
+  }
+
+  function layout() {
+    const cs = Math.min(78, (L.H - 330) / S.size);
+    const ox = (L.W - S.size * cs) / 2;
+    const oy = 150;
+    S.cellRects = [];
+    for (let r = 0; r < S.size; r++) {
+      for (let c = 0; c < S.size; c++) {
+        S.cellRects.push({ r, c, x: ox + c * cs, y: oy + r * cs, w: cs, h: cs });
+      }
+    }
+    const icons = S.size === 4 ? 4 : 6;
+    S.palRects = [];
+    for (let i = 0; i < icons; i++) {
+      S.palRects.push({ v: i + 1, x: L.W / 2 + (i - (icons - 1) / 2) * 84 - 34, y: oy + S.size * cs - 4, w: 68, h: 68 });
+    }
+  }
+
+  function conflicts() {
+    const size = S.size;
+    const boxR = size === 4 ? 2 : 2;
+    const boxC = size === 4 ? 2 : 3;
+    const set = [];
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const v = S.board[r][c];
+        if (!v) continue;
+        for (let i = 0; i < size; i++) {
+          if (i !== c && S.board[r][i] === v) { set.push(r + ',' + c); break; }
+          if (i !== r && S.board[i][c] === v) { set.push(r + ',' + c); break; }
+        }
+        const r0 = Math.floor(r / boxR) * boxR, c0 = Math.floor(c / boxC) * boxC;
+        for (let rr2 = r0; rr2 < r0 + boxR && !set.includes(r + ',' + c); rr2++) {
+          for (let cc = c0; cc < c0 + boxC; cc++) {
+            if ((rr2 !== r || cc !== c) && S.board[rr2][cc] === v) { set.push(r + ',' + c); break; }
+          }
+        }
+      }
+    }
+    return set;
+  }
+
+  function boardDone() {
+    return S.board.every((row) => row.every((v) => v > 0)) && conflicts().length === 0;
+  }
+
+  function place(v) {
+    if (!S.sel || S.done) return;
+    const { r, c } = S.sel;
+    if (S.fixed[r][c]) return;
+    S.board[r][c] = v;
+    Snd.pop(2);
+    S.conflict = conflicts();
+    if (boardDone()) {
+      S.done = true;
+      S.doneT = 2.0;
+      S.stars = (S.stars || 0) + 1;
+      saveNumber('hpy-sudoku-stars', S.stars);
+      Snd.win();
+    }
+  }
+
+  const api = {
+    W: L.W, H: L.H,
+    pads: PADS, hint: HINT, cursor: 'pointer',
+    stars: S.stars,
+
+    start() {
+      S.level = clamp(loadNumber(BEST_KEY, 1), 1, LEVELS.length);
+      buildLevel();
+    },
+    resize() {},
+    restart() { buildLevel(); },
+    destroy() {},
+
+    update(dt) {
+      S.T += dt;
+      if (S.done) {
+        S.doneT -= dt;
+        if (S.doneT <= 0) {
+          S.level = clamp(S.level + 1, 1, LEVELS.length);
+          saveNumber(BEST_KEY, S.level);
+          buildLevel();
+        }
+      }
+    },
+    debug() { return { level: S.level, size: S.size, holes: S.board.flat().filter((v) => !v).length, done: S.done }; },
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      if (name === 'hint') {
+        // 💡 找一个空格/错格，放上正确答案
+        for (let r = 0; r < S.size; r++) {
+          for (let c = 0; c < S.size; c++) {
+            if (!S.fixed[r][c] && S.board[r][c] !== S.solution[r][c]) {
+              S.sel = { r, c };
+              place(S.solution[r][c]);
+              return;
+            }
+          }
+        }
+        return;
+      }
+      const v = parseInt(name.slice(1), 10);
+      if (!isNaN(v)) place(v);
+    },
+
+    tap(x, y) {
+      const cell = S.cellRects.find((k) => x >= k.x && x <= k.x + k.w && y >= k.y && y <= k.y + k.h);
+      if (cell) { S.sel = { r: cell.r, c: cell.c }; Snd.pop(1); return; }
+      const pal = S.palRects.find((k) => x >= k.x && x <= k.x + k.w && y >= k.y && y <= k.y + k.h);
+      if (pal) place(pal.v);
+    }
+  };
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/sudoku/controls.js"] = function (exports) {
+/* =====================================================================
+   games/sudoku/controls.js — 图画数独 · 控制层
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {},
+    pointer(game, p, type) {
+      if (type === 'down') game.tap(p.x, p.y);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/sudoku/view.js"] = function (exports) {
+/* =====================================================================
+   games/sudoku/view.js — 图画数独 · UI 层（2D 画布）
+   格子里的动物用 emoji；选中的格子高亮，冲突的格子泛红。
+   ===================================================================== */
+const { rr, FONT_EMOJI } = __req("js/core/util.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+    '<button class="pad" data-act="lv5">5</button>' +
+    '<button class="pad" data-act="lv6">6</button>' +
+  '</div>';
+
+const HINT = '点格子 → 点下面的动物放进去 · 每行每列每个宫不重复 · 💡 教我';
+
+function hud(S) {
+  return [
+    ['关卡', String(S.level)],
+    ['空格', String(S.board.flat().filter((v) => !v).length)],
+    ['星星', '⭐' + (S.stars || 0)]
+  ];
+}
+
+const ICONS4 = ['🐼', '🦊', '🐸', '🐰'];
+const ICONS6 = ['🐼', '🦊', '🐸', '🐰', '🐯', '🐮'];
+
+function draw(ctx, S, L) {
+  ctx.fillStyle = '#f4fce3';
+  ctx.fillRect(0, 0, L.W, L.H);
+  const size = S.size;
+  const cs = Math.min(78, (L.H - 330) / size);
+  const ox = (L.W - size * cs) / 2;
+  const oy = 150;
+  const icons = size === 4 ? ICONS4 : ICONS6;
+  const boxR = size === 4 ? 2 : 2, boxC = size === 4 ? 2 : 3;
+
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '800 30px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${size}×${size} 图画数独：每行每列每宫不重复`, L.W / 2, 84);
+  ctx.textAlign = 'left';
+
+  // 格子
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const x = ox + c * cs, y = oy + r * cs;
+      const sel = S.sel && S.sel.r === r && S.sel.c === c;
+      const bad = S.conflict.includes(r + ',' + c);
+      ctx.fillStyle = bad ? '#ffc9c9' : sel ? '#fff3bf' : '#fff';
+      rr(ctx, x + 2, y + 2, cs - 4, cs - 4, 10);
+      ctx.fill();
+      ctx.strokeStyle = sel ? '#f59f00' : '#adb58a';
+      ctx.lineWidth = sel ? 4 : 2;
+      rr(ctx, x + 2, y + 2, cs - 4, cs - 4, 10);
+      ctx.stroke();
+      const v = S.board[r][c];
+      if (v) {
+        ctx.globalAlpha = S.fixed[r][c] ? 1 : 0.85;
+        ctx.font = `${Math.round(cs * 0.55)}px ${FONT_EMOJI}`;
+        ctx.textAlign = 'center';
+        ctx.fillText(icons[v - 1], x + cs / 2, y + cs * 0.68);
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'left';
+      }
+    }
+  }
+
+  // 宫分隔粗线
+  ctx.strokeStyle = '#82c91e';
+  ctx.lineWidth = 4;
+  for (let b = 1; b * boxR < size; b++) {
+    ctx.beginPath();
+    ctx.moveTo(ox + b * boxR * cs, oy);
+    ctx.lineTo(ox + b * boxR * cs, oy + size * cs);
+    ctx.stroke();
+  }
+  for (let b = 1; b * boxC < size; b++) {
+    ctx.beginPath();
+    ctx.moveTo(ox, oy + b * boxC * cs);
+    ctx.lineTo(ox + size * cs, oy + b * boxC * cs);
+    ctx.stroke();
+  }
+
+  // 动物托盘（位置来自 game.layout）
+  const py = S.palRects ? S.palRects[0].y + 34 : 0;
+  icons.forEach((icon, i) => {
+    const x = S.palRects ? S.palRects[i].x + 34 : 0;
+    ctx.fillStyle = '#fff';
+    rr(ctx, x - 34, py - 34, 68, 68, 14);
+    ctx.fill();
+    ctx.strokeStyle = '#82c91e';
+    ctx.lineWidth = 3;
+    rr(ctx, x - 34, py - 34, 68, 68, 14);
+    ctx.stroke();
+    ctx.font = `38px ${FONT_EMOJI}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(icon, x, py + 14);
+    ctx.textAlign = 'left';
+  });
+
+  // 完成
+  if (S.done) {
+    ctx.fillStyle = 'rgba(244,252,227,.7)';
+    ctx.fillRect(0, 0, L.W, L.H);
+    ctx.fillStyle = '#40c057';
+    ctx.font = '800 44px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('数独完成！', L.W / 2, L.H / 2);
+    ctx.textAlign = 'left';
+  }
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/tangram/game.js"] = function (exports) {
+/* =====================================================================
+   games/tangram/game.js — 七巧板 · 逻辑层（16 号，键 P）
+   两关拼板任务（都可以严格验证拼法）+ 自由拼搭沙盒：
+   - 两块小板拼一个小正方形；
+   - 两块大板拼一个大三角形；
+   - 自由模式：七块板随便摆，不设目标。
+   拖动板块摆放，点一下（没拖动）旋转 45°；靠近目标位置自动吸上。
+   ===================================================================== */
+const { clamp } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/tangram/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/tangram/view.js");
+const { solvePlacement, pieceVerts, pieceCentroid } = __req("js/games/tangram/shapes.js");
+
+const meta = {
+  id: 'tangram',
+  name: '七巧板',
+  icon: '🔷',
+  accent: '#d0bfff',
+  desc: ['拖一拖、转一转', '七块板拼出图形']
+};
+
+const BEST_KEY = 'hpy-tangram-level';
+const L = { W: 800, H: 560 };
+
+/* 拼板任务：pieces = 用哪几块板，target = 每块板的目标多边形（可严格验证） */
+const LEVELS = [
+  { mode: 'free', name: '自由拼搭', pieces: [0, 1, 2, 3, 4, 5, 6] },
+  {
+    mode: 'puzzle', name: '小板拼方', pieces: [4, 5],
+    targets: { 4: [[4, 4], [6, 6], [2, 6]], 5: [[2, 6], [6, 6], [4, 8]] }, scale: 110
+  },
+  {
+    mode: 'puzzle', name: '大板拼三角', pieces: [0, 1],
+    targets: { 0: [[0, 0], [8, 0], [4, 4]], 1: [[0, 0], [4, 4], [0, 8]] }, scale: 36
+  }
+];
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    level: 1,
+    pieces: [],            // {i, x, y, r, locked}——x/y 一律是屏幕像素
+    targets: new Map(),    // pieceIdx -> {tx, ty, r}（屏幕像素，仅拼板关）
+    scale: 34, offX: 400, offY: 250,
+    drag: null,            // {idx, dx, dy, sx, sy, moved}
+    winT: 0,
+    stars: loadNumber('hpy-tangram-stars', 0),
+    def: LEVELS[0],
+    T: 0
+  };
+
+  function buildLevel() {
+    const def = LEVELS[S.level - 1];
+    S.def = def;
+    S.targets = new Map();
+    S.scale = def.scale || 34;
+    S.pieces = def.pieces.map((i) => {
+      const bc = pieceCentroid(i);
+      const p = { i, x: 0, y: 0, r: 0, locked: false };
+      if (def.mode === 'puzzle') {
+        const t = def.targets[i];
+        const pl = solvePlacement(i, t);
+        if (!pl) console.warn('tangram: 摆位求解失败', S.level, i);
+        // 目标位置换算成屏幕像素（和板块同一坐标系）
+        S.targets.set(i, { tx: pl.tx * S.scale + S.offX, ty: pl.ty * S.scale + S.offY, r: pl.k });
+      }
+      return p;
+    });
+    // 打散摆到托盘区（两排，屏幕像素）
+    S.pieces.forEach((p, k) => {
+      p.x = 140 + (k % 4) * 180;
+      p.y = k < 4 ? 462 : 540;
+      p.r = def.mode === 'puzzle' ? Math.floor(Math.random() * 8) : 0;
+      if (def.mode === 'puzzle') {
+        const t = S.targets.get(p.i);
+        if (t) p.r = (t.r + 1 + Math.floor(Math.random() * 7)) % 8;   // 保证不是正确朝向
+      }
+    });
+    S.winT = 0;
+  }
+
+  function pieceAt(x, y) {
+    // 从上层板块往下找（后画的先命中）
+    for (let k = S.pieces.length - 1; k >= 0; k--) {
+      const p = S.pieces[k];
+      const verts = pieceVerts(p.i, p.x, p.y, p.r, S.scale);
+      if (inPoly(x, y, verts)) return p;
+    }
+    return null;
+  }
+
+  function trySnap(p) {
+    const t = S.targets.get(p.i);
+    if (!t || p.locked) return false;
+    if (Math.hypot(p.x - t.tx, p.y - t.ty) < 36 && p.r % 8 === t.r % 8) {
+      p.x = t.tx;
+      p.y = t.ty;
+      p.r = t.r % 8;
+      p.locked = true;
+      Snd.pop(4);
+      FX.burst(p.x, p.y, ['#ffd43b', '#b197fc'], 10, 0.8);
+      if (S.pieces.every((q) => q.locked)) {
+        S.winT = 2.2;
+        S.stars = (S.stars || 0) + 1;
+        saveNumber('hpy-tangram-stars', S.stars);
+        Snd.win();
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function inPoly(x, y, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i], [xj, yj] = poly[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  const api = {
+    W: L.W, H: L.H,
+    pads: PADS, hint: HINT, cursor: 'pointer',
+    stars: S.stars,
+
+    start() {
+      S.level = clamp(loadNumber(BEST_KEY, 1), 1, LEVELS.length);
+      buildLevel();
+    },
+    resize() {},
+    restart() { buildLevel(); },
+    destroy() {},
+
+    update(dt) {
+      S.T += dt;
+      if (S.winT > 0) {
+        S.winT -= dt;
+        if (S.winT <= 0) {
+          S.level = clamp(S.level + 1, 1, LEVELS.length);
+          saveNumber(BEST_KEY, S.level);
+          buildLevel();
+        }
+      }
+    },
+    render() {
+      S.pieceVerts = (i, x, y, r) => pieceVerts(i, x, y, r, S.scale);   // view 用（屏幕像素）
+      draw(ctx, S, L);
+    },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      const m = name.match(/^lv(\d+)$/);
+      if (m) {
+        const n = +m[1];
+        if (n >= 1 && n <= LEVELS.length) { S.level = n; saveNumber(BEST_KEY, n); buildLevel(); }
+        return;
+      }
+      if (name === 'hint') {
+        // 💡 教我：把一块未锁定的板块吸到它的目标位置
+        const p = S.pieces.find((q) => !q.locked);
+        const t = p && S.targets.get(p.i);
+        if (p && t) {
+          p.x = t.tx; p.y = t.ty; p.r = t.r;
+          p.locked = true;
+          Snd.pop(4);
+          FX.burst(p.x, p.y, ['#ffd43b', '#b197fc'], 10, 0.8);
+          if (S.pieces.every((q) => q.locked)) {
+            S.winT = 2.2;
+            S.stars = (S.stars || 0) + 1;
+            saveNumber('hpy-tangram-stars', S.stars);
+            Snd.win();
+          }
+        }
+      }
+    },
+
+    down(x, y) {
+      const p = pieceAt(x, y);
+      if (!p || p.locked) return;
+      S.drag = { idx: S.pieces.indexOf(p), dx: p.x - x, dy: p.y - y, sx: x, sy: y, moved: false };
+    },
+    move(x, y) {
+      if (!S.drag) return;
+      const p = S.pieces[S.drag.idx];
+      p.x = x + S.drag.dx;
+      p.y = y + S.drag.dy;
+      if (Math.hypot(x - S.drag.sx, y - S.drag.sy) > 10) S.drag.moved = true;
+    },
+    up(x, y) {
+      if (!S.drag) return;
+      const p = S.pieces[S.drag.idx];
+      // 没怎么动 = 点按旋转 45°；拖动了 = 尝试吸附
+      if (!S.drag.moved) {
+        p.r = (p.r + 1) % 8;
+        Snd.pop(1);
+      } else {
+        trySnap(p);
+      }
+      S.drag = null;
+    }
+  };
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/tangram/controls.js"] = function (exports) {
+/* =====================================================================
+   games/tangram/controls.js — 七巧板 · 控制层：拖动 / 点按旋转
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {},
+    pointer(game, p, type) {
+      if (type === 'down') game.down(p.x, p.y);
+      else if (type === 'move') game.move(p.x, p.y);
+      else if (type === 'up') game.up(p.x, p.y);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/tangram/view.js"] = function (exports) {
+/* =====================================================================
+   games/tangram/view.js — 七巧板 · UI 层（2D 画布）
+   拼板关：中间画目标剪影（浅色），板块拖上去吸住变色；
+   自由关：整块画板随便摆。
+   ===================================================================== */
+const { rr, FONT_EMOJI } = __req("js/core/util.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">自由</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+  '</div>';
+
+const HINT = '拖动板块摆放 · 点一下板块 = 旋转 45° · 靠近正确位置会自动吸住';
+
+function hud(S) {
+  const names = ['自由拼搭', '小板拼方', '大板拼三角'];
+  return [
+    ['关卡', `${S.level}·${names[S.level - 1] || ''}`],
+    ['板块', `${S.pieces.filter((p) => p.locked).length}/${S.pieces.length}`],
+    ['星星', '⭐' + (S.stars || 0)]
+  ];
+}
+
+const NAMES = ['大三角', '大三角', '中三角', '正方', '小三角', '小三角', '平行四边'];
+
+function draw(ctx, S, L) {
+  ctx.fillStyle = '#f8f4e3';
+  ctx.fillRect(0, 0, L.W, L.H);
+  const def = S.def;
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '800 28px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(def.mode === 'free' ? '自由拼搭：想拼什么拼什么！' : `拼出 ${def.name}！`, L.W / 2, 84);
+  ctx.textAlign = 'left';
+
+  // 目标剪影（拼板关）
+  if (def.mode === 'puzzle') {
+    ctx.fillStyle = 'rgba(177,151,252,.25)';
+    for (const [i, poly] of Object.entries(def.targets)) {
+      ctx.beginPath();
+      poly.forEach(([ux, uy], k) => {
+        const x = ux * S.scale + S.offX, y = uy * S.scale + S.offY;
+        k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(177,151,252,.8)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  // 托盘线
+  ctx.strokeStyle = '#d9cfc0';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10, 8]);
+  ctx.beginPath();
+  ctx.moveTo(40, 418);
+  ctx.lineTo(L.W - 40, 418);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 板块（锁定的先画在剪影里，自由的画在托盘）
+  const order = S.pieces.slice().sort((a, b) => (a.locked === b.locked ? 0 : a.locked ? -1 : 1));
+  for (const p of order) {
+    const verts = pieceVertsOf(S, p);
+    ctx.beginPath();
+    verts.forEach(([x, y], k) => (k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+    ctx.closePath();
+    const cols = ['#ff8787', '#ffa94d', '#ffd43b', '#69db7c', '#4dabf7', '#b197fc', '#f783ac'];
+    ctx.fillStyle = cols[p.i];
+    ctx.globalAlpha = p.locked ? 1 : 0.92;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(74,59,40,.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    // 名字标签（自由关不画，太吵）
+    if (def.mode !== 'free') {
+      ctx.fillStyle = 'rgba(74,59,40,.65)';
+      ctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(NAMES[p.i], p.x, p.y + 4);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  if (S.winT > 0) {
+    ctx.fillStyle = 'rgba(255,249,236,.6)';
+    ctx.fillRect(0, 0, L.W, L.H);
+    ctx.fillStyle = '#40c057';
+    ctx.font = '800 40px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('拼好啦！', L.W / 2, L.H / 2);
+    ctx.textAlign = 'left';
+  }
+  void FONT_EMOJI; void rr;
+}
+
+function pieceVertsOf(S, p) {
+  return S.pieceVerts(p.i, p.x, p.y, p.r);   // 屏幕像素顶点（game 已按 scale 换算）
+}
+
+function circle(ctx, x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/tangram/shapes.js"] = function (exports) {
+/* =====================================================================
+   games/tangram/shapes.js — 七巧板 · 板块与拼图数据
+   七块板的「标准摆法」是经典正方形剖分（边长 8 的网格坐标）；
+   每个拼图给出 7 块板的目标多边形，solvePlacements 会自动求出
+   每块板需要的旋转档位和位移（对不上会在控制台报错）。
+   ===================================================================== */
+
+/** 七块板的基准多边形（经典正方形剖分，边长 8，已用采样校验恰好铺满） */
+const BASE = [
+  { name: '大三角', poly: [[0, 0], [8, 0], [4, 4]] },
+  { name: '大三角', poly: [[0, 0], [4, 4], [0, 8]] },
+  { name: '中三角', poly: [[4, 4], [8, 4], [8, 0]] },
+  { name: '正方', poly: [[4, 4], [6, 6], [4, 8], [2, 6]] },
+  { name: '小三角', poly: [[4, 4], [8, 4], [6, 6]] },
+  { name: '小三角', poly: [[4, 8], [8, 8], [6, 6]] },
+  { name: '平行四边', poly: [[0, 8], [2, 6], [6, 6], [4, 8]] }
+];
+
+const rot = (p, a, cx, cy) => {
+  const cos = Math.cos(a), sin = Math.sin(a);
+  const x = p[0] - cx, y = p[1] - cy;
+  return [cx + x * cos - y * sin, cy + x * sin + y * cos];
+};
+
+const centroid = (poly) => {
+  let x = 0, y = 0;
+  poly.forEach((p) => { x += p[0]; y += p[1]; });
+  return [x / poly.length, y / poly.length];
+};
+
+const samePoly = (a, b) =>
+  a.length === b.length && a.every((p) => b.some((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) < 0.01));
+
+/** 求一块板的摆放：返回 {tx, ty, k}——(x,y) 是板块重心应放的位置，
+    k 是旋转档位（板块顶点 = 重心 + 旋转(基准顶点-重心)）；求不出返回 null */
+function solvePlacement(pieceIdx, target) {
+  const base = BASE[pieceIdx].poly;
+  const bc = centroid(base);
+  const tc = centroid(target);
+  const norm = target.map((p) => [p[0] - tc[0], p[1] - tc[1]]);
+  for (let k = 0; k < 8; k++) {
+    const a = (k * Math.PI) / 4;
+    const rotated = base.map((p) => {
+      const [rx, ry] = rot(p, a, bc[0], bc[1]);
+      return [rx - bc[0], ry - bc[1]];
+    });
+    if (!samePoly(rotated, norm)) continue;
+    return { tx: tc[0], ty: tc[1], k };
+  }
+  console.warn('tangram: 板块', pieceIdx, '无法匹配目标', JSON.stringify(target));
+  return null;
+}
+
+/** 板块在位置 (x,y)、旋转 k×45° 时的多边形顶点（以重心为中心旋转） */
+function pieceVerts(pieceIdx, x, y, k, scale = 1) {
+  const base = BASE[pieceIdx].poly;
+  const bc = centroid(base);
+  const a = (k * Math.PI) / 4;
+  return base.map((p) => {
+    const [rx, ry] = rot(p, a, bc[0], bc[1]);
+    return [x + (rx - bc[0]) * scale, y + (ry - bc[1]) * scale];
+  });
+}
+// 约定：pieceVerts(i, tx, ty, k, scale) == 目标多边形（tx/ty 为重心的屏幕位置）
+
+const pieceCentroid = (pieceIdx) => centroid(BASE[pieceIdx].poly);
+const pieceName = (pieceIdx) => BASE[pieceIdx].name;
+
+
+Object.assign(exports, { BASE, solvePlacement, pieceVerts, pieceCentroid, pieceName });
+};
+__factories["js/games/memory/game.js"] = function (exports) {
+/* =====================================================================
+   games/memory/game.js — 翻牌记忆 · 逻辑层（15 号，键 O）
+   一对对翻牌配对：翻开两张一样的就消掉，全部配对过关。
+   关卡越大牌越多；步数越少越好（最佳步数会记住）。
+   ===================================================================== */
+const { shuffle, clamp } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/memory/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/memory/view.js");
+
+const meta = {
+  id: 'memory',
+  name: '翻牌记忆',
+  icon: '🃏',
+  accent: '#ffec99',
+  desc: ['翻开两张一样的', '几步能全配对？']
+};
+
+const BEST_KEY = 'hpy-memory-best';
+const L = { W: 800, H: 560 };
+
+const ICONS = ['🐶', '🐱', '🐼', '🦊', '🐸', '🐷', '🐰', '🦁', '🐮', '🐵', '🐔', '🐧', '🦉', '🐝', '🌈', '🚗', '🍎', '🍓', '🌟', '🎈'];
+const LEVELS = [
+  { cols: 3, rows: 2 }, { cols: 4, rows: 2 }, { cols: 4, rows: 3 },
+  { cols: 4, rows: 4 }, { cols: 6, rows: 3 }
+];
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    level: 1,
+    cards: [],             // {icon, state: 0 盖|1 开|2 配对, pop}
+    first: -1,
+    lockT: 0,
+    moves: 0,
+    matched: 0,
+    best: 0,
+    def: LEVELS[0],
+    winT: 0,
+    T: 0
+  };
+
+  function buildLevel() {
+    const def = LEVELS[S.level - 1];
+    S.def = def;
+    const pairs = def.cols * def.rows / 2;
+    const icons = shuffle(ICONS.slice()).slice(0, pairs);
+    const deck = shuffle(icons.concat(icons).map((icon) => ({ icon, state: 0, pop: 0 })));
+    S.cards = deck;
+    S.first = -1;
+    S.lockT = 0;
+    S.moves = 0;
+    S.matched = 0;
+    S.best = loadNumber(`${BEST_KEY}-${S.level}`, 999);
+    layout();
+  }
+
+  /* 布局（view 只读坐标） */
+  function layout() {
+    const def = LEVELS[S.level - 1];
+    const cw = Math.min(110, (L.W - 80) / def.cols - 8);
+    const ch = Math.min(130, (L.H - 190) / def.rows - 8);
+    const ox = (L.W - (def.cols * cw + (def.cols - 1) * 10)) / 2;
+    const oy = 150 + (L.H - 220 - def.rows * ch - (def.rows - 1) * 10) / 2;
+    S.cards.forEach((c, i) => {
+      c.x = ox + (i % def.cols) * (cw + 10);
+      c.y = oy + Math.floor(i / def.cols) * (ch + 10);
+      c.w = cw; c.h = ch;
+    });
+  }
+
+  function flipUp(i) {
+    S.cards[i].state = 1;
+    S.cards[i].pop = 0.3;
+  }
+
+  function tapCard(i) {
+    const c = S.cards[i];
+    if (S.lockT > 0 || c.state !== 0) return;
+    flipUp(i);
+    Snd.pop(1);
+    if (S.first === -1) { S.first = i; return; }
+    S.moves++;
+    const a = S.cards[S.first], b = c;
+    if (a.icon === b.icon) {
+      a.state = b.state = 2;
+      S.matched++;
+      S.first = -1;
+      Snd.eat();
+      FX.burst(b.x + b.w / 2, b.y + b.h / 2, ['#ffd43b', '#51cf66'], 10, 0.8);
+      if (S.matched === S.cards.length / 2) {
+        S.winT = 2.0;
+        Snd.win();
+        if (S.moves < S.best) { S.best = S.moves; saveNumber(`${BEST_KEY}-${S.level}`, S.moves); }
+        S.stars = (S.stars || 0) + 1;
+        saveNumber('hpy-memory-stars', S.stars);
+      }
+    } else {
+      S.lockT = 0.8;
+      Snd.soft();
+    }
+  }
+
+  const api = {
+    W: L.W, H: L.H,
+    pads: PADS, hint: HINT, cursor: 'pointer',
+    stars: loadNumber('hpy-memory-stars', 0),
+
+    start() {
+      S.level = clamp(loadNumber('hpy-memory-level', 1), 1, LEVELS.length);
+      buildLevel();
+    },
+    resize() { layout(); },
+    restart() { api.start(); },
+    destroy() {},
+
+    update(dt) {
+      S.T += dt;
+      for (const c of S.cards) c.pop = Math.max(0, c.pop - dt);
+      if (S.lockT > 0) {
+        S.lockT -= dt;
+        if (S.lockT <= 0) {
+          S.cards.forEach((c) => { if (c.state === 1) c.state = 0; });
+          S.first = -1;
+        }
+      }
+      if (S.winT > 0) {
+        S.winT -= dt;
+        if (S.winT <= 0) {
+          S.level = clamp(S.level + 1, 1, LEVELS.length);
+          saveNumber('hpy-memory-level', S.level);
+          buildLevel();
+        }
+      }
+    },
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      const m = name.match(/^lv(\d+)$/);
+      if (m) {
+        const n = +m[1];
+        if (n >= 1 && n <= LEVELS.length) { S.level = n; saveNumber('hpy-memory-level', n); buildLevel(); }
+        return;
+      }
+      if (name === 'hint') {
+        // 💡 已翻开一张 → 翻开它的配对；没有 → 翻开一对盖着的
+        if (S.lockT > 0) return;
+        if (S.first >= 0) {
+          const icon = S.cards[S.first].icon;
+          const j = S.cards.findIndex((c) => c.state === 0 && c.icon === icon);
+          if (j >= 0) tapCard(j);
+          return;
+        }
+        const i = S.cards.findIndex((c) => c.state === 0);
+        for (let j = i + 1; j < S.cards.length; j++) {
+          if (S.cards[j].state === 0 && S.cards[j].icon === S.cards[i].icon) {
+            tapCard(i);
+            tapCard(j);
+            return;
+          }
+        }
+      }
+    },
+
+    tap(x, y) {
+      const i = S.cards.findIndex((c) => c.state === 0 && x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h);
+      if (i >= 0) tapCard(i);
+    }
+  };
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/memory/controls.js"] = function (exports) {
+/* =====================================================================
+   games/memory/controls.js — 翻牌记忆 · 控制层：点牌即翻
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {},
+    pointer(game, p, type) {
+      if (type === 'down') game.tap(p.x, p.y);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/memory/view.js"] = function (exports) {
+/* =====================================================================
+   games/memory/view.js — 翻牌记忆 · UI 层（2D 画布）
+   盖着的牌画花纹背面，翻开显示 emoji；配对成功的牌泛绿框。
+   翻牌有横向压扁的「翻面」动画。
+   ===================================================================== */
+const { rr, FONT_EMOJI } = __req("js/core/util.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+    '<button class="pad" data-act="lv5">5</button>' +
+  '</div>';
+
+const HINT = '点牌翻开，两张一样就配对成功 · <kbd>1</kbd>~<kbd>5</kbd> 选关 · 💡 教我';
+
+function hud(S) {
+  return [
+    ['关卡', String(S.level)],
+    ['步数', String(S.moves)],
+    ['最佳', S.best > 900 ? '—' : String(S.best)],
+    ['星星', '⭐' + (S.stars || 0)]
+  ];
+}
+
+function draw(ctx, S, L) {
+  ctx.fillStyle = '#fdf3dd';
+  ctx.fillRect(0, 0, L.W, L.H);
+
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '800 30px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`找出 ${S.def.cols * S.def.rows / 2} 对好朋友`, L.W / 2, 96);
+  ctx.textAlign = 'left';
+
+  for (const c of S.cards) {
+    const flip = c.state === 1 ? Math.abs(Math.sin(S.T * 10)) : 1;
+    const sx = c.x + c.w / 2, sy = c.y + c.h / 2;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(Math.max(0.12, c.state === 1 ? 1 : 1), 1);
+    if (c.pop > 0) ctx.scale(1 + c.pop, 1 + c.pop);
+
+    if (c.state === 0) {
+      // 牌背
+      ctx.fillStyle = '#e8590c';
+      rr(ctx, -c.w / 2, -c.h / 2, c.w, c.h, 12);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      rr(ctx, -c.w / 2 + 8, -c.h / 2 + 8, c.w - 16, c.h - 16, 8);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      circle(ctx, 0, 0, 9);
+      ctx.fillStyle = '#e8590c';
+      circle(ctx, 0, 0, 5);
+    } else {
+      // 牌面
+      ctx.fillStyle = c.state === 2 ? '#d3f9d8' : '#fff9ec';
+      rr(ctx, -c.w / 2, -c.h / 2, c.w, c.h, 12);
+      ctx.fill();
+      ctx.strokeStyle = c.state === 2 ? '#40c057' : '#d9c896';
+      ctx.lineWidth = 3;
+      rr(ctx, -c.w / 2, -c.h / 2, c.w, c.h, 12);
+      ctx.stroke();
+      ctx.font = `${Math.round(c.h * 0.52)}px ${FONT_EMOJI}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(c.icon, 0, c.h * 0.18);
+      ctx.textAlign = 'left';
+    }
+    void flip;
+    ctx.restore();
+  }
+}
+
+function circle(ctx, x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/shop/game.js"] = function (exports) {
+/* =====================================================================
+   games/shop/game.js — 购物小掌柜 · 逻辑层（17 号，键 R）
+   小朋友当掌柜：客人买东西付了钱，从钱罐里点出正确的找零递过去。
+   「10 元买 7 元的东西，找 3 元」——减法就藏在生活里。
+   答错钱币抖一抖退回来，不惩罚。
+   ===================================================================== */
+const { ri, clamp, shuffle } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/shop/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/shop/view.js");
+
+const meta = {
+  id: 'shop',
+  name: '购物小掌柜',
+  icon: '🏪',
+  accent: '#ffe8cc',
+  desc: ['客人付了钱', '你来找零钱']
+};
+
+const BEST_KEY = 'hpy-shop-level';
+const STARS_KEY = 'hpy-shop-stars';
+const L = { W: 800, H: 560 };
+
+const GOODS = [
+  { icon: '🍦', name: '冰淇淋' }, { icon: '🧸', name: '小熊' }, { icon: '🏀', name: '皮球' },
+  { icon: '🍭', name: '棒棒糖' }, { icon: '🚗', name: '玩具车' }, { icon: '📖', name: '绘本' },
+  { icon: '🎈', name: '气球' }, { icon: '🍪', name: '饼干' }, { icon: '✏️', name: '铅笔' }
+];
+const LEVELS = [
+  { max: 5, pay: [5, 10], rounds: 3 },
+  { max: 9, pay: [10], rounds: 4 },
+  { max: 15, pay: [20], rounds: 4, two: true }
+];
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    level: 1,
+    round: 0,
+    item: null, item2: null,
+    price: 0, pay: 0, change: 0,
+    tray: [],             // 已放入的找零硬币 {v}
+    coins: [],            // 钱罐的硬币位置 {v}
+    done: false, doneT: 0,
+    stars: loadNumber(STARS_KEY, 0),
+    T: 0
+  };
+
+  function buildRound() {
+    const def = LEVELS[S.level - 1];
+    S.item = GOODS[ri(0, GOODS.length - 1)];
+    S.item.price = ri(2, def.max);
+    if (def.two) {
+      S.item2 = GOODS[ri(0, GOODS.length - 1)];
+      S.item2.price = ri(1, Math.min(9, def.max - S.item.price));
+      S.price = S.item.price + S.item2.price;
+    } else {
+      S.item2 = null;
+      S.price = S.item.price;
+    }
+    S.pay = def.pay[ri(0, def.pay.length - 1)];
+    if (S.pay <= S.price) S.pay = S.price + ri(1, 3);   // 保底有零可找
+    S.change = S.pay - S.price;
+    S.tray = [];
+    S.done = false;
+    S.coins = [];
+    // 钱罐：正确找零所需的币 + 一些干扰币，打乱摆开
+    const need = changeCoins(S.change);
+    const decoys = [];
+    while (decoys.length < Math.min(3, 8 - need.length)) {
+      const v = [1, 2, 5, 10][ri(0, 3)];
+      decoys.push(v);
+    }
+    S.coins = shuffle(need.concat(decoys)).map((v) => ({ v }));
+    layout();
+  }
+
+  /** 找零 c 的最小硬币组合（5/2/1 贪心，2 元让 3=2+1 这种更好拿） */
+  function changeCoins(c) {
+    const out = [];
+    for (const v of [10, 5, 2, 1]) {
+      while (c >= v) { out.push(v); c -= v; }
+    }
+    return out;
+  }
+
+  function layout() {
+    // 硬罐最多 10 枚：4 列 × 2 排，保证互不重叠
+    S.coins.forEach((c, i) => {
+      c.x = 110 + (i % 4) * 150;
+      c.y = 462 + Math.floor(i / 4) * 78;
+      c.r = 34;
+    });
+  }
+
+  function traySum() {
+    return S.tray.reduce((a, b) => a + b.v, 0);
+  }
+
+  function tapCoin(i) {
+    if (S.done) return;
+    const c = S.coins[i];
+    if (c.used) return;
+    S.tray.push(c);
+    c.used = true;
+    Snd.pop(2);
+    check();
+  }
+
+  function tapTray(idx) {
+    if (S.done) return;
+    const c = S.tray.splice(idx, 1)[0];
+    c.used = false;
+    Snd.pop(1);
+  }
+
+  function check() {
+    if (traySum() === S.change) {
+      S.done = true;
+      S.doneT = 1.6;
+      Snd.win();
+      FX.burst(L.W - 160, 190, ['#ffd43b', '#51cf66', '#ff8fb1'], 16, 1);
+    } else if (traySum() > S.change) {
+      // 找多了：全部退回重想
+      S.tray.forEach((c) => { c.used = false; });
+      S.tray = [];
+      Snd.soft();
+      FX.text(L.W / 2, 300, '找多啦，再想想', '#ff8787', 24, 1200);
+    }
+  }
+
+  const api = {
+    W: L.W, H: L.H,
+    pads: PADS, hint: HINT, cursor: 'pointer',
+    stars: S.stars,
+
+    start() {
+      S.level = clamp(loadNumber(BEST_KEY, 1), 1, LEVELS.length);
+      S.round = 0;
+      S.stars = loadNumber(STARS_KEY, 0);
+      buildRound();
+    },
+    resize() { layout(); },
+    restart() { api.start(); },
+    destroy() {},
+
+    update(dt) {
+      S.T += dt;
+      if (S.done) {
+        S.doneT -= dt;
+        if (S.doneT <= 0) {
+          S.round++;
+          if (S.round >= LEVELS[S.level - 1].rounds) {
+            S.stars++;
+            saveNumber(STARS_KEY, S.stars);
+            S.level = clamp(S.level + 1, 1, LEVELS.length);
+            saveNumber(BEST_KEY, S.level);
+            S.round = 0;
+            Snd.star();
+          }
+          buildRound();
+        }
+      }
+    },
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      const m = name.match(/^lv(\d)$/);
+      if (m) {
+        const n = +m[1];
+        if (n >= 1 && n <= LEVELS.length) { S.level = n; saveNumber(BEST_KEY, n); S.round = 0; buildRound(); }
+        return;
+      }
+      if (name === 'hint') {
+        // 💡 演示正确找零：清空托盘，按 5/2/1 摆好
+        S.tray.forEach((c) => { c.used = false; });
+        S.tray = [];
+        for (const v of changeCoins(S.change)) {
+          const c = S.coins.find((k) => !k.used && k.v === v);
+          if (c) { c.used = true; S.tray.push(c); }
+        }
+        Snd.pop(3);
+        check();
+      }
+    },
+
+    tap(x, y) {
+      // 先看托盘（退回），再看钱罐（放入）
+      const ti = S.tray.findIndex((c) => Math.hypot(x - c.tx, y - c.ty) < c.r + 6);
+      if (ti >= 0) { tapTray(ti); return; }
+      const ci = S.coins.findIndex((c) => !c.used && Math.hypot(x - c.x, y - c.y) < c.r + 6);
+      if (ci >= 0) tapCoin(ci);
+    }
+  };
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/shop/controls.js"] = function (exports) {
+/* =====================================================================
+   games/shop/controls.js — 购物小掌柜 · 控制层：点硬币入托盘/点托盘退回
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {},
+    pointer(game, p, type) {
+      if (type === 'down') game.tap(p.x, p.y);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/shop/view.js"] = function (exports) {
+/* =====================================================================
+   games/shop/view.js — 购物小掌柜 · UI 层（2D 画布）
+   柜台场景：客人（本局小朋友的脸）在右边，商品和价签在柜台上，
+   付的钱挂在上方的绳子上；下面一排是钱罐硬币，点进托盘找零。
+   ===================================================================== */
+const { rr, FONT_EMOJI } = __req("js/core/util.js");
+const { avatar } = __req("js/core/avatar.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+  '</div>';
+
+const HINT = '点下面的硬币放进托盘，凑出正确的找零 · 点托盘里的硬币可以拿回来 · 💡 教我';
+
+function hud(S) {
+  return [
+    ['关卡', String(S.level)],
+    ['客人', `${S.round + 1}/${[3, 4, 4][S.level - 1] || 3}`],
+    ['星星', '⭐' + (S.stars || 0)]
+  ];
+}
+
+function coin(ctx, x, y, r, v) {
+  ctx.fillStyle = '#ffd43b';
+  circle(ctx, x, y, r);
+  ctx.strokeStyle = '#e6a711';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = '#8a6100';
+  ctx.font = `800 ${Math.round(r * 0.9)}px "PingFang SC","Microsoft YaHei",sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(String(v), x, y + r * 0.32);
+  ctx.textAlign = 'left';
+}
+
+function circle(ctx, x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function draw(ctx, S, L) {
+  // 店铺背景
+  ctx.fillStyle = '#fff4e0';
+  ctx.fillRect(0, 0, L.W, L.H);
+  ctx.fillStyle = '#f4d8a8';
+  ctx.fillRect(0, 300, L.W, L.H - 300);       // 柜台
+  ctx.fillStyle = '#e8b478';
+  ctx.fillRect(0, 292, L.W, 12);
+
+  // 客人（右边，本局小朋友的脸）
+  avatar.hero(ctx, L.W - 120, 200, 42);
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '700 18px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('客人', L.W - 120, 262);
+
+  // 客人想说的话
+  const want = S.item2
+    ? `${S.item.name}${S.item.price} 元 + ${S.item2.name}${S.item2.price} 元`
+    : `${S.item.name} ${S.item.price} 元`;
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  rr(ctx, L.W - 330, 96, 300, 62, 16);
+  ctx.fill();
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '700 19px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(want, L.W - 180, 122);
+  ctx.font = '800 20px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#e8590c';
+  ctx.fillText(`付了 ${S.pay} 元`, L.W - 180, 148);
+
+  // 商品 + 价签（柜台上）
+  ctx.font = `52px ${FONT_EMOJI}`;
+  ctx.fillText(S.item.icon, 120, 272);
+  ctx.font = '800 18px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(`${S.item.price} 元`, 120, 296);
+  if (S.item2) {
+    ctx.font = `52px ${FONT_EMOJI}`;
+    ctx.fillText(S.item2.icon, 230, 272);
+    ctx.font = '800 18px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText(`${S.item2.price} 元`, 230, 296);
+  }
+
+  // 付的钱（挂在绳上）
+  coin(ctx, L.W / 2 - 40, 60, 26, S.pay);
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '700 16px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('客人付的', L.W / 2 - 40, 104);
+
+  // 找零目标提示
+  ctx.font = '800 26px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#1864ab';
+  ctx.fillText(`要找：${S.change} 元`, L.W / 2, 200);
+  // 托盘
+  ctx.fillStyle = '#d9c896';
+  rr(ctx, L.W / 2 - 160, 340, 320, 90, 16);
+  ctx.fill();
+  ctx.strokeStyle = '#b09a6a';
+  ctx.lineWidth = 3;
+  rr(ctx, L.W / 2 - 160, 340, 320, 90, 16);
+  ctx.stroke();
+  ctx.fillStyle = '#8a7550';
+  ctx.font = '700 15px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('找零托盘（点硬币放进来）', L.W / 2, 336);
+
+  // 托盘里的硬币
+  S.tray.forEach((c, i) => {
+    c.tx = L.W / 2 - 120 + i * 80;
+    c.ty = 385;
+    coin(ctx, c.tx, c.ty, 34, c.v);
+  });
+
+  // 钱罐硬币
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '700 16px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('钱罐（点硬币找零）', 90, 428);
+  for (const c of S.coins) {
+    ctx.globalAlpha = c.used ? 0.18 : 1;
+    coin(ctx, c.x, c.y, c.r, c.v);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = 'left';
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/make10/game.js"] = function (exports) {
+/* =====================================================================
+   games/make10/game.js — 凑十点 · 逻辑层（16 号，键 P）
+   一堆数字块里挑两张「加起来等于 10」，全消掉过关。
+   1+9、2+8、3+7、4+6、5+5 —— 凑十好朋友配对背下来。
+   ===================================================================== */
+const { shuffle, clamp } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/make10/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/make10/view.js");
+
+const meta = {
+  id: 'make10',
+  name: '凑十点',
+  icon: '🎯',
+  accent: '#a5d8ff',
+  desc: ['挑两张加起来是 10', '把数字块全消光']
+};
+
+const BEST_KEY = 'hpy-make10-level';
+const L = { W: 800, H: 560 };
+const PAIRS = [[1, 9], [2, 8], [3, 7], [4, 6], [5, 5]];
+const LEVELS = [6, 8, 10, 12];   // 每关的块数
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    level: 1,
+    cards: [],             // {v, gone, pop, shake}
+    sel: -1,
+    left: 0,
+    winT: 0,
+    T: 0
+  };
+
+  function buildLevel() {
+    const n = LEVELS[S.level - 1];
+    const vals = [];
+    for (let i = 0; i < n / 2; i++) {
+      const pair = PAIRS[i % PAIRS.length];
+      vals.push(pair[0], pair[1]);
+    }
+    S.cards = shuffle(vals).map((v) => ({ v, gone: false, pop: 0, shake: 0 }));
+    S.sel = -1;
+    S.left = n;
+    S.winT = 0;
+    layout();
+  }
+
+  function layout() {
+    const n = S.cards.length;
+    const cols = Math.min(4, n);
+    const rows = Math.ceil(n / cols);
+    const bs = Math.min(120, (L.W - 120) / cols - 10, (L.H - 250) / rows - 12);
+    const ox = (L.W - (cols * bs + (cols - 1) * 12)) / 2;
+    const oy = 170 + (L.H - 260 - rows * bs - (rows - 1) * 12) / 2;
+    S.cards.forEach((c, i) => {
+      c.x = ox + (i % cols) * (bs + 12);
+      c.y = oy + Math.floor(i / cols) * (bs + 12);
+      c.w = bs; c.h = bs;
+    });
+  }
+
+  function tapCard(i) {
+    const c = S.cards[i];
+    if (c.gone) return;
+    if (S.sel === -1) {
+      S.sel = i;
+      Snd.pop(1);
+      return;
+    }
+    if (S.sel === i) { S.sel = -1; return; }
+    const a = S.cards[S.sel];
+    if (a.v + c.v === 10) {
+      a.gone = c.gone = true;
+      a.pop = c.pop = 0.4;
+      S.left -= 2;
+      S.sel = -1;
+      Snd.note(S.level + Math.floor((S.cards.length - S.left) / 4));
+      FX.burst(c.x + c.w / 2, c.y + c.h / 2, ['#ffd43b', '#4dabf7'], 12, 0.9);
+      if (S.left === 0) {
+        S.winT = 1.6;
+        S.stars = (S.stars || 0) + 1;
+        saveNumber('hpy-make10-stars', S.stars);
+        Snd.win();
+        FX.text(L.W / 2, 140, '全部凑成 10！', '#40c057', 32, 1400);
+      }
+    } else {
+      a.shake = 0.45; c.shake = 0.45;
+      S.sel = -1;
+      Snd.soft();
+    }
+  }
+
+  const api = {
+    W: L.W, H: L.H,
+    pads: PADS, hint: HINT, cursor: 'pointer',
+    stars: loadNumber('hpy-make10-stars', 0),
+
+    start() {
+      S.level = clamp(loadNumber(BEST_KEY, 1), 1, LEVELS.length);
+      buildLevel();
+    },
+    resize() { layout(); },
+    restart() { api.start(); },
+    destroy() {},
+
+    update(dt) {
+      S.T += dt;
+      for (const c of S.cards) {
+        c.pop = Math.max(0, c.pop - dt);
+        c.shake = Math.max(0, c.shake - dt);
+      }
+      if (S.winT > 0) {
+        S.winT -= dt;
+        if (S.winT <= 0) {
+          S.level = clamp(S.level + 1, 1, LEVELS.length);
+          saveNumber(BEST_KEY, S.level);
+          buildLevel();
+        }
+      }
+    },
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      const m = name.match(/^lv(\d)$/);
+      if (m) {
+        const n = +m[1];
+        if (n >= 1 && n <= LEVELS.length) { S.level = n; saveNumber(BEST_KEY, n); buildLevel(); }
+        return;
+      }
+      if (name === 'hint') {
+        // 💡 演示一对：找两个没消的凑 10（先清掉玩家的半选状态）
+        S.sel = -1;
+        for (let i = 0; i < S.cards.length; i++) {
+          for (let j = i + 1; j < S.cards.length; j++) {
+            if (!S.cards[i].gone && !S.cards[j].gone && S.cards[i].v + S.cards[j].v === 10) {
+              tapCard(i);
+              tapCard(j);
+              return;
+            }
+          }
+        }
+      }
+    },
+
+    tap(x, y) {
+      const i = S.cards.findIndex((c) => !c.gone && x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h);
+      if (i >= 0) tapCard(i);
+    }
+  };
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/make10/controls.js"] = function (exports) {
+/* =====================================================================
+   games/make10/controls.js — 凑十点 · 控制层：点数字块
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {},
+    pointer(game, p, type) {
+      if (type === 'down') game.tap(p.x, p.y);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/make10/view.js"] = function (exports) {
+/* =====================================================================
+   games/make10/view.js — 凑十点 · UI 层（2D 画布）
+   亮蓝底 + 大数字块：选中的块会高亮，凑成 10 的两块「啵」地消掉。
+   ===================================================================== */
+const { rr } = __req("js/core/util.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+  '</div>';
+
+const HINT = '点两块数字，加起来等于 <kbd>10</kbd> 就消掉 · <kbd>1</kbd>~<kbd>4</kbd> 选关 · 💡 教我';
+
+function hud(S) {
+  return [
+    ['关卡', String(S.level)],
+    ['剩块', String(S.left)],
+    ['星星', '⭐' + (S.stars || 0)]
+  ];
+}
+
+const COL = { 1: '#ff6b6b', 2: '#ffa94d', 3: '#ffd43b', 4: '#a9e34b', 5: '#69db7c', 6: '#38d9a9', 7: '#4dabf7', 8: '#9775fa', 9: '#f783ac' };
+
+function draw(ctx, S, L) {
+  ctx.fillStyle = '#e7f5ff';
+  ctx.fillRect(0, 0, L.W, L.H);
+
+  ctx.fillStyle = '#1864ab';
+  ctx.font = '800 34px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`挑两块加起来 = ${10}`, L.W / 2, 96);
+  ctx.font = '700 20px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#4a3b28';
+  ctx.fillText('1+9 · 2+8 · 3+7 · 4+6 · 5+5 都是好搭档', L.W / 2, 132);
+  ctx.textAlign = 'left';
+
+  for (const c of S.cards) {
+    if (c.gone) continue;
+    ctx.save();
+    if (c.shake > 0) ctx.translate(Math.sin(c.shake * 40) * 6, 0);
+    if (c.pop > 0) {
+      ctx.translate(c.x + c.w / 2, c.y + c.h / 2);
+      ctx.scale(1 + c.pop, 1 + c.pop);
+      ctx.translate(-(c.x + c.w / 2), -(c.y + c.h / 2));
+    }
+    const sel = S.cards[S.sel] === c;
+    ctx.fillStyle = sel ? '#fff3bf' : COL[c.v] || '#dee2e6';
+    rr(ctx, c.x, c.y, c.w, c.h, 16);
+    ctx.fill();
+    ctx.strokeStyle = sel ? '#f59f00' : 'rgba(24,100,171,.35)';
+    ctx.lineWidth = 4;
+    rr(ctx, c.x, c.y, c.w, c.h, 16);
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = `800 ${Math.round(c.w * 0.5)}px "PingFang SC","Microsoft YaHei",sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(String(c.v), c.x + c.w / 2, c.y + c.h / 2 + c.w * 0.17);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/balance/game.js"] = function (exports) {
+/* =====================================================================
+   games/balance/game.js — 天平称重 · 逻辑层（18 号，键 T）
+   左盘放着一个重 N 斤的西瓜，从架子上点砝码（1/2/5/10）放到右盘，
+   让天平正好平衡。放多了会歪下去，拿掉重来，不惩罚。
+   ===================================================================== */
+const { ri, clamp } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/balance/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/balance/view.js");
+
+const meta = {
+  id: 'balance',
+  name: '天平称重',
+  icon: '⚖️',
+  accent: '#c3fae8',
+  desc: ['放砝码让天平平衡', '加法就藏在天平上']
+};
+
+const BEST_KEY = 'hpy-balance-level';
+const L = { W: 800, H: 560 };
+const WEIGHTS = [1, 2, 5, 10];
+const LEVELS = [
+  { lo: 2, hi: 6, rounds: 3 },
+  { lo: 4, hi: 10, rounds: 4 },
+  { lo: 6, hi: 16, rounds: 4 }
+];
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    level: 1,
+    round: 0,
+    target: 0,
+    pan: [],               // 右盘砝码 {v}
+    tilt: 0,
+    done: false,
+    doneT: 0,
+    stars: loadNumber('hpy-balance-stars', 0),
+    T: 0
+  };
+
+  function buildRound() {
+    S.target = ri(LEVELS[S.level - 1].lo, LEVELS[S.level - 1].hi);
+    S.pan = [];
+    S.panLocs = [];
+    S.done = false;
+  }
+
+  function panSum() {
+    return S.pan.reduce((a, b) => a + b.v, 0);
+  }
+
+  function addWeight(v) {
+    if (S.done) return;
+    S.pan.push({ v });
+    Snd.pop(2);
+    check();
+  }
+
+  function removeWeight(i) {
+    if (S.done) return;
+    S.pan.splice(i, 1);
+    Snd.pop(1);
+  }
+
+  const PIVOT = { x: 400, y: 330 };
+
+  function updateTilt(dt) {
+    const t = S.done ? 0 : clamp((panSum() - S.target) / 10, -0.12, 0.12);
+    S.tilt += (t - S.tilt) * Math.min(1, dt * 8);
+  }
+
+  function check() {
+    const s = panSum();
+    if (s === S.target) {
+      S.done = true;
+      S.doneT = 1.8;
+      Snd.win();
+      FX.burst(L.W / 2, 210, ['#63e6be', '#ffd43b'], 14, 1);
+      S.stars = (S.stars || 0) + 1;
+      saveNumber('hpy-balance-stars', S.stars);
+    }
+  }
+
+  const api = {
+    W: L.W, H: L.H,
+    pads: PADS, hint: HINT, cursor: 'pointer',
+    stars: S.stars,
+
+    start() {
+      S.level = clamp(loadNumber(BEST_KEY, 1), 1, LEVELS.length);
+      S.round = 0;
+      S.stars = loadNumber('hpy-balance-stars', 0);
+      buildRound();
+    },
+    resize() {},
+    restart() { api.start(); },
+    destroy() {},
+
+    update(dt) {
+      S.T += dt;
+      updateTilt(dt);
+      S.panLocs = S.pan.map((w, i) => api.panPos(i));
+      if (S.done) {
+        S.doneT -= dt;
+        if (S.doneT <= 0) {
+          S.round++;
+          if (S.round >= LEVELS[S.level - 1].rounds) {
+            S.level = clamp(S.level + 1, 1, LEVELS.length);
+            saveNumber(BEST_KEY, S.level);
+            S.round = 0;
+            Snd.star();
+          }
+          buildRound();
+        }
+      }
+    },
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      const m = name.match(/^lv(\d)$/);
+      if (m) {
+        const n = +m[1];
+        if (n >= 1 && n <= LEVELS.length) { S.level = n; saveNumber(BEST_KEY, n); S.round = 0; buildRound(); }
+        return;
+      }
+      if (name === 'hint') {
+        // 💡 演示：从大到小放，刚好配平
+        let left = S.target - panSum();
+        for (const v of [10, 5, 2, 1]) {
+          while (left >= v) { addWeight(v); left -= v; }
+          if (left === 0) return;
+        }
+      }
+    },
+
+    tap(x, y) {
+      // 点右盘砝码 = 拿走（屏幕坐标 → 逆旋转 → 梁上局部坐标）
+      const cos = Math.cos(-S.tilt), sin = Math.sin(-S.tilt);
+      const lx = cos * (x - PIVOT.x) - sin * (y - PIVOT.y);
+      const ly = sin * (x - PIVOT.x) + cos * (y - PIVOT.y);
+      for (let i = 0; i < S.pan.length; i++) {
+        const [px, py] = api.panPos(i);
+        if (Math.hypot(lx - px, ly - py) < 30) { removeWeight(i); return; }
+      }
+      // 点架子上的砝码 = 放入
+      WEIGHTS.forEach((v, i) => {
+        const wx = 150 + i * 170;
+        if (Math.hypot(x - wx, y - 505) < 40) addWeight(v);
+      });
+    }
+  };
+
+  /** 右盘第 i 个砝码的位置（梁局部坐标，view 在旋转后的坐标系里画） */
+  api.panPos = (i) => [150 + (i % 4) * 34, -22 - Math.floor(i / 4) * 26];
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/balance/controls.js"] = function (exports) {
+/* =====================================================================
+   games/balance/controls.js — 天平称重 · 控制层：点砝码放上/取下
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {},
+    pointer(game, p, type) {
+      if (type === 'down') game.tap(p.x, p.y);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/balance/view.js"] = function (exports) {
+/* =====================================================================
+   games/balance/view.js — 天平称重 · UI 层（2D 画布）
+   天平梁会随两边重量差歪斜，正好平衡就摆平 + 撒花。
+   ===================================================================== */
+const { clamp } = __req("js/core/util.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+  '</div>';
+
+const HINT = '点下面的砝码放到右盘，加起来正好 = 西瓜的斤数 · 点盘里的砝码可以拿回来 · 💡 教我';
+
+function hud(S) {
+  return [
+    ['关卡', String(S.level)],
+    ['第几题', `${S.round + 1}/${[3, 4, 4][S.level - 1] || 3}`],
+    ['星星', '⭐' + (S.stars || 0)]
+  ];
+}
+
+function draw(ctx, S, L) {
+  ctx.fillStyle = '#e6fcf5';
+  ctx.fillRect(0, 0, L.W, L.H);
+
+  ctx.fillStyle = '#0c8599';
+  ctx.font = '800 32px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`西瓜重 ${S.target} 斤，放砝码让它平衡！`, L.W / 2, 90);
+
+  // 天平：支点 + 梁的倾角随两边重量差变化（整座画在旋转坐标系里）
+  const px = L.W / 2, py = 330;
+
+  // 底座支柱
+  ctx.fillStyle = '#868e96';
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(px - 26, py + 130);
+  ctx.lineTo(px + 26, py + 130);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#495057';
+  rr(ctx, px - 60, py + 126, 120, 14, 6);
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(S.tilt);
+  ctx.fillStyle = '#845ef7';
+  rr(ctx, -260, -10, 520, 16, 8);
+  ctx.fill();
+
+  // 左盘（西瓜）
+  drawPan(ctx, -220, 10);
+  ctx.font = '56px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🍉', -220, 32);
+  ctx.font = '800 22px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#0c8599';
+  ctx.fillText(`${S.target} 斤`, -220, 66);
+
+  // 右盘（砝码，梁局部坐标，位置由 game 提供）
+  drawPan(ctx, 220, 10);
+  (S.panLocs || []).forEach(([wx, wy], i) => {
+    drawWeight(ctx, wx, wy, S.pan[i].v);
+  });
+  ctx.restore();
+  ctx.textAlign = 'left';
+
+  // 砝码架
+  ctx.fillStyle = '#adb5bd';
+  rr(ctx, 90, 516, 560, 10, 5);
+  ctx.fill();
+  ctx.fillStyle = '#4a3b28';
+  ctx.font = '700 16px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('砝码架（点一下放上右盘）', L.W / 2, 548);
+  [1, 2, 5, 10].forEach((v, i) => drawWeight(ctx, 150 + i * 170, 505, v));
+  ctx.textAlign = 'left';
+
+  // 平衡状态
+  if (S.done) {
+    ctx.fillStyle = '#40c057';
+    ctx.font = '800 30px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('平衡啦！', L.W / 2, 160);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawPan(ctx, lx, ly) {
+  ctx.strokeStyle = '#845ef7';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(lx, ly);
+  ctx.lineTo(lx, ly + 44);
+  ctx.stroke();
+  ctx.fillStyle = '#9775fa';
+  ctx.beginPath();
+  ctx.ellipse(lx, ly + 52, 74, 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawWeight(ctx, x, y, v) {
+  ctx.fillStyle = '#fcc419';
+  ctx.beginPath();
+  ctx.moveTo(x - 22, y + 20);
+  ctx.lineTo(x + 22, y + 20);
+  ctx.lineTo(x + 14, y - 16);
+  ctx.lineTo(x - 14, y - 16);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#e6a711';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.fillStyle = '#5c4400';
+  ctx.font = '800 20px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(String(v), x, y + 12);
+  ctx.textAlign = 'left';
+}
+
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
+};
+__factories["js/games/blocks/game.js"] = function (exports) {
+/* =====================================================================
+   games/blocks/game.js — 数积木 · 逻辑层（19 号，键 U）
+   立体积木堆数一数有几个小方块（藏在后面的也要算！）。
+   四个答案里点对的；💡 教我会在每摞顶上标数字。
+   ===================================================================== */
+const { ri, clamp, shuffle } = __req("js/core/util.js");
+const { loadNumber, saveNumber } = __req("js/core/storage.js");
+const { createControls } = __req("js/games/blocks/controls.js");
+const { draw, hud: hudOf, PADS, HINT } = __req("js/games/blocks/view.js");
+
+const meta = {
+  id: 'blocks',
+  name: '数积木',
+  icon: '🧊',
+  accent: '#c5f6fa',
+  desc: ['数一数有几块积木', '藏在后面的也要算哦']
+};
+
+const BEST_KEY = 'hpy-blocks-level';
+const L = { W: 800, H: 560 };
+const LEVELS = [
+  { cols: 3, rows: 3, maxH: 2, hid: false },
+  { cols: 3, rows: 3, maxH: 3, hid: true },
+  { cols: 4, rows: 3, maxH: 3, hid: true }
+];
+
+function create(env) {
+  const { ctx, Snd, FX } = env;
+
+  const S = {
+    level: 1,
+    heights: [],           // heights[z][x]：每摞的高度（0 = 没有）
+    count: 0,
+    options: [],
+    done: false,
+    doneT: 0,
+    hintCol: false,        // 教我：每摞标数字
+    stars: loadNumber('hpy-blocks-stars', 0),
+    T: 0
+  };
+
+  function buildRound() {
+    const def = LEVELS[S.level - 1];
+    const lo = def.hid ? 2 : 1;
+    let total = 0;
+    do {
+      S.heights = [];
+      total = 0;
+      for (let z = 0; z < def.rows; z++) {
+        const row = [];
+        for (let x = 0; x < def.cols; x++) {
+          row.push(ri(def.hid ? 1 : 0, def.maxH));
+        }
+        total += row.reduce((a, b) => a + b, 0);
+        S.heights.push(row);
+      }
+    } while (total < lo || total > def.maxH * def.cols * def.rows * 0.8 || total < 4);
+    S.count = total;
+    S.hintCol = false;
+
+    // 四个选项：正确 + 干扰（±1/±2 的邻近数，去重）
+    const opts = new Set([total]);
+    while (opts.size < 4) {
+      const v = total + ri(-3, 3);
+      if (v > 0 && v !== total) opts.add(v);
+    }
+    S.options = shuffle([...opts]);
+    S.done = false;
+  }
+
+  function pick(v) {
+    if (S.done) return;
+    if (v === S.count) {
+      S.done = true;
+      S.doneT = 1.8;
+      S.stars = (S.stars || 0) + 1;
+      saveNumber('hpy-blocks-stars', S.stars);
+      Snd.win();
+      FX.burst(L.W / 2, 200, ['#66d9e8', '#ffd43b'], 14, 1);
+    } else {
+      Snd.soft();
+      S.hintCol = true;   // 答错不惩罚：自动打开每摞标数帮着数
+      FX.text(L.W / 2, 140, '再数一数（看每摞顶上的数字）', '#ff8787', 20, 1600);
+    }
+  }
+
+  const api = {
+    W: L.W, H: L.H,
+    pads: PADS, hint: HINT, cursor: 'pointer',
+    stars: S.stars,
+
+    start() {
+      S.level = clamp(loadNumber(BEST_KEY, 1), 1, LEVELS.length);
+      buildRound();
+    },
+    resize() {},
+    restart() { buildRound(); },
+    destroy() {},
+
+    update(dt) {
+      S.T += dt;
+      if (S.done) {
+        S.doneT -= dt;
+        if (S.doneT <= 0) {
+          S.level = clamp(S.level + 1, 1, LEVELS.length);
+          saveNumber(BEST_KEY, S.level);
+          buildRound();
+        }
+      }
+    },
+    render() { draw(ctx, S, L); },
+    hud() { return hudOf(S); },
+
+    action(name, down) {
+      if (!down) return;
+      const m = name.match(/^lv(\d)$/);
+      if (m) {
+        const n = +m[1];
+        if (n >= 1 && n <= LEVELS.length) { S.level = n; saveNumber(BEST_KEY, n); buildRound(); }
+        return;
+      }
+      if (name === 'hint') {
+        if (S.hintCol) pick(S.count);   // 再按一次 = 直接答
+        else S.hintCol = true;
+      }
+    },
+
+    tap(x, y) {
+      S.options.forEach((o, i) => {
+        const [ox, oy] = api.optPos(i);
+        if (Math.hypot(x - ox, y - oy) < 42) pick(o);
+      });
+    }
+  };
+
+  /** 答案按钮位置（view 同步使用） */
+  api.optPos = (i) => [170 + i * 155, 505];
+
+  api.controls = createControls();
+  return api;
+}
+
+
+Object.assign(exports, { meta, L, create });
+};
+__factories["js/games/blocks/controls.js"] = function (exports) {
+/* =====================================================================
+   games/blocks/controls.js — 数积木 · 控制层：点答案
+   ===================================================================== */
+
+function createControls() {
+  return {
+    keys: {},
+    pointer(game, p, type) {
+      if (type === 'down') game.tap(p.x, p.y);
+    }
+  };
+}
+
+
+Object.assign(exports, { createControls });
+};
+__factories["js/games/blocks/view.js"] = function (exports) {
+/* =====================================================================
+   games/blocks/view.js — 数积木 · UI 层（2D 画布）
+   等距投影的积木堆：从后往前画，被挡住的积木只露一角；
+   教我之后每摞顶上标出这一摞的块数。
+   ===================================================================== */
+const { clamp } = __req("js/core/util.js");
+
+const PADS =
+  '<div class="row">' +
+    '<button class="pad" data-act="lv1">1</button>' +
+    '<button class="pad" data-act="lv2">2</button>' +
+    '<button class="pad" data-act="lv3">3</button>' +
+  '</div>';
+
+const HINT = '数一数一共有几块小积木 · 点下面的答案 · 💡 教我（每摞标数字）';
+
+function hud(S) {
+  return [
+    ['关卡', String(S.level)],
+    ['星星', '⭐' + (S.stars || 0)]
+  ];
+}
+
+const TW = 52, TH = 26, WALL = 30;   // 顶面菱形宽高 + 立方体高
+
+/** 一块等距立方体：顶面菱形 + 左右两面 */
+function cube(ctx, sx, sy) {
+  ctx.fillStyle = '#66d9e8';
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - WALL);
+  ctx.lineTo(sx + TW / 2, sy - WALL + TH / 2);
+  ctx.lineTo(sx, sy - WALL + TH);
+  ctx.lineTo(sx - TW / 2, sy - WALL + TH / 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#3bc9db';
+  ctx.beginPath();
+  ctx.moveTo(sx - TW / 2, sy - WALL + TH / 2);
+  ctx.lineTo(sx, sy - WALL + TH);
+  ctx.lineTo(sx, sy + TH);
+  ctx.lineTo(sx - TW / 2, sy + TH / 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#15aabf';
+  ctx.beginPath();
+  ctx.moveTo(sx + TW / 2, sy - WALL + TH / 2);
+  ctx.lineTo(sx, sy - WALL + TH);
+  ctx.lineTo(sx, sy + TH);
+  ctx.lineTo(sx + TW / 2, sy + TH / 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(11,84,94,.5)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - WALL);
+  ctx.lineTo(sx + TW / 2, sy - WALL + TH / 2);
+  ctx.lineTo(sx + TW / 2, sy + TH / 2);
+  ctx.lineTo(sx, sy + TH);
+  ctx.lineTo(sx - TW / 2, sy + TH / 2);
+  ctx.lineTo(sx - TW / 2, sy - WALL + TH / 2);
+  ctx.closePath();
+  ctx.moveTo(sx, sy - WALL + TH);
+  ctx.lineTo(sx, sy + TH);
+  ctx.stroke();
+}
+
+function draw(ctx, S, L) {
+  ctx.fillStyle = '#e3fafc';
+  ctx.fillRect(0, 0, L.W, L.H);
+  ctx.fillStyle = '#0c8599';
+  ctx.font = '800 32px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('数一数：一共有几块积木？', L.W / 2, 84);
+  if (S.hintCol) {
+    ctx.font = '700 19px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillStyle = '#e8590c';
+    ctx.fillText('每摞顶上的数字 = 这一摞的块数，加起来试试！', L.W / 2, 120);
+  }
+  ctx.textAlign = 'left';
+
+  const cols = S.heights[0] ? S.heights[0].length : 3;
+  const rows = S.heights.length;
+  const ox = L.W / 2, oy = 190;
+
+  // 从后往前画：z 小的先画
+  for (let z = 0; z < rows; z++) {
+    for (let x = 0; x < cols; x++) {
+      const h = S.heights[z][x];
+      const bx = ox + (x - z) * TW / 2;
+      const by = oy + (x + z) * TH / 2;
+      for (let k = 0; k < h; k++) {
+        cube(ctx, bx, by - k * WALL);
+      }
+      if (h > 0) {
+        // 地面菱形影子
+        ctx.fillStyle = 'rgba(12,133,153,.15)';
+        ctx.beginPath();
+        ctx.moveTo(bx, by + 4);
+        ctx.lineTo(bx + TW / 2, by + 4 + TH / 2);
+        ctx.lineTo(bx, by + 4 + TH);
+        ctx.lineTo(bx - TW / 2, by + 4 + TH / 2);
+        ctx.closePath();
+        ctx.fill();
+        if (S.hintCol) {
+          ctx.fillStyle = '#e8590c';
+          ctx.font = '800 24px "PingFang SC","Microsoft YaHei",sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(String(h), bx, Math.max(132, by - h * WALL - WALL - 8));
+          ctx.textAlign = 'left';
+        }
+      }
+    }
+  }
+
+  // 答案按钮
+  options(ctx, S);
+}
+
+function options(ctx, S) {
+  S.options.forEach((o, i) => {
+    const x = 170 + i * 155, y = 505;
+    ctx.fillStyle = '#0c8599';
+    rr(ctx, x - 45, y - 30, 90, 60, 14);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '800 34px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(o), x, y + 12);
+    ctx.textAlign = 'left';
+  });
+}
+
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+
+Object.assign(exports, { PADS, HINT, hud, draw });
 };
 __factories["js/ui/home.js"] = function (exports) {
 /* =====================================================================

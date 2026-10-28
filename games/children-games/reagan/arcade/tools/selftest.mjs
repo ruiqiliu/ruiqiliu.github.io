@@ -231,6 +231,78 @@ const SCRIPTS = {
     }
   },
 
+  guess: {
+    logic: 30000,
+    frames: 1500,
+    press: function (i, g) {
+      if (i % 25 === 0) g.action('auto', true);   // 教我 = 二分猜中，覆盖提示/结算/升级
+    }
+  },
+
+  sudoku: {
+    logic: 60000,
+    frames: 1500,
+    press: function (i, g) {
+      if (i % 20 === 0) g.action('hint', true);   // 教我逐格填 → 覆盖冲突/完成/升级
+      if (i === 30000) g.action('lv4', true);     // 跳关：6×6
+    }
+  },
+
+  tangram: {
+    logic: 8000,
+    frames: 1500,
+    press: function (i, g) {
+      if (i % 40 === 0) g.action('hint', true);   // 教我自动吸板块 → 过关进下一关
+      if (i === 4000) g.action('lv2', true);
+      if (i === 6000) g.action('lv3', true);
+    }
+  },
+
+  memory: {
+    logic: 60000,
+    frames: 1500,
+    press: function (i, g) {
+      if (i % 25 === 0) g.action('hint', true);   // 教我配对 → 覆盖翻牌/结算/升级
+      if (i % 400 === 200) g.action('lv' + (1 + (rnd(i) % 5)), true);
+    }
+  },
+
+  shop: {
+    logic: 60000,
+    frames: 1500,
+    press: function (i, g) {
+      if (i % 30 === 0) g.action('hint', true);   // 教我找零 → 覆盖放币/结算/升级
+      if (i % 500 === 300) g.action('lv' + (1 + (rnd(i) % 3)), true);
+    }
+  },
+
+  make10: {
+    logic: 60000,
+    frames: 1500,
+    press: function (i, g) {
+      if (i % 25 === 0) g.action('hint', true);   // 教我消一对 → 覆盖配对/清盘/升级
+      if (i % 400 === 200) g.action('lv' + (1 + (rnd(i) % 4)), true);
+    }
+  },
+
+  balance: {
+    logic: 60000,
+    frames: 1500,
+    press: function (i, g) {
+      if (i % 30 === 0) g.action('hint', true);   // 教我配平 → 覆盖放砝码/平衡/升级
+      if (i % 500 === 300) g.action('lv' + (1 + (rnd(i) % 3)), true);
+    }
+  },
+
+  blocks: {
+    logic: 60000,
+    frames: 1500,
+    press: function (i, g) {
+      if (i % 40 === 0) g.action('hint', true);   // 教我标数再答 → 覆盖提示/结算/升级
+      if (i % 500 === 300) g.action('lv' + (1 + (rnd(i) % 3)), true);
+    }
+  },
+
   ride: {
     logic: 60000,    // 纯逻辑快进：自动骑约 3.5 圈，覆盖印章收集 / 卡片 / 地形 / 盖圈庆祝
     frames: 2000,
