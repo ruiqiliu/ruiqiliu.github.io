@@ -60,8 +60,8 @@ export function create(env) {
     const def = LEVELS[S.level - 1];
     const n = def.hi - def.lo + 1;
     const cols = def.cols;
-    const cw = Math.min(86, (L.W - 80) / cols);
-    const chh = Math.min(64, (L.H - 260) / Math.ceil(n / cols));
+    const cw = Math.min(150, (L.W - 80) / cols);
+    const chh = Math.min(96, (L.H - 260) / Math.ceil(n / cols));
     const ox = (L.W - (cols * cw + (cols - 1) * 8)) / 2;
     const oy = 190;
     S.cells = [];

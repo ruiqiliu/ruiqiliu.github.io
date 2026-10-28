@@ -21,7 +21,7 @@ export function hud(S) {
   ];
 }
 
-const TW = 52, TH = 26, WALL = 30;   // 顶面菱形宽高 + 立方体高
+const TW = 72, TH = 36, WALL = 40;   // 顶面菱形宽高 + 立方体高
 
 /** 一块等距立方体：顶面菱形 + 左右两面 */
 function cube(ctx, sx, sy) {

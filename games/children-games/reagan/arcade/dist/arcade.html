@@ -1066,9 +1066,10 @@ const balance = __req("js/games/balance/game.js");
 const blocks = __req("js/games/blocks/game.js");
 
 const games = [
+  guess, sudoku, tangram, memory, shop, make10, balance, blocks,
+  numtrain, ride,
   breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23,
-  garage, brick, numtrain, ride,
-  guess, sudoku, tangram, memory, shop, make10, balance, blocks
+  garage, brick
 ];
 
 function findById(id) {
@@ -11179,8 +11180,8 @@ function create(env) {
     const def = LEVELS[S.level - 1];
     const n = def.hi - def.lo + 1;
     const cols = def.cols;
-    const cw = Math.min(86, (L.W - 80) / cols);
-    const chh = Math.min(64, (L.H - 260) / Math.ceil(n / cols));
+    const cw = Math.min(150, (L.W - 80) / cols);
+    const chh = Math.min(96, (L.H - 260) / Math.ceil(n / cols));
     const ox = (L.W - (cols * cw + (cols - 1) * 8)) / 2;
     const oy = 190;
     S.cells = [];
@@ -11495,7 +11496,7 @@ function create(env) {
   }
 
   function layout() {
-    const cs = Math.min(78, (L.H - 330) / S.size);
+    const cs = Math.min(112, (L.H - 250) / S.size);
     const ox = (L.W - S.size * cs) / 2;
     const oy = 150;
     S.cellRects = [];
@@ -11784,11 +11785,19 @@ const LEVELS = [
   { mode: 'free', name: '自由拼搭', pieces: [0, 1, 2, 3, 4, 5, 6] },
   {
     mode: 'puzzle', name: '小板拼方', pieces: [4, 5],
-    targets: { 4: [[4, 4], [6, 6], [2, 6]], 5: [[2, 6], [6, 6], [4, 8]] }, scale: 110
+    targets: { 4: [[4, 4], [6, 6], [2, 6]], 5: [[2, 6], [6, 6], [4, 8]] }, scale: 150
   },
   {
     mode: 'puzzle', name: '大板拼三角', pieces: [0, 1],
-    targets: { 0: [[0, 0], [8, 0], [4, 4]], 1: [[0, 0], [4, 4], [0, 8]] }, scale: 36
+    targets: { 0: [[0, 0], [8, 0], [4, 4]], 1: [[0, 0], [4, 4], [0, 8]] }, scale: 60
+  },
+  {
+    mode: 'puzzle', name: '中板加两小', pieces: [2, 4, 5],
+    targets: { 2: [[4, 0], [8, 0], [4, 4]], 4: [[0, 0], [4, 0], [2, 2]], 5: [[2, 2], [4, 0], [4, 4]] }, scale: 52
+  },
+  {
+    mode: 'puzzle', name: '拼梯形', pieces: [0, 2],
+    targets: { 0: [[0, 0], [8, 0], [4, 4]], 2: [[4, 4], [8, 4], [8, 0]] }, scale: 68
   }
 ];
 
@@ -11824,6 +11833,15 @@ function create(env) {
       }
       return p;
     });
+    // 拼板剪影居中：目标包围盒中心对到 (400, 240)，重算各目标屏幕坐标
+    if (def.mode === 'puzzle') {
+      const all = [...S.targets.values()];
+      const cx = (Math.min(...all.map((t) => t.tx)) + Math.max(...all.map((t) => t.tx))) / 2;
+      const cy = (Math.min(...all.map((t) => t.ty)) + Math.max(...all.map((t) => t.ty))) / 2;
+      const dx = 400 - cx, dy = 240 - cy;
+      S.offX += dx; S.offY += dy;
+      S.targets.forEach((t) => { t.tx += dx; t.ty += dy; });
+    }
     // 打散摆到托盘区（两排，屏幕像素）
     S.pieces.forEach((p, k) => {
       p.x = 140 + (k % 4) * 180;
@@ -11999,6 +12017,8 @@ const PADS =
     '<button class="pad" data-act="lv1">自由</button>' +
     '<button class="pad" data-act="lv2">2</button>' +
     '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+    '<button class="pad" data-act="lv5">5</button>' +
   '</div>';
 
 const HINT = '拖动板块摆放 · 点一下板块 = 旋转 45° · 靠近正确位置会自动吸住';
@@ -12117,7 +12137,7 @@ const BASE = [
   { name: '正方', poly: [[4, 4], [6, 6], [4, 8], [2, 6]] },
   { name: '小三角', poly: [[4, 4], [8, 4], [6, 6]] },
   { name: '小三角', poly: [[4, 8], [8, 8], [6, 6]] },
-  { name: '平行四边', poly: [[0, 8], [2, 6], [6, 6], [4, 8]] }
+  { name: '平行四边', poly: [[2, 6], [4, 8], [8, 8], [6, 6]] }
 ];
 
 const rot = (p, a, cx, cy) => {
@@ -12170,8 +12190,41 @@ function pieceVerts(pieceIdx, x, y, k, scale = 1) {
 const pieceCentroid = (pieceIdx) => centroid(BASE[pieceIdx].poly);
 const pieceName = (pieceIdx) => BASE[pieceIdx].name;
 
+/** 各拼图：7 块板的目标多边形（网格坐标；CLASSIC = 经典正方形剖分的刚体旋转变体） */
+const PUZZLE_CLASSIC = [
+  [[0, 0], [8, 0], [4, 4]],
+  [[0, 0], [4, 4], [0, 8]],
+  [[4, 4], [8, 4], [8, 0]],
+  [[4, 4], [6, 6], [4, 8], [2, 6]],
+  [[4, 4], [8, 4], [6, 6]],
+  [[4, 8], [8, 8], [6, 6]],
+  [[2, 6], [4, 8], [8, 8], [6, 6]]
+];
+function rotateTargets(deg) {
+  const a = (deg * Math.PI) / 180;
+  return PUZZLE_CLASSIC.map((poly) => poly.map((p) => rot(p, a, 4, 4)));
+}
+const PUZZLES = [
+  { name: '正方形', targets: 'CLASSIC' },
+  { name: '斜正方形', targets: 'CLASSIC_45' },
+  { name: '正方形·转个方向', targets: 'CLASSIC_90' },
+  { name: '斜正方形·另一边', targets: 'CLASSIC_135' },
+  { name: '大三角形', targets: [[0, 8], [8, 0], [8, 8]] },
+  { name: '长方形', targets: [[0, 0], [8, 0], [8, 2], [0, 2]] },
+  { name: '平行四边形', targets: [[0, 0], [4, 0], [8, 4], [4, 4]] },
+  { name: '梯形', targets: [[0, 8], [16, 8], [12, 0], [4, 0]] }
+];
+function puzzleTargets(idx) {
+  const p = PUZZLES[idx];
+  return p.targets === 'CLASSIC' ? PUZZLE_CLASSIC
+    : p.targets === 'CLASSIC_45' ? rotateTargets(45)
+    : p.targets === 'CLASSIC_90' ? rotateTargets(90)
+    : p.targets === 'CLASSIC_135' ? rotateTargets(135)
+    : p.targets;
+}
 
-Object.assign(exports, { BASE, solvePlacement, pieceVerts, pieceCentroid, pieceName });
+
+Object.assign(exports, { BASE, solvePlacement, pieceVerts, pieceCentroid, pieceName, PUZZLES, puzzleTargets });
 };
 __factories["js/games/memory/game.js"] = function (exports) {
 /* =====================================================================
@@ -12235,8 +12288,8 @@ function create(env) {
   /* 布局（view 只读坐标） */
   function layout() {
     const def = LEVELS[S.level - 1];
-    const cw = Math.min(110, (L.W - 80) / def.cols - 8);
-    const ch = Math.min(130, (L.H - 190) / def.rows - 8);
+    const cw = Math.min(180, (L.W - 80) / def.cols - 10);
+    const ch = Math.min(200, (L.H - 200) / def.rows - 10);
     const ox = (L.W - (def.cols * cw + (def.cols - 1) * 10)) / 2;
     const oy = 150 + (L.H - 220 - def.rows * ch - (def.rows - 1) * 10) / 2;
     S.cards.forEach((c, i) => {
@@ -12748,14 +12801,16 @@ function draw(ctx, S, L) {
     ? `${S.item.name}${S.item.price} 元 + ${S.item2.name}${S.item2.price} 元`
     : `${S.item.name} ${S.item.price} 元`;
   ctx.fillStyle = 'rgba(255,255,255,.9)';
-  rr(ctx, L.W - 330, 96, 300, 62, 16);
+  rr(ctx, L.W - 460, 60, 300, 62, 16);
   ctx.fill();
   ctx.fillStyle = '#4a3b28';
   ctx.font = '700 19px "PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText(want, L.W - 180, 122);
+  ctx.textAlign = 'center';
+  ctx.fillText(want, L.W - 310, 86);
   ctx.font = '800 20px "PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillStyle = '#e8590c';
-  ctx.fillText(`付了 ${S.pay} 元`, L.W - 180, 148);
+  ctx.fillText(`付了 ${S.pay} 元`, L.W - 310, 112);
+  ctx.textAlign = 'left';
 
   // 商品 + 价签（柜台上）
   ctx.font = `52px ${FONT_EMOJI}`;
@@ -12778,7 +12833,9 @@ function draw(ctx, S, L) {
   // 找零目标提示
   ctx.font = '800 26px "PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillStyle = '#1864ab';
-  ctx.fillText(`要找：${S.change} 元`, L.W / 2, 200);
+  ctx.textAlign = 'center';
+  ctx.fillText(`要找：${S.change} 元`, L.W / 2, 210);
+  ctx.textAlign = 'left';
   // 托盘
   ctx.fillStyle = '#d9c896';
   rr(ctx, L.W / 2 - 160, 340, 320, 90, 16);
@@ -12801,7 +12858,7 @@ function draw(ctx, S, L) {
   // 钱罐硬币
   ctx.fillStyle = '#4a3b28';
   ctx.font = '700 16px "PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('钱罐（点硬币找零）', 90, 428);
+  ctx.fillText('钱罐（点硬币找零）', 105, 436);
   for (const c of S.coins) {
     ctx.globalAlpha = c.used ? 0.18 : 1;
     coin(ctx, c.x, c.y, c.r, c.v);
@@ -12867,7 +12924,7 @@ function create(env) {
     const n = S.cards.length;
     const cols = Math.min(4, n);
     const rows = Math.ceil(n / cols);
-    const bs = Math.min(120, (L.W - 120) / cols - 10, (L.H - 250) / rows - 12);
+    const bs = Math.min(150, (L.W - 110) / cols - 12, (L.H - 230) / rows - 14);
     const ox = (L.W - (cols * bs + (cols - 1) * 12)) / 2;
     const oy = 170 + (L.H - 260 - rows * bs - (rows - 1) * 12) / 2;
     S.cards.forEach((c, i) => {
@@ -13570,7 +13627,7 @@ function hud(S) {
   ];
 }
 
-const TW = 52, TH = 26, WALL = 30;   // 顶面菱形宽高 + 立方体高
+const TW = 72, TH = 36, WALL = 40;   // 顶面菱形宽高 + 立方体高
 
 /** 一块等距立方体：顶面菱形 + 左右两面 */
 function cube(ctx, sx, sy) {

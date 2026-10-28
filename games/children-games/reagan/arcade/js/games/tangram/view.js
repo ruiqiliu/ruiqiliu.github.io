@@ -10,6 +10,8 @@ export const PADS =
     '<button class="pad" data-act="lv1">自由</button>' +
     '<button class="pad" data-act="lv2">2</button>' +
     '<button class="pad" data-act="lv3">3</button>' +
+    '<button class="pad" data-act="lv4">4</button>' +
+    '<button class="pad" data-act="lv5">5</button>' +
   '</div>';
 
 export const HINT = '拖动板块摆放 · 点一下板块 = 旋转 45° · 靠近正确位置会自动吸住';

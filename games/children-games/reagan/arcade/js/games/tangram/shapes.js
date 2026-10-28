@@ -13,7 +13,7 @@ export const BASE = [
   { name: '正方', poly: [[4, 4], [6, 6], [4, 8], [2, 6]] },
   { name: '小三角', poly: [[4, 4], [8, 4], [6, 6]] },
   { name: '小三角', poly: [[4, 8], [8, 8], [6, 6]] },
-  { name: '平行四边', poly: [[0, 8], [2, 6], [6, 6], [4, 8]] }
+  { name: '平行四边', poly: [[2, 6], [4, 8], [8, 8], [6, 6]] }
 ];
 
 const rot = (p, a, cx, cy) => {
@@ -65,3 +65,36 @@ export function pieceVerts(pieceIdx, x, y, k, scale = 1) {
 
 export const pieceCentroid = (pieceIdx) => centroid(BASE[pieceIdx].poly);
 export const pieceName = (pieceIdx) => BASE[pieceIdx].name;
+
+/** 各拼图：7 块板的目标多边形（网格坐标；CLASSIC = 经典正方形剖分的刚体旋转变体） */
+const PUZZLE_CLASSIC = [
+  [[0, 0], [8, 0], [4, 4]],
+  [[0, 0], [4, 4], [0, 8]],
+  [[4, 4], [8, 4], [8, 0]],
+  [[4, 4], [6, 6], [4, 8], [2, 6]],
+  [[4, 4], [8, 4], [6, 6]],
+  [[4, 8], [8, 8], [6, 6]],
+  [[2, 6], [4, 8], [8, 8], [6, 6]]
+];
+function rotateTargets(deg) {
+  const a = (deg * Math.PI) / 180;
+  return PUZZLE_CLASSIC.map((poly) => poly.map((p) => rot(p, a, 4, 4)));
+}
+export const PUZZLES = [
+  { name: '正方形', targets: 'CLASSIC' },
+  { name: '斜正方形', targets: 'CLASSIC_45' },
+  { name: '正方形·转个方向', targets: 'CLASSIC_90' },
+  { name: '斜正方形·另一边', targets: 'CLASSIC_135' },
+  { name: '大三角形', targets: [[0, 8], [8, 0], [8, 8]] },
+  { name: '长方形', targets: [[0, 0], [8, 0], [8, 2], [0, 2]] },
+  { name: '平行四边形', targets: [[0, 0], [4, 0], [8, 4], [4, 4]] },
+  { name: '梯形', targets: [[0, 8], [16, 8], [12, 0], [4, 0]] }
+];
+export function puzzleTargets(idx) {
+  const p = PUZZLES[idx];
+  return p.targets === 'CLASSIC' ? PUZZLE_CLASSIC
+    : p.targets === 'CLASSIC_45' ? rotateTargets(45)
+    : p.targets === 'CLASSIC_90' ? rotateTargets(90)
+    : p.targets === 'CLASSIC_135' ? rotateTargets(135)
+    : p.targets;
+}

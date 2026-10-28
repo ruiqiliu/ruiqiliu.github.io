@@ -59,8 +59,8 @@ export function create(env) {
   /* 布局（view 只读坐标） */
   function layout() {
     const def = LEVELS[S.level - 1];
-    const cw = Math.min(110, (L.W - 80) / def.cols - 8);
-    const ch = Math.min(130, (L.H - 190) / def.rows - 8);
+    const cw = Math.min(180, (L.W - 80) / def.cols - 10);
+    const ch = Math.min(200, (L.H - 200) / def.rows - 10);
     const ox = (L.W - (def.cols * cw + (def.cols - 1) * 10)) / 2;
     const oy = 150 + (L.H - 220 - def.rows * ch - (def.rows - 1) * 10) / 2;
     S.cards.forEach((c, i) => {

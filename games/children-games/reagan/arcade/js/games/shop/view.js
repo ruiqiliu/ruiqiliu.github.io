@@ -65,14 +65,16 @@ export function draw(ctx, S, L) {
     ? `${S.item.name}${S.item.price} 元 + ${S.item2.name}${S.item2.price} 元`
     : `${S.item.name} ${S.item.price} 元`;
   ctx.fillStyle = 'rgba(255,255,255,.9)';
-  rr(ctx, L.W - 330, 96, 300, 62, 16);
+  rr(ctx, L.W - 460, 60, 300, 62, 16);
   ctx.fill();
   ctx.fillStyle = '#4a3b28';
   ctx.font = '700 19px "PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText(want, L.W - 180, 122);
+  ctx.textAlign = 'center';
+  ctx.fillText(want, L.W - 310, 86);
   ctx.font = '800 20px "PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillStyle = '#e8590c';
-  ctx.fillText(`付了 ${S.pay} 元`, L.W - 180, 148);
+  ctx.fillText(`付了 ${S.pay} 元`, L.W - 310, 112);
+  ctx.textAlign = 'left';
 
   // 商品 + 价签（柜台上）
   ctx.font = `52px ${FONT_EMOJI}`;
@@ -95,7 +97,9 @@ export function draw(ctx, S, L) {
   // 找零目标提示
   ctx.font = '800 26px "PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillStyle = '#1864ab';
-  ctx.fillText(`要找：${S.change} 元`, L.W / 2, 200);
+  ctx.textAlign = 'center';
+  ctx.fillText(`要找：${S.change} 元`, L.W / 2, 210);
+  ctx.textAlign = 'left';
   // 托盘
   ctx.fillStyle = '#d9c896';
   rr(ctx, L.W / 2 - 160, 340, 320, 90, 16);
@@ -118,7 +122,7 @@ export function draw(ctx, S, L) {
   // 钱罐硬币
   ctx.fillStyle = '#4a3b28';
   ctx.font = '700 16px "PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('钱罐（点硬币找零）', 90, 428);
+  ctx.fillText('钱罐（点硬币找零）', 105, 436);
   for (const c of S.coins) {
     ctx.globalAlpha = c.used ? 0.18 : 1;
     coin(ctx, c.x, c.y, c.r, c.v);

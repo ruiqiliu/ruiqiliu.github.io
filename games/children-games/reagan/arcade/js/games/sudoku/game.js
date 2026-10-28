@@ -118,7 +118,7 @@ export function create(env) {
   }
 
   function layout() {
-    const cs = Math.min(78, (L.H - 330) / S.size);
+    const cs = Math.min(112, (L.H - 250) / S.size);
     const ox = (L.W - S.size * cs) / 2;
     const oy = 150;
     S.cellRects = [];

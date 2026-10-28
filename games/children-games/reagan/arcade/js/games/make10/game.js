@@ -51,7 +51,7 @@ export function create(env) {
     const n = S.cards.length;
     const cols = Math.min(4, n);
     const rows = Math.ceil(n / cols);
-    const bs = Math.min(120, (L.W - 120) / cols - 10, (L.H - 250) / rows - 12);
+    const bs = Math.min(150, (L.W - 110) / cols - 12, (L.H - 230) / rows - 14);
     const ox = (L.W - (cols * bs + (cols - 1) * 12)) / 2;
     const oy = 170 + (L.H - 260 - rows * bs - (rows - 1) * 12) / 2;
     S.cards.forEach((c, i) => {

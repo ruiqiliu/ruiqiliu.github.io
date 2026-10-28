@@ -28,11 +28,19 @@ const LEVELS = [
   { mode: 'free', name: '自由拼搭', pieces: [0, 1, 2, 3, 4, 5, 6] },
   {
     mode: 'puzzle', name: '小板拼方', pieces: [4, 5],
-    targets: { 4: [[4, 4], [6, 6], [2, 6]], 5: [[2, 6], [6, 6], [4, 8]] }, scale: 110
+    targets: { 4: [[4, 4], [6, 6], [2, 6]], 5: [[2, 6], [6, 6], [4, 8]] }, scale: 150
   },
   {
     mode: 'puzzle', name: '大板拼三角', pieces: [0, 1],
-    targets: { 0: [[0, 0], [8, 0], [4, 4]], 1: [[0, 0], [4, 4], [0, 8]] }, scale: 36
+    targets: { 0: [[0, 0], [8, 0], [4, 4]], 1: [[0, 0], [4, 4], [0, 8]] }, scale: 60
+  },
+  {
+    mode: 'puzzle', name: '中板加两小', pieces: [2, 4, 5],
+    targets: { 2: [[4, 0], [8, 0], [4, 4]], 4: [[0, 0], [4, 0], [2, 2]], 5: [[2, 2], [4, 0], [4, 4]] }, scale: 52
+  },
+  {
+    mode: 'puzzle', name: '拼梯形', pieces: [0, 2],
+    targets: { 0: [[0, 0], [8, 0], [4, 4]], 2: [[4, 4], [8, 4], [8, 0]] }, scale: 68
   }
 ];
 
@@ -68,6 +76,15 @@ export function create(env) {
       }
       return p;
     });
+    // 拼板剪影居中：目标包围盒中心对到 (400, 240)，重算各目标屏幕坐标
+    if (def.mode === 'puzzle') {
+      const all = [...S.targets.values()];
+      const cx = (Math.min(...all.map((t) => t.tx)) + Math.max(...all.map((t) => t.tx))) / 2;
+      const cy = (Math.min(...all.map((t) => t.ty)) + Math.max(...all.map((t) => t.ty))) / 2;
+      const dx = 400 - cx, dy = 240 - cy;
+      S.offX += dx; S.offY += dy;
+      S.targets.forEach((t) => { t.tx += dx; t.ty += dy; });
+    }
     // 打散摆到托盘区（两排，屏幕像素）
     S.pieces.forEach((p, k) => {
       p.x = 140 + (k % 4) * 180;

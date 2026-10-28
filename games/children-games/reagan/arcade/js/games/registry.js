@@ -26,9 +26,10 @@ import * as balance from './balance/game.js';
 import * as blocks from './blocks/game.js';
 
 export const games = [
+  guess, sudoku, tangram, memory, shop, make10, balance, blocks,
+  numtrain, ride,
   breaker, snake, tetris, moto, flappy, maze, puzzle, g1024, m23,
-  garage, brick, numtrain, ride,
-  guess, sudoku, tangram, memory, shop, make10, balance, blocks
+  garage, brick
 ];
 
 export function findById(id) {
